@@ -162,6 +162,62 @@ btnExport.addEventListener('click', async ()=>{
   setTimeout(()=>URL.revokeObjectURL(url), 1500);
   setStatus('Done. Downloaded.');
 });
+
+<script>
+// ... keep everything above as-is
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();           // ensure it's in the DOM before click
+  a.remove();
+  // give the browser a moment before revoking
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
+btnExport.addEventListener('click', async () => {
+  if (!arrayBuffer) return alert('Choose a PDF first.');
+
+  if (selected.size === 0) {
+    if (!confirm('No pages selected. Export original PDF?')) return;
+  }
+
+  try {
+    setStatus('Building new PDF…');
+    const src = await PDFLib.PDFDocument.load(arrayBuffer);
+
+    // pages to keep (zero-based indices)
+    const keep = [];
+    for (let i = 0; i < src.getPageCount(); i++) {
+      const pageNum = i + 1;
+      if (!selected.has(pageNum)) keep.push(i);
+    }
+    if (keep.length === 0) {
+      alert('All pages are selected for deletion. Nothing to keep.');
+      setStatus('Cancelled.');
+      return;
+    }
+
+    const out = await PDFLib.PDFDocument.create();
+    const copied = await out.copyPages(src, keep);
+    copied.forEach(p => out.addPage(p));
+
+    // some browsers are happier if a link is in the DOM
+    const bytes = await out.save(); // you can also use: out.save({ useObjectStreams:false })
+    const blob  = new Blob([bytes], { type: 'application/pdf' });
+    downloadBlob(blob, 'pdf-without-pages.pdf');
+
+    setStatus('Done. Downloaded.');
+  } catch (err) {
+    console.error(err);
+    setStatus('Error: ' + (err?.message || err));
+    alert('Could not create the new PDF. See console for details.');
+  }
+});
 </script>
 </body>
 </html>
