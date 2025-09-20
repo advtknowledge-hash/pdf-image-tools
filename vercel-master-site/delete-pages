@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Delete PDF Pages (Client-side)</title>
+<link rel="icon" href="/favicon.svg" />
+<style>
+  :root{--bg:#0b0f14;--panel:#121821;--muted:#1b2230;--text:#e8eef6;--sub:#aab7c7;--accent:#6aa0ff}
+  *{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#0b0f14,#0e1420);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial}
+  header{padding:14px 16px;border-bottom:1px solid #1a2230;background:#0f1622} header h1{margin:0;font-size:18px}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px}
+  .panel{background:#121821;border:1px solid #1a2230;border-radius:14px;padding:16px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+  .btn{appearance:none;border:1px solid #2a364a;background:#162233;color:#e8eef6;padding:9px 12px;border-radius:10px;cursor:pointer}
+  .btn.primary{background:var(--accent);border-color:#508cff;color:#08111f;font-weight:600}
+  input[type=file]{display:none}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+  .card{background:#0f1622;border:1px solid #1b2535;border-radius:10px;padding:8px}
+  .thumb{width:100%;height:200px;background:#0c1220;border:1px solid #1b2535;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  canvas{max-width:100%;max-height:100%}
+  .small{color:#aab7c7;font-size:12px;margin-top:6px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .badge{background:#1a2440;color:#cfe1ff;padding:2px 6px;border-radius:8px;font-size:11px}
+  .muted{color:#aab7c7}
+</style>
+</head>
+<body>
+<header><h1>🗂 Delete PDF Pages (Client-side)</h1></header>
+
+<div class="wrap">
+  <div class="panel">
+    <div class="row" style="justify-content:space-between">
+      <div class="row">
+        <label class="btn primary" for="file">Choose PDF</label>
+        <input id="file" type="file" accept="application/pdf">
+        <span id="meta" class="muted">No file</span>
+      </div>
+      <div class="row">
+        <input id="ranges" placeholder="Page ranges e.g. 1,3,5-7 (to delete)" style="padding:9px 10px;border-radius:10px;border:1px solid #2a364a;background:#0f1622;color:#e8eef6;min-width:280px">
+        <button class="btn" id="btnSelectRanges">Mark by ranges</button>
+        <button class="btn" id="btnSelectAll">Select all</button>
+        <button class="btn" id="btnClear">Clear</button>
+        <button class="btn primary" id="btnExport">Download New PDF</button>
+      </div>
+    </div>
+
+    <div id="status" class="muted" style="margin:6px 0 12px">Idle…</div>
+    <div id="pages" class="grid"></div>
+  </div>
+  <p class="muted" style="margin-top:10px">
+    Privacy: All processing happens locally in your browser using <a href="https://mozilla.github.io/pdf.js/" target="_blank" rel="noopener">PDF.js</a> (for preview) and
+    <a href="https://pdf-lib.js.org/" target="_blank" rel="noopener">pdf-lib</a> (for writing). No uploads.
+  </p>
+</div>
+
+<!-- PDF.js (viewer) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script>
+<!-- pdf-lib (writer) -->
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
+<script>
+const $=s=>document.querySelector(s);
+const fileEl=$('#file'), pagesEl=$('#pages'), metaEl=$('#meta'), statusEl=$('#status');
+const rangesEl=$('#ranges'), btnRanges=$('#btnSelectRanges'), btnAll=$('#btnSelectAll'), btnClear=$('#btnClear'), btnExport=$('#btnExport');
+
+let arrayBuffer=null, pdfDoc=null, pageCount=0, selected=new Set(); // selected = pages to delete (1-based)
+
+// helpers
+function setStatus(t){ statusEl.textContent=t; }
+function cardFor(i, canvas){
+  const wrap=document.createElement('div'); wrap.className='card';
+  const thumb=document.createElement('div'); thumb.className='thumb'; thumb.appendChild(canvas);
+  const small=document.createElement('div'); small.className='small';
+  const left=document.createElement('div'); left.innerHTML=`<span class="badge">#${i}</span>`;
+  const right=document.createElement('label'); right.style.display='flex'; right.style.alignItems='center'; right.style.gap='6px';
+  const cb=document.createElement('input'); cb.type='checkbox'; cb.dataset.page=i;
+  cb.addEventListener('change', (e)=>{ const p=Number(e.target.dataset.page); if(e.target.checked) selected.add(p); else selected.delete(p); updateMeta(); });
+  right.append(cb, document.createTextNode('Delete'));
+  small.append(left,right);
+  wrap.append(thumb,small);
+  return wrap;
+}
+function updateMeta(){
+  metaEl.textContent = arrayBuffer ? `${pageCount} pages • ${selected.size} selected to delete` : 'No file';
+}
+
+// render thumbnails
+async function renderPages(){
+  pagesEl.innerHTML='';
+  const loadingTask=pdfjsLib.getDocument({data: arrayBuffer});
+  const pdf=await loadingTask.promise;
+  pageCount=pdf.numPages; updateMeta();
+  for(let i=1;i<=pageCount;i++){
+    const page=await pdf.getPage(i);
+    const viewport=page.getViewport({scale:0.25}); // small preview
+    const canvas=document.createElement('canvas'); const ctx=canvas.getContext('2d');
+    canvas.width=viewport.width; canvas.height=viewport.height;
+    await page.render({canvasContext:ctx, viewport}).promise;
+    pagesEl.appendChild(cardFor(i, canvas));
+  }
+  setStatus('Ready. Tick pages to delete, or enter ranges then click “Mark by ranges”.');
+}
+
+// parse ranges like "1,3,5-7"
+function parseRanges(txt){
+  const out=new Set();
+  txt.split(',').map(s=>s.trim()).filter(Boolean).forEach(part=>{
+    const m=part.match(/^(\d+)\s*-\s*(\d+)$/);
+    if(m){ let a=+m[1], b=+m[2]; if(a>b)[a,b]=[b,a]; for(let i=a;i<=b;i++) out.add(i); }
+    else if(/^\d+$/.test(part)){ out.add(+part); }
+  });
+  return out;
+}
+
+// events
+fileEl.addEventListener('change', async (e)=>{
+  const f=e.target.files?.[0]; if(!f) return;
+  metaEl.textContent = `${f.name} — loading…`;
+  arrayBuffer=await f.arrayBuffer();
+  await renderPages();
+});
+
+btnAll.addEventListener('click', ()=>{
+  selected = new Set(Array.from({length:pageCount},(_,i)=>i+1));
+  document.querySelectorAll('input[type=checkbox][data-page]').forEach(cb=>cb.checked=true);
+  updateMeta();
+});
+btnClear.addEventListener('click', ()=>{
+  selected.clear();
+  document.querySelectorAll('input[type=checkbox][data-page]').forEach(cb=>cb.checked=false);
+  updateMeta();
+});
+btnRanges.addEventListener('click', ()=>{
+  const set=parseRanges(rangesEl.value||'');
+  document.querySelectorAll('input[type=checkbox][data-page]').forEach(cb=>{
+    const p=Number(cb.dataset.page);
+    cb.checked = set.has(p);
+    if(cb.checked) selected.add(p); else selected.delete(p);
+  });
+  updateMeta();
+});
+
+btnExport.addEventListener('click', async ()=>{
+  if(!arrayBuffer) return alert('Choose a PDF first.');
+  if(selected.size===0) if(!confirm('No pages selected. Export original PDF?')) return;
+  setStatus('Building new PDF…');
+  const src = await PDFLib.PDFDocument.load(arrayBuffer);
+  const out = await PDFLib.PDFDocument.create();
+  const keep = [];
+  for(let i=0;i<src.getPageCount();i++){
+    const pageNum = i+1;
+    if(!selected.has(pageNum)) keep.push(i);
+  }
+  if(keep.length===0){ alert('All pages are selected for deletion. Nothing to keep.'); setStatus('Cancelled.'); return; }
+  const copied = await out.copyPages(src, keep);
+  copied.forEach(p=>out.addPage(p));
+  const bytes = await out.save();
+  const blob = new Blob([bytes], {type:'application/pdf'});
+  const url = URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='pdf-without-pages.pdf'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 1500);
+  setStatus('Done. Downloaded.');
+});
+</script>
+</body>
+</html>
