@@ -25,6 +25,8 @@
   .badge{background:#1a2440;color:#cfe1ff;padding:2px 6px;border-radius:8px;font-size:11px}
   .muted{color:#aab7c7}
   .hint{font-size:12px;color:#aab7c7;margin-top:6px}
+  .error{background:#2a1320;color:#ffd4e0;border:1px solid #5a2037;padding:10px;border-radius:10px;margin-top:10px;white-space:pre-wrap}
+  .toggle{display:flex;gap:8px;align-items:center}
 </style>
 </head>
 <body>
@@ -48,10 +50,17 @@
       </div>
     </div>
 
-    <div id="status" class="muted" style="margin:6px 0 8px">Idle…</div>
+    <div class="toggle" style="margin:-6px 0 8px">
+      <input type="checkbox" id="forceCompat">
+      <label for="forceCompat" class="muted">Force compatibility mode (use images)</label>
+    </div>
+
+    <div id="status" class="muted" style="margin:2px 0 8px">Idle…</div>
     <div id="pages" class="grid"></div>
-    <div class="hint">If fast deletion fails, the app will automatically use a compatible fallback (slightly larger file).</div>
+    <div class="hint">Fast mode edits the original PDF structure. Compatibility mode rebuilds pages as images (bigger file but works on tricky PDFs).</div>
+    <div id="err" class="error" style="display:none"></div>
   </div>
+
   <p class="muted" style="margin-top:10px">
     Privacy: All processing happens locally in your browser using <a href="https://mozilla.github.io/pdf.js/" target="_blank" rel="noopener">PDF.js</a> (for preview) and
     <a href="https://pdf-lib.js.org/" target="_blank" rel="noopener">pdf-lib</a> (for writing). No uploads.
@@ -66,13 +75,16 @@
 
 <script>
 const $=s=>document.querySelector(s);
-const fileEl=$('#file'), pagesEl=$('#pages'), metaEl=$('#meta'), statusEl=$('#status');
+const fileEl=$('#file'), pagesEl=$('#pages'), metaEl=$('#meta'), statusEl=$('#status'), errEl=$('#err');
 const rangesEl=$('#ranges'), btnRanges=$('#btnSelectRanges'), btnAll=$('#btnSelectAll'), btnClear=$('#btnClear'), btnExport=$('#btnExport');
+const forceCompatEl=$('#forceCompat');
 
 let arrayBuffer=null, pageCount=0, selected=new Set();
 
-// helpers
 function setStatus(t){ statusEl.textContent=t; }
+function showError(text){ errEl.style.display='block'; errEl.textContent = String(text || '').slice(0, 4000); }
+function clearError(){ errEl.style.display='none'; errEl.textContent=''; }
+
 function cardFor(i, canvas){
   const wrap=document.createElement('div'); wrap.className='card';
   const thumb=document.createElement('div'); thumb.className='thumb'; thumb.appendChild(canvas);
@@ -88,9 +100,9 @@ function cardFor(i, canvas){
 }
 function updateMeta(){ metaEl.textContent=arrayBuffer?`${pageCount} pages • ${selected.size} selected to delete`:'No file'; }
 
-// render thumbnails
 async function renderPages(){
   pagesEl.innerHTML='';
+  clearError();
   const pdf=await pdfjsLib.getDocument({data: arrayBuffer}).promise;
   pageCount=pdf.numPages; updateMeta();
   for(let i=1;i<=pageCount;i++){
@@ -104,7 +116,6 @@ async function renderPages(){
   setStatus('Ready. Tick pages or enter ranges.');
 }
 
-// parse ranges
 function parseRanges(txt){
   const out=new Set();
   txt.split(',').map(s=>s.trim()).filter(Boolean).forEach(part=>{
@@ -115,7 +126,6 @@ function parseRanges(txt){
   return out;
 }
 
-// events
 fileEl.addEventListener('change',async e=>{
   const f=e.target.files?.[0]; if(!f) return;
   metaEl.textContent=`${f.name} — loading…`;
@@ -142,98 +152,113 @@ btnRanges.addEventListener('click',()=>{
   updateMeta();
 });
 
-// download with fallback new tab
+// download with fallback to new tab
 function downloadOrOpen(blob, filename){
   if (navigator.msSaveOrOpenBlob) { navigator.msSaveOrOpenBlob(blob, filename); return; }
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = filename; a.rel = 'noopener'; a.style.display = 'none';
+  a.href = url; a.download = filename; a.rel='noopener'; a.style.display='none';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>{ try{ window.open(url,'_blank','noopener'); }catch{} setTimeout(()=>URL.revokeObjectURL(url),5000); }, 600);
 }
 
-/* ---------- BUILDERS ---------- */
+/* --------- BUILDERS --------- */
 
-// 1) FAST: remove pages in place (most robust with pdf-lib)
-async function buildByRemovePages(ab, pagesToDeleteSet){
-  const doc = await PDFLib.PDFDocument.load(ab, { ignoreEncryption: true });
-  // build list of indices to remove (0-based), sort DESC so indexes stay valid
-  const removeIdx = [];
-  for (let i=0;i<doc.getPageCount();i++){
-    const pageNum = i+1;
-    if (pagesToDeleteSet.has(pageNum)) removeIdx.push(i);
-  }
-  removeIdx.sort((a,b)=>b-a).forEach(i => doc.removePage(i));
-  const bytes = await doc.save({ useObjectStreams: false });
-  return new Blob([bytes], { type: 'application/pdf' });
-}
-
-// 2) FALLBACK: rasterize kept pages and write images into a new PDF
-async function buildByRaster(ab, keepSet){
-  const pdf = await pdfjsLib.getDocument({data: ab}).promise;
-  const out = await PDFLib.PDFDocument.create();
-
-  for(let i=1;i<=pdf.numPages;i++){
-    if(!keepSet.has(i)) continue;
-
-    const page = await pdf.getPage(i);
-    const baseVp = page.getViewport({ scale: 1 });
-    const renderScale = 2; // ~144 DPI
-    const vp = page.getViewport({ scale: renderScale });
-
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    canvas.width = vp.width; canvas.height = vp.height;
-
-    await page.render({ canvasContext: ctx, viewport: vp }).promise;
-    const dataUrl = canvas.toDataURL('image/png');
-    const img = await out.embedPng(dataUrl);
-
-    const pageWidthPt  = baseVp.width  * 0.75;
-    const pageHeightPt = baseVp.height * 0.75;
-
-    const p = out.addPage([pageWidthPt, pageHeightPt]);
-    p.drawImage(img, { x: 0, y: 0, width: pageWidthPt, height: pageHeightPt });
-
-    canvas.width = 0; canvas.height = 0;
-  }
-
-  const bytes = await out.save({ useObjectStreams:false });
+// Fast: remove pages in-place
+async function buildByRemovePages(ab, deleteSet){
+  const doc = await PDFLib.PDFDocument.load(ab, { ignoreEncryption:true });
+  const removeIdx=[];
+  for (let i=0;i<doc.getPageCount();i++){ if (deleteSet.has(i+1)) removeIdx.push(i); }
+  removeIdx.sort((a,b)=>b-a).forEach(i=>doc.removePage(i));
+  const bytes = await doc.save({ useObjectStreams:false });
   return new Blob([bytes], { type:'application/pdf' });
 }
 
-/* ---------- EXPORT ---------- */
+// Compatibility: rasterize kept pages. It also auto-lowers quality if memory errors happen.
+async function buildByRaster(ab, keepSet, startScale=2){
+  const pdf = await pdfjsLib.getDocument({data: ab}).promise;
+  const out = await PDFLib.PDFDocument.create();
+
+  let renderScale = startScale; // try 2 (~144dpi), then 1.5, then 1
+  const tryOnce = async () => {
+    for (let i=1;i<=pdf.numPages;i++){
+      if(!keepSet.has(i)) continue;
+
+      const page = await pdf.getPage(i);
+      const baseVp = page.getViewport({ scale: 1 });
+      const vp = page.getViewport({ scale: renderScale });
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      canvas.width = vp.width; canvas.height = vp.height;
+
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.92); // JPEG smaller than PNG for scans
+      const img = await out.embedJpg(dataUrl);
+
+      const pageWidthPt  = baseVp.width  * 0.75;
+      const pageHeightPt = baseVp.height * 0.75;
+      const p = out.addPage([pageWidthPt, pageHeightPt]);
+      p.drawImage(img, { x: 0, y: 0, width: pageWidthPt, height: pageHeightPt });
+
+      canvas.width = 0; canvas.height = 0;
+
+      // yield to UI to avoid blocking (helps long docs)
+      await new Promise(r => setTimeout(r, 0));
+    }
+    const bytes = await out.save({ useObjectStreams:false });
+    return new Blob([bytes], { type:'application/pdf' });
+  };
+
+  try { return await tryOnce(); }
+  catch (e1) {
+    if (renderScale > 1.5) { renderScale = 1.5; try { return await tryOnce(); } catch(e2) { /* continue */ } }
+    if (renderScale > 1.0) { renderScale = 1.0; return await tryOnce(); }
+    throw e1;
+  }
+}
+
+/* --------- EXPORT --------- */
 btnExport.addEventListener('click',async()=>{
   if(!arrayBuffer) return alert('Choose a PDF first.');
   if(selected.size===0 && !confirm('No pages selected. Export original PDF?')) return;
 
+  clearError();
+
   try{
-    // Sets we need
     const deleteSet = new Set(selected);
     const keepSet   = new Set();
     for(let i=1;i<=pageCount;i++){ if(!deleteSet.has(i)) keepSet.add(i); }
     if(keepSet.size===0){ alert('All pages selected. Nothing to keep.'); return; }
 
-    // 1) Try remove-in-place
-    setStatus('Building new PDF (fast remove)…');
-    try{
-      const blob1 = await buildByRemovePages(arrayBuffer, deleteSet);
-      downloadOrOpen(blob1, 'pdf-without-pages.pdf');
-      setStatus('Done (fast remove).');
-      return;
-    }catch(e){
-      console.warn('Remove-in-place failed, falling back…', e);
+    const useCompat = forceCompatEl.checked;
+
+    if (!useCompat) {
+      setStatus('Building new PDF (fast remove)…');
+      try{
+        const blob1 = await buildByRemovePages(arrayBuffer, deleteSet);
+        downloadOrOpen(blob1, 'pdf-without-pages.pdf');
+        setStatus('Done (fast remove).');
+        return;
+      }catch(e){
+        showError('Fast mode failed:\n' + (e?.message || e));
+        console.warn('Fast remove failed, falling back to compatibility mode…', e);
+      }
     }
 
-    // 2) Fallback to raster method
-    setStatus('Building new PDF (fallback)… this may take a bit.');
-    const blob2 = await buildByRaster(arrayBuffer, keepSet);
-    downloadOrOpen(blob2, 'pdf-without-pages.pdf');
-    setStatus('Done (fallback).');
+    setStatus('Building new PDF (compatibility mode)… this may take a bit.');
+    try{
+      const blob2 = await buildByRaster(arrayBuffer, keepSet, 2);
+      downloadOrOpen(blob2, 'pdf-without-pages.pdf');
+      setStatus('Done (compatibility mode).');
+    }catch(e){
+      showError('Compatibility mode failed:\n' + (e?.message || e));
+      setStatus('Error while building PDF.');
+      alert('Could not create the new PDF. See the red box for details.');
+    }
   }catch(err){
-    console.error('[Delete Pages] Fatal error:', err);
-    setStatus('Error: ' + (err?.message || err));
-    alert('Could not create the new PDF. See console for details.');
+    showError('Unexpected error:\n' + (err?.message || err));
+    setStatus('Error.');
   }
 });
 </script>
