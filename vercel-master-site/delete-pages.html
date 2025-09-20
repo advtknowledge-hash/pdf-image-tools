@@ -79,7 +79,9 @@ const fileEl=$('#file'), pagesEl=$('#pages'), metaEl=$('#meta'), statusEl=$('#st
 const rangesEl=$('#ranges'), btnRanges=$('#btnSelectRanges'), btnAll=$('#btnSelectAll'), btnClear=$('#btnClear'), btnExport=$('#btnExport');
 const forceCompatEl=$('#forceCompat');
 
-let arrayBuffer=null, pageCount=0, selected=new Set();
+// IMPORTANT: keep the file as Uint8Array (not raw ArrayBuffer)
+let fileBytes=null;   // Uint8Array of the PDF
+let pageCount=0, selected=new Set();
 
 function setStatus(t){ statusEl.textContent=t; }
 function showError(text){ errEl.style.display='block'; errEl.textContent = String(text || '').slice(0, 4000); }
@@ -98,12 +100,13 @@ function cardFor(i, canvas){
   wrap.append(thumb,small);
   return wrap;
 }
-function updateMeta(){ metaEl.textContent=arrayBuffer?`${pageCount} pages • ${selected.size} selected to delete`:'No file'; }
+function updateMeta(){ metaEl.textContent=fileBytes?`${pageCount} pages • ${selected.size} selected to delete`:'No file'; }
 
 async function renderPages(){
   pagesEl.innerHTML='';
   clearError();
-  const pdf=await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+  // pass a FRESH copy into PDF.js (avoid detaching the original)
+  const pdf=await pdfjsLib.getDocument({data: new Uint8Array(fileBytes)}).promise;
   pageCount=pdf.numPages; updateMeta();
   for(let i=1;i<=pageCount;i++){
     const page=await pdf.getPage(i);
@@ -112,7 +115,9 @@ async function renderPages(){
     canvas.width=viewport.width; canvas.height=viewport.height;
     await page.render({canvasContext:ctx, viewport}).promise;
     pagesEl.appendChild(cardFor(i, canvas));
+    page.cleanup && page.cleanup();
   }
+  pdf.cleanup && pdf.cleanup();
   setStatus('Ready. Tick pages or enter ranges.');
 }
 
@@ -129,7 +134,8 @@ function parseRanges(txt){
 fileEl.addEventListener('change',async e=>{
   const f=e.target.files?.[0]; if(!f) return;
   metaEl.textContent=`${f.name} — loading…`;
-  arrayBuffer=await f.arrayBuffer();
+  const buf = await f.arrayBuffer();
+  fileBytes = new Uint8Array(buf);   // 👈 keep as typed array
   await renderPages();
 });
 btnAll.addEventListener('click',()=>{
@@ -152,7 +158,6 @@ btnRanges.addEventListener('click',()=>{
   updateMeta();
 });
 
-// download with fallback to new tab
 function downloadOrOpen(blob, filename){
   if (navigator.msSaveOrOpenBlob) { navigator.msSaveOrOpenBlob(blob, filename); return; }
   const url = URL.createObjectURL(blob);
@@ -162,11 +167,11 @@ function downloadOrOpen(blob, filename){
   setTimeout(()=>{ try{ window.open(url,'_blank','noopener'); }catch{} setTimeout(()=>URL.revokeObjectURL(url),5000); }, 600);
 }
 
-/* --------- BUILDERS --------- */
+/* --------- BUILDERS (use fresh copies each time) --------- */
 
 // Fast: remove pages in-place
-async function buildByRemovePages(ab, deleteSet){
-  const doc = await PDFLib.PDFDocument.load(ab, { ignoreEncryption:true });
+async function buildByRemovePages(deleteSet){
+  const doc = await PDFLib.PDFDocument.load(new Uint8Array(fileBytes), { ignoreEncryption:true });
   const removeIdx=[];
   for (let i=0;i<doc.getPageCount();i++){ if (deleteSet.has(i+1)) removeIdx.push(i); }
   removeIdx.sort((a,b)=>b-a).forEach(i=>doc.removePage(i));
@@ -174,12 +179,13 @@ async function buildByRemovePages(ab, deleteSet){
   return new Blob([bytes], { type:'application/pdf' });
 }
 
-// Compatibility: rasterize kept pages. It also auto-lowers quality if memory errors happen.
-async function buildByRaster(ab, keepSet, startScale=2){
-  const pdf = await pdfjsLib.getDocument({data: ab}).promise;
-  const out = await PDFLib.PDFDocument.create();
+// Compatibility: rasterize kept pages (with auto quality step-down)
+async function buildByRaster(keepSet, startScale=2){
+  const pdf = await pdfjsLib.getDocument({data: new Uint8Array(fileBytes)}).promise;
 
-  let renderScale = startScale; // try 2 (~144dpi), then 1.5, then 1
+  const out = await PDFLib.PDFDocument.create();
+  let renderScale = startScale;
+
   const tryOnce = async () => {
     for (let i=1;i<=pdf.numPages;i++){
       if(!keepSet.has(i)) continue;
@@ -193,7 +199,7 @@ async function buildByRaster(ab, keepSet, startScale=2){
       canvas.width = vp.width; canvas.height = vp.height;
 
       await page.render({ canvasContext: ctx, viewport: vp }).promise;
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.92); // JPEG smaller than PNG for scans
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
       const img = await out.embedJpg(dataUrl);
 
       const pageWidthPt  = baseVp.width  * 0.75;
@@ -202,17 +208,17 @@ async function buildByRaster(ab, keepSet, startScale=2){
       p.drawImage(img, { x: 0, y: 0, width: pageWidthPt, height: pageHeightPt });
 
       canvas.width = 0; canvas.height = 0;
-
-      // yield to UI to avoid blocking (helps long docs)
+      page.cleanup && page.cleanup();
       await new Promise(r => setTimeout(r, 0));
     }
+    pdf.cleanup && pdf.cleanup();
     const bytes = await out.save({ useObjectStreams:false });
     return new Blob([bytes], { type:'application/pdf' });
   };
 
   try { return await tryOnce(); }
   catch (e1) {
-    if (renderScale > 1.5) { renderScale = 1.5; try { return await tryOnce(); } catch(e2) { /* continue */ } }
+    if (renderScale > 1.5) { renderScale = 1.5; try { return await tryOnce(); } catch(e2) {} }
     if (renderScale > 1.0) { renderScale = 1.0; return await tryOnce(); }
     throw e1;
   }
@@ -220,7 +226,7 @@ async function buildByRaster(ab, keepSet, startScale=2){
 
 /* --------- EXPORT --------- */
 btnExport.addEventListener('click',async()=>{
-  if(!arrayBuffer) return alert('Choose a PDF first.');
+  if(!fileBytes) return alert('Choose a PDF first.');
   if(selected.size===0 && !confirm('No pages selected. Export original PDF?')) return;
 
   clearError();
@@ -236,7 +242,7 @@ btnExport.addEventListener('click',async()=>{
     if (!useCompat) {
       setStatus('Building new PDF (fast remove)…');
       try{
-        const blob1 = await buildByRemovePages(arrayBuffer, deleteSet);
+        const blob1 = await buildByRemovePages(deleteSet);
         downloadOrOpen(blob1, 'pdf-without-pages.pdf');
         setStatus('Done (fast remove).');
         return;
@@ -248,7 +254,7 @@ btnExport.addEventListener('click',async()=>{
 
     setStatus('Building new PDF (compatibility mode)… this may take a bit.');
     try{
-      const blob2 = await buildByRaster(arrayBuffer, keepSet, 2);
+      const blob2 = await buildByRaster(keepSet, 2);
       downloadOrOpen(blob2, 'pdf-without-pages.pdf');
       setStatus('Done (compatibility mode).');
     }catch(e){
