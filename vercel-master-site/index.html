@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PDF & Image Tools — Fast & Private</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <meta name="description" content="Free, private, in-browser PDF & image tools: crop, merge, compress, convert images ↔ PDF, and PNG ↔ JPG.">
+  <style>
+    :root{--bg:#0b0f14;--panel:#121821;--muted:#1b2230;--text:#e8eef6;--sub:#aab7c7;--accent:#6aa0ff}
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#0b0f14,#0e1420);color:var(--text);font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto}
+    header{padding:20px 16px;border-bottom:1px solid #1a2230;background:#0f1622}
+    header h1{margin:0;font-size:22px}
+    main{max-width:900px;margin:0 auto;padding:22px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-top:12px}
+    .card{background:#121821;border:1px solid #1a2230;border-radius:14px;padding:16px}
+    .card h3{margin:0 0 6px 0}
+    .card a{display:inline-block;margin-top:8px;color:#e8eef6;padding:8px 10px;border:1px solid #2a364a;border-radius:10px;background:#162233;text-decoration:none}
+    .small{color:#aab7c7}
+    footer{padding:24px;color:#aab7c7;text-align:center}
+  </style>
+</head>
+<body>
+  <header><h1>PDF & Image Tools — Client‑side, Private</h1></header>
+  <main>
+    <p class="small">Everything runs in your browser — no uploads. Pick a tool:</p>
+    <div class="grid">
+      <div class="card"><h3>Image → PDF</h3><p>JPG/PNG/WebP/AVIF/HEIC to a single PDF.</p><a href="/image-to-pdf">Open</a></div>
+      <div class="card"><h3>PDF → Images</h3><p>Export all pages to PNG or JPG (ZIP).</p><a href="/pdf-to-images">Open</a></div>
+      <div class="card"><h3>Compress PDF</h3><p>Make scans/photos smaller with presets.</p><a href="/compress-pdf">Open</a></div>
+      <div class="card"><h3>Crop PDF</h3><p>Drag to crop pages. Apply to all.</p><a href="/crop-pdf">Open</a></div>
+      <div class="card"><h3>Merge PDF</h3><p>Combine multiple PDFs, reorder.</p><a href="/merge-pdf">Open</a></div>
+      <div class="card"><h3>PNG → JPG</h3><p>Convert PNGs to JPG (choose background).</p><a href="/png-to-jpg">Open</a></div>
+      <div class="card"><h3>JPG → PNG</h3><p>Convert JPGs to PNG (ZIP).</p><a href="/jpg-to-png">Open</a></div>
+    </div>
+    <p class="small" style="margin-top:14px">Privacy‑first · All tools are client‑side only.</p>
+  </main>
+  <footer>
+    <a class="small" href="/privacy.html">Privacy</a> ·
+    <a class="small" href="/terms.html">Terms</a> ·
+    <a class="small" href="/robots.txt">Robots</a>
+  </footer>
+</body>
+</html>

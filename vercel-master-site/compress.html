@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Compress PDF — Client-side</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    :root{--bg:#0b0f14;--panel:#121821;--muted:#1b2230;--text:#e8eef6;--sub:#aab7c7;--accent:#6aa0ff}
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#0b0f14,#0e1420);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    header{padding:16px 20px;border-bottom:1px solid #1a2230;background:#0f1622}
+    header h1{margin:0;font-size:20px}
+    .wrap{max-width:820px;margin:0 auto;padding:16px}
+    .panel{background:#121821;border:1px solid #1a2230;border-radius:14px;padding:16px}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    input[type="file"]{display:none}
+    .btn{appearance:none;border:1px solid #2a364a;background:#162233;color:var(--text);padding:9px 12px;border-radius:10px;cursor:pointer}
+    .btn.primary{background:var(--accent);border-color:#508cff;color:#08111f;font-weight:600}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    select{padding:8px 10px;border-radius:10px;border:1px solid #2a364a;background:#0f1622;color:#e8eef6}
+    .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#152033;border:1px solid #253149;color:#b7c5d8;font-size:12px}
+    progress{width:100%;height:12px}
+    .small{color:#aab7c7}
+  </style>
+</head>
+<body>
+  <header><h1>🗜️ Compress PDF (Client-side)</h1></header>
+  <div class="wrap">
+    <div class="panel">
+      <div class="row" style="justify-content:space-between">
+        <label for="file" class="btn primary">Choose PDF</label>
+        <input id="file" type="file" accept="application/pdf" />
+        <div class="row">
+          <label>Preset
+            <select id="preset">
+              <option value="balanced">Balanced</option>
+              <option value="small">Smaller</option>
+              <option value="tiny">Tiny</option>
+            </select>
+          </label>
+          <button id="compressBtn" class="btn" disabled>Compress & Download</button>
+        </div>
+      </div>
+
+      <div id="meta" class="pill" style="margin-top:8px">No file</div>
+
+      <div style="margin-top:12px">
+        <progress id="prog" value="0" max="100"></progress>
+        <div class="small" id="status">Idle…</div>
+      </div>
+
+      <div class="small" style="margin-top:10px">
+        Note: This method rasterizes each page into an image using PDF.js, then rebuilds a new PDF with JPEG pages via pdf-lib.
+        Great for scans/photos. If the output would be larger than the original, we'll keep the original.
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
+  <script>
+  const $ = (s)=>document.querySelector(s);
+  const fileInput = $('#file'); const compressBtn = $('#compressBtn'); const meta = $('#meta'); const presetEl = $('#preset'); const prog = $('#prog'); const statusEl = $('#status');
+  let pdfBytesOriginal=null, pdfDocJS=null, pageCount=0;
+  function presetValues(k){ if(k==='balanced')return{dpi:110,quality:0.70}; if(k==='small')return{dpi:96,quality:0.65}; if(k==='tiny')return{dpi:72,quality:0.58}; return{dpi:110,quality:0.70}; }
+  fileInput.addEventListener('change', async (e)=>{ const f=e.target.files[0]; if(!f) return; pdfBytesOriginal=new Uint8Array(await f.arrayBuffer()); pdfDocJS=await pdfjsLib.getDocument({data:pdfBytesOriginal.slice()}).promise; pageCount=pdfDocJS.numPages; meta.textContent=`${f.name} • ${pageCount} pages • ${(f.size/1024/1024).toFixed(2)} MB`; compressBtn.disabled=false; statusEl.textContent='Ready to compress.'; });
+  compressBtn.addEventListener('click', ()=> runCompress().catch(err=>{alert('Compression failed: '+(err?.message||err)); statusEl.textContent='Error.';}));
+  async function runCompress(){ if(!pdfDocJS) return; const {dpi,quality}=presetValues(presetEl.value); compressBtn.disabled=true; statusEl.textContent=`Rendering pages… (DPI ${dpi}, Q ${quality})`; prog.value=0; prog.max=pageCount;
+    const out=await PDFLib.PDFDocument.create();
+    for(let i=1;i<=pageCount;i++){ statusEl.textContent=`Rendering page ${i}/${pageCount}…`; const page=await pdfDocJS.getPage(i); const viewport=page.getViewport({scale:dpi/72}); const canvas=document.createElement('canvas'); const ctx=canvas.getContext('2d',{alpha:false}); canvas.width=Math.max(1,Math.floor(viewport.width)); canvas.height=Math.max(1,Math.floor(viewport.height)); await page.render({canvasContext:ctx,viewport}).promise; const dataUrl=canvas.toDataURL('image/jpeg',quality); const jpgBytes=dataURLToUint8Array(dataUrl); const jpgImage=await out.embedJpg(jpgBytes); const pdfPage=out.addPage([canvas.width,canvas.height]); pdfPage.drawImage(jpgImage,{x:0,y:0,width:canvas.width,height:canvas.height}); page.cleanup(); prog.value=i; await new Promise(r=>setTimeout(r,0)); }
+    statusEl.textContent='Saving PDF…'; const outBytes=await out.save({updateFieldAppearances:false}); const useBytes=(pdfBytesOriginal && outBytes.length>=pdfBytesOriginal.length)?(alert('Already optimized. Keeping the original.'), pdfBytesOriginal):outBytes; const blob=new Blob([useBytes],{type:'application/pdf'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='compressed.pdf'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1500); statusEl.textContent='Done.'; compressBtn.disabled=false; }
+  function dataURLToUint8Array(dataURL){ const binaryString=atob(dataURL.split(',')[1]); const len=binaryString.length; const bytes=new Uint8Array(len); for(let i=0;i<len;i++) bytes[i]=binaryString.charCodeAt(i); return bytes; }
+  </script>
+</body>
+</html>

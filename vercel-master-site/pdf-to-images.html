@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PDF → Images (PNG/JPG) — Client-side</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    :root{--bg:#0b0f14;--panel:#121821;--muted:#1b2230;--text:#e8eef6;--sub:#aab7c7;--accent:#6aa0ff}
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#0b0f14,#0e1420);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    header{padding:16px 20px;border-bottom:1px solid #1a2230;background:#0f1622}
+    header h1{margin:0;font-size:20px}
+    .wrap{max-width:900px;margin:0 auto;padding:16px}
+    .panel{background:#121821;border:1px solid #1a2230;border-radius:14px;padding:16px}
+    .row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+    input[type="file"]{display:none}
+    .btn{appearance:none;border:1px solid #2a364a;background:#162233;color:var(--text);padding:9px 12px;border-radius:10px;cursor:pointer}
+    .btn.primary{background:var(--accent);border-color:#508cff;color:#08111f;font-weight:600}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    select,input{padding:8px 10px;border-radius:10px;border:1px solid #2a364a;background:#0f1622;color:#e8eef6}
+    .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#152033;border:1px solid #253149;color:#b7c5d8;font-size:12px}
+    progress{width:100%;height:12px}
+    .small{color:#aab7c7}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:14px}
+    .thumb{background:#0f1622;border:1px solid #1b2535;border-radius:10px;padding:8px;text-align:center}
+    .thumb img{max-width:100%;height:120px;object-fit:contain;display:block;margin:auto}
+    .muted{color:#9bb0c6}
+  </style>
+</head>
+<body>
+  <header><h1>🖼 PDF → Images (PNG / JPG)</h1></header>
+  <div class="wrap">
+    <div class="panel">
+      <div class="row" style="justify-content:space-between">
+        <div class="row">
+          <label for="file" class="btn primary">Choose PDF</label>
+          <input id="file" type="file" accept="application/pdf" />
+          <div class="pill" id="meta">No file</div>
+        </div>
+        <div class="row">
+          <label>Format
+            <select id="fmt">
+              <option value="png">PNG (lossless)</option>
+              <option value="jpg">JPG (smaller)</option>
+            </select>
+          </label>
+          <label>JPG quality
+            <input id="q" type="number" min="0.5" max="1" step="0.01" value="0.92">
+          </label>
+          <label>DPI
+            <input id="dpi" type="number" min="72" max="300" step="4" value="144">
+          </label>
+          <label>Pages (e.g. 1-3,5)
+            <input id="range" type="text" placeholder="blank = all">
+          </label>
+          <button id="exportBtn" class="btn" disabled>Export to ZIP</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <progress id="prog" value="0" max="100"></progress>
+        <div class="small" id="status">Idle…</div>
+      </div>
+
+      <div id="thumbs" class="grid"></div>
+
+      <p class="small muted" style="margin-top:12px">
+        Tip: Higher DPI = bigger images & larger ZIP. PNG keeps text edges very crisp; JPG is smaller for photos/scans.
+        Everything runs locally in your browser using PDF.js. No uploads.
+      </p>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <script>
+  const $ = s => document.querySelector(s);
+  const fileEl = $('#file'); const metaEl = $('#meta'); const fmtEl = $('#fmt'); const qEl = $('#q'); const dpiEl = $('#dpi'); const rangeEl = $('#range'); const exportBtn = $('#exportBtn'); const prog = $('#prog'); const statusEl = $('#status'); const thumbs = $('#thumbs');
+  let pdfDoc=null, pageCount=0, pdfName='document';
+  fileEl.addEventListener('change', async e => { const f=e.target.files[0]; if(!f) return; const bytes=new Uint8Array(await f.arrayBuffer()); pdfDoc=await pdfjsLib.getDocument({data:bytes}).promise; pageCount=pdfDoc.numPages; pdfName=(f.name||'document').replace(/\.pdf$/i,''); metaEl.textContent=`${f.name} • ${pageCount} pages • ${(f.size/1024/1024).toFixed(2)} MB`; exportBtn.disabled=false; statusEl.textContent='Ready. Choose options and click Export to ZIP.'; thumbs.innerHTML=''; });
+  fmtEl.addEventListener('change',()=>{ qEl.disabled = fmtEl.value !== 'jpg'; }); qEl.disabled = fmtEl.value !== 'jpg';
+  function parseRanges(input,max){ if(!input.trim()) return Array.from({length:max},(_,i)=>i+1); const out=new Set(); input.split(',').map(s=>s.trim()).forEach(part=>{ const m=part.match(/^(\d+)-(\d+)$/); if(m){ let a=Math.max(1,Math.min(max,parseInt(m[1]))), b=Math.max(1,Math.min(max,parseInt(m[2]))); if(a>b)[a,b]=[b,a]; for(let i=a;i<=b;i++) out.add(i); } else { const n=Math.max(1,Math.min(max,parseInt(part))); if(!isNaN(n)) out.add(n); } }); return Array.from(out).sort((a,b)=>a-b); }
+  async function renderPageToBlob(page, scale, fmt, quality){ const viewport=page.getViewport({scale}); const canvas=document.createElement('canvas'); const ctx=canvas.getContext('2d',{alpha:false}); canvas.width=Math.max(1,Math.floor(viewport.width)); canvas.height=Math.max(1,Math.floor(viewport.height)); await page.render({canvasContext:ctx,viewport}).promise; const type=(fmt==='png')?'image/png':'image/jpeg'; const blob=await new Promise(res=>canvas.toBlob(res,type,quality)); return { blob, width:canvas.width, height:canvas.height, dataUrl:URL.createObjectURL(blob) }; }
+  exportBtn.addEventListener('click', async ()=>{ if(!pdfDoc) return; const dpi=Math.max(72,Math.min(300,parseInt(dpiEl.value)||144)); const quality=Math.max(0.5,Math.min(1,parseFloat(qEl.value)||0.92)); const fmt=fmtEl.value; const pages=parseRanges(rangeEl.value||'',pageCount); exportBtn.disabled=true; statusEl.textContent=`Rendering ${pages.length} page(s)…`; prog.value=0; prog.max=pages.length; thumbs.innerHTML=''; const zip=new JSZip();
+    for(let i=0;i<pages.length;i++){ const pNum=pages[i]; statusEl.textContent=`Rendering page ${pNum}/${pageCount}…`; const page=await pdfDoc.getPage(pNum); const scale=dpi/72; const {blob,width,height,dataUrl}=await renderPageToBlob(page,scale,fmt,quality); const ext=(fmt==='png')?'png':'jpg'; const arr=new Uint8Array(await blob.arrayBuffer()); zip.file(`${pdfName}-p${String(pNum).padStart(3,'0')}.${ext}`,arr); const card=document.createElement('div'); card.className='thumb'; const img=document.createElement('img'); img.src=dataUrl; const caption=document.createElement('div'); caption.className='small'; caption.textContent=`Page ${pNum} — ${width}×${height}`; card.append(img,caption); thumbs.appendChild(card); page.cleanup(); prog.value=i+1; await new Promise(r=>setTimeout(r,0)); }
+    statusEl.textContent='Packaging ZIP…'; const zipBlob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}}); const url=URL.createObjectURL(zipBlob); const a=document.createElement('a'); a.href=url; a.download=`${pdfName}-${fmt}-${dpi}dpi.zip`; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1500); statusEl.textContent='Done.'; exportBtn.disabled=false; });
+  </script>
+</body>
+</html>

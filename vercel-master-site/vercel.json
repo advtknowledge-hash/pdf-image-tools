@@ -1,0 +1,12 @@
+{
+  "cleanUrls": true,
+  "redirects": [
+    { "source": "/crop-pdf",      "destination": "/crop.html" },
+    { "source": "/merge-pdf",     "destination": "/merge.html" },
+    { "source": "/compress-pdf",  "destination": "/compress.html" },
+    { "source": "/image-to-pdf",  "destination": "/image-to-pdf.html" },
+    { "source": "/pdf-to-images", "destination": "/pdf-to-images.html" },
+    { "source": "/png-to-jpg",    "destination": "/png-to-jpg.html" },
+    { "source": "/jpg-to-png",    "destination": "/jpg-to-png.html" }
+  ]
+}

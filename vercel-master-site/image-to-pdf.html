@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Image → PDF — Local & Private</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    :root{--bg:#0b0f14;--panel:#121821;--muted:#1b2230;--text:#e8eef6;--sub:#aab7c7;--accent:#6aa0ff}
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#0b0f14,#0e1420);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    header{padding:12px 16px;border-bottom:1px solid #1a2230;background:rgba(10,16,24,.8);backdrop-filter:blur(6px);position:sticky;top:0;z-index:10}
+    header h1{margin:0;font-size:18px}
+    .wrap{display:grid;grid-template-columns:360px 1fr;gap:12px;padding:12px}
+    @media(max-width:900px){.wrap{grid-template-columns:1fr}}
+    .panel{background:var(--panel);border:1px solid #1a2230;border-radius:14px;padding:12px}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .btn{appearance:none;border:1px solid #2a364a;background:#162233;color:var(--text);padding:9px 12px;border-radius:10px;cursor:pointer}
+    .btn.primary{background:var(--accent);border-color:#508cff;color:#08111f;font-weight:600}
+    .btn.ghost{background:#141c29}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    input[type="file"]{display:none}
+    .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#152033;border:1px solid #253149;color:#b7c5d8;font-size:12px}
+    .small{font-size:12px;color:#aab7c7}
+    .drop{border:2px dashed #2a364a;border-radius:12px;padding:18px;text-align:center;background:#0f1622}
+    .drop.drag{border-color:var(--accent)}
+    .list{display:grid;gap:8px;max-height:50vh;overflow:auto;margin-top:10px}
+    .item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;border:1px solid #223048;background:#0f1622;border-radius:10px;padding:8px}
+    .item.dragging{opacity:.6}
+    .handle{cursor:grab;padding:6px;border-radius:8px;border:1px dashed #2a364a}
+    .name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .thumb{width:40px;height:56px;background:#0b111b;border:1px solid #223048;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#aab;overflow:hidden}
+    .thumb img{max-width:100%;max-height:100%;display:block}
+    select,input[type="number"],input[type="color"]{padding:8px 10px;border-radius:10px;border:1px solid #2a364a;background:#0f1622;color:#e8eef6}
+    footer{padding:10px;text-align:center;color:#7f8ea3}
+    label.inline{display:flex;align-items:center;gap:6px}
+  </style>
+</head>
+<body>
+  <header><h1>🖼 Image → PDF (JPG / PNG / WEBP / AVIF / HEIC)</h1></header>
+  <div class="wrap">
+    <aside class="panel">
+      <div class="row" style="justify-content:space-between">
+        <label for="file" class="btn primary">Add images</label>
+        <input id="file" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif" multiple />
+        <button id="buildBtn" class="btn" disabled>Create PDF</button>
+      </div>
+      <div id="meta" class="pill">0 images</div>
+
+      <div id="drop" class="drop" tabindex="0">
+        Drag & drop images here (JPG/PNG/WEBP/AVIF/HEIC)<br />
+        <span class="small">All processing happens locally in your browser.</span>
+      </div>
+
+      <div class="panel" style="margin-top:10px">
+        <div class="row" style="gap:10px">
+          <label>Page size
+            <select id="pageSize">
+              <option value="A4">A4 (210×297 mm)</option>
+              <option value="Letter">Letter (8.5×11 in)</option>
+              <option value="A5">A5 (148×210 mm)</option>
+              <option value="Square">Square (210×210 mm)</option>
+            </select>
+          </label>
+          <label>Orientation
+            <select id="orientation">
+              <option value="portrait">Portrait</option>
+              <option value="landscape">Landscape</option>
+            </select>
+          </label>
+        </div>
+        <div class="row" style="gap:10px;margin-top:8px">
+          <label>Margins (mm)
+            <input id="margin" type="number" value="10" min="0" max="50" step="1" />
+          </label>
+          <label>Fit
+            <select id="fitMode">
+              <option value="contain">Contain (no crop)</option>
+              <option value="cover">Cover (fill page)</option>
+              <option value="width">Fit to width</option>
+              <option value="height">Fit to height</option>
+            </select>
+          </label>
+          <label>JPEG quality
+            <input id="jpgQuality" type="number" value="0.92" min="0.5" max="1" step="0.01" />
+          </label>
+        </div>
+        <div class="row" style="gap:10px;margin-top:8px">
+          <label class="inline"><input type="checkbox" id="pngLossless" /> Use lossless for PNG</label>
+          <label>Transparent BG color <input id="bgColor" type="color" value="#ffffff"/></label>
+        </div>
+        <div class="small" style="margin-top:6px">
+          Note: PDF can embed JPEG & PNG. We will convert WEBP/AVIF/HEIC to JPEG by default (smaller file). For PNG, you can choose lossless embedding to preserve transparency.
+        </div>
+      </div>
+
+      <div class="small" style="margin-top:8px">
+        Tip: Reorder images below by dragging the handles.
+      </div>
+
+      <div id="list" class="list"></div>
+    </aside>
+
+    <main class="panel">
+      <h3 style="margin-top:0">How it works</h3>
+      <ul>
+        <li>Everything is client-side using <strong>pdf-lib</strong> + Canvas.</li>
+        <li>HEIC/HEIF decoded in-browser via a small WASM helper (no upload).</li>
+        <li>AVIF uses the browser decoder (Chrome/Edge ok; some older browsers may not support).</li>
+      </ul>
+      <div class="small">Privacy: no uploads. Everything stays on your device.</div>
+      <footer>Powered by <a href="https://pdf-lib.js.org/" target="_blank" rel="noreferrer">pdf-lib</a>.</footer>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
+  <script>
+  const fileInput = document.getElementById('file');
+  const drop = document.getElementById('drop');
+  const listEl = document.getElementById('list');
+  const metaEl = document.getElementById('meta');
+  const buildBtn = document.getElementById('buildBtn');
+
+  const pageSizeEl = document.getElementById('pageSize');
+  const orientationEl = document.getElementById('orientation');
+  const marginEl = document.getElementById('margin');
+  const fitModeEl = document.getElementById('fitMode');
+  const jpgQualityEl = document.getElementById('jpgQuality');
+  const pngLosslessEl = document.getElementById('pngLossless');
+  const bgColorEl = document.getElementById('bgColor');
+
+  let images = [];
+
+  function updateMeta(){ metaEl.textContent = images.length + ' images'; buildBtn.disabled = images.length === 0; }
+  function renderList(){
+    listEl.innerHTML = '';
+    images.forEach((img, idx)=>{
+      const row = document.createElement('div'); row.className='item'; row.draggable=true; row.dataset.idx=idx;
+      const handle = Object.assign(document.createElement('div'),{className:'handle',textContent:'↕'});
+      const mid = document.createElement('div'); mid.style.display='grid'; mid.style.gap='4px';
+      const name = Object.assign(document.createElement('div'),{className:'name',textContent:img.name});
+      const sub = Object.assign(document.createElement('div'),{className:'small',textContent:`${img.w}×${img.h} • ${img.type}`});
+      mid.appendChild(name); mid.appendChild(sub);
+      const thumb = Object.assign(document.createElement('div'),{className:'thumb'});
+      const imgtag = document.createElement('img'); imgtag.src = URL.createObjectURL(img.blob); imgtag.onload = ()=> URL.revokeObjectURL(imgtag.src);
+      thumb.appendChild(imgtag);
+      const del = Object.assign(document.createElement('button'),{className:'btn ghost',textContent:'Remove'});
+      del.addEventListener('click', ()=>{ images.splice(idx,1); renderList(); updateMeta(); });
+      row.append(handle, thumb, mid, del);
+      row.addEventListener('dragstart', e=>{ row.classList.add('dragging'); e.dataTransfer.setData('text/plain', String(idx)); });
+      row.addEventListener('dragend', ()=> row.classList.remove('dragging'));
+      row.addEventListener('dragover', e=> e.preventDefault());
+      row.addEventListener('drop', e=>{ e.preventDefault(); const from = Number(e.dataTransfer.getData('text/plain')); const to = idx; if(isNaN(from)) return; const [item]=images.splice(from,1); images.splice(to,0,item); renderList(); updateMeta(); });
+      listEl.appendChild(row);
+    });
+  }
+
+  function hexToRGBA(hex){ const m=hex.match(/^#?([a-f\\d]{2})([a-f\\d]{2})([a-f\\d]{2})$/i); if(!m) return [255,255,255,255]; return [parseInt(m[1],16),parseInt(m[2],16),parseInt(m[3],16),255]; }
+
+  async function decodeImageToCanvasBlob(file){
+    const type = file.type.toLowerCase();
+    const q = Math.max(0.5, Math.min(1, parseFloat(jpgQualityEl.value)||0.92));
+    const [r,g,b,a] = hexToRGBA(bgColorEl.value || '#ffffff');
+    async function drawToCanvasAndExport(img, preferPNG){
+      const w=img.width, h=img.height; const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h;
+      const ctx=canvas.getContext('2d'); ctx.fillStyle=`rgba(${r},${g},${b},${a/255})`; ctx.fillRect(0,0,w,h); ctx.drawImage(img,0,0);
+      if(preferPNG){ const blob=await new Promise(res=>canvas.toBlob(res,'image/png')); return { blob, w, h, kind:'png' }; }
+      else{ const blob=await new Promise(res=>canvas.toBlob(res,'image/jpeg',q)); return { blob, w, h, kind:'jpeg' }; }
+    }
+    if(type==='image/heic'||type==='image/heif'){ const outBlob=await window.heic2any({ blob:file, toType:'image/png' }); const bitmap=await createImageBitmap(outBlob); return await drawToCanvasAndExport(bitmap, true); }
+    try{ const bitmap=await createImageBitmap(file); const preferPNG= type==='image/png' && document.getElementById('pngLossless').checked; return await drawToCanvasAndExport(bitmap, preferPNG); }
+    catch(e){ const url=URL.createObjectURL(file); try{ const img=await new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=url; }); const preferPNG= type==='image/png' && document.getElementById('pngLossless').checked; const r=await drawToCanvasAndExport(img, preferPNG); URL.revokeObjectURL(url); return r;} finally{} }
+  }
+
+  async function addFiles(fileList){
+    const arr = Array.from(fileList).filter(f=> /^image\\/(jpeg|png|webp|avif|heic|heif)$/i.test(f.type));
+    if(!arr.length) return;
+    for(const f of arr){ try{ const { blob, w, h, kind } = await decodeImageToCanvasBlob(f); images.push({ name:f.name, type:f.type, size:f.size, kind, w, h, blob }); } catch(err){ alert('Failed: '+(err?.message||err)); } }
+    renderList(); updateMeta();
+  }
+
+  fileInput.addEventListener('change', e=> addFiles(e.target.files));
+  ['dragenter','dragover'].forEach(ev=> drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(ev=> drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.remove('drag'); }));
+  drop.addEventListener('drop', e=> addFiles(e.dataTransfer.files));
+
+  function mmToPt(mm){ return mm*72/25.4; }
+  function getPageSizePts(){ let wMM=210,hMM=297; const s=pageSizeEl.value; if(s==='Letter'){wMM=215.9;hMM=279.4;} if(s==='A5'){wMM=148;hMM=210;} if(s==='Square'){wMM=210;hMM=210;} let w=mmToPt(wMM),h=mmToPt(hMM); if(orientationEl.value==='landscape') [w,h]=[h,w]; return {w,h}; }
+  async function blobToUint8Array(blob){ const buf=await blob.arrayBuffer(); return new Uint8Array(buf); }
+
+  buildBtn.addEventListener('click', async ()=>{
+    try{
+      buildBtn.disabled=true; buildBtn.textContent='Building…';
+      const {w:pageW,h:pageH}=getPageSizePts(); const margin=mmToPt(parseFloat(marginEl.value)||0); const fitMode=fitModeEl.value;
+      const doc=await PDFLib.PDFDocument.create();
+      for(const img of images){
+        let embedded, iw, ih;
+        if(img.kind==='png'){ embedded = await doc.embedPng(await blobToUint8Array(img.blob)); }
+        else { embedded = await doc.embedJpg(await blobToUint8Array(img.blob)); }
+        iw=embedded.width; ih=embedded.height;
+        const page=doc.addPage([pageW,pageH]); const availW=Math.max(1,pageW-2*margin); const availH=Math.max(1,pageH-2*margin);
+        let drawW,drawH; const ratio=iw/ih, boxRatio=availW/availH;
+        if(fitMode==='cover'){ if(ratio>boxRatio){ drawH=availH; drawW=drawH*ratio; } else { drawW=availW; drawH=drawW/ratio; } }
+        else if(fitMode==='width'){ drawW=availW; drawH=drawW/ratio; }
+        else if(fitMode==='height'){ drawH=availH; drawW=drawH*ratio; }
+        else { if(ratio>boxRatio){ drawW=availW; drawH=drawW/ratio; } else { drawH=availH; drawW=drawH*ratio; } }
+        const x=margin+(availW-drawW)/2, y=margin+(availH-drawH)/2;
+        page.drawImage(embedded,{x,y,width:drawW,height:drawH});
+      }
+      const bytes=await doc.save({updateFieldAppearances:false}); const blob=new Blob([bytes],{type:'application/pdf'});
+      const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='images-to-pdf.pdf'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1500);
+      buildBtn.textContent='Create PDF'; buildBtn.disabled=images.length===0;
+    }catch(err){ alert('Build failed: '+(err?.message||err)); buildBtn.textContent='Create PDF'; buildBtn.disabled=false; }
+  });
+  </script>
+</body>
+</html>
