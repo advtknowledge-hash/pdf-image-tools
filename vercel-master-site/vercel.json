@@ -3,6 +3,7 @@
   "redirects": [
     { "source": "/crop-pdf",     "destination": "/crop.html" },
     { "source": "/merge-pdf",    "destination": "/merge.html" },
-    { "source": "/compress-pdf", "destination": "/compress.html" }
+    { "source": "/compress-pdf", "destination": "/compress.html" },
+    { "source": "/delete-pages", "destination": "/delete-pages.html" }
   ]
 }
