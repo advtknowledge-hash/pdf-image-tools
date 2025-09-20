@@ -50,7 +50,7 @@
 
     <div id="status" class="muted" style="margin:6px 0 8px">Idle…</div>
     <div id="pages" class="grid"></div>
-    <div class="hint">Tip: If a tricky PDF fails the fast method, we’ll auto-fallback to a compatible method (slightly larger file).</div>
+    <div class="hint">If fast deletion fails, the app will automatically use a compatible fallback (slightly larger file).</div>
   </div>
   <p class="muted" style="margin-top:10px">
     Privacy: All processing happens locally in your browser using <a href="https://mozilla.github.io/pdf.js/" target="_blank" rel="noopener">PDF.js</a> (for preview) and
@@ -142,29 +142,34 @@ btnRanges.addEventListener('click',()=>{
   updateMeta();
 });
 
-// download with fallback open
+// download with fallback new tab
 function downloadOrOpen(blob, filename){
   if (navigator.msSaveOrOpenBlob) { navigator.msSaveOrOpenBlob(blob, filename); return; }
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = filename; a.rel='noopener'; a.style.display='none';
+  a.href = url; a.download = filename; a.rel = 'noopener'; a.style.display = 'none';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>{ try{ window.open(url,'_blank','noopener'); }catch{} setTimeout(()=>URL.revokeObjectURL(url),5000); }, 600);
 }
 
-// FAST METHOD: copy original pages
-async function buildByCopy(keepIdx, ab){
-  const src = await PDFLib.PDFDocument.load(ab);
-  const out = await PDFLib.PDFDocument.create();
-  const copied = await out.copyPages(src, keepIdx);
-  copied.forEach(p=>out.addPage(p));
-  // better compatibility for some viewers:
-  const bytes = await out.save({ useObjectStreams:false });
-  return new Blob([bytes], { type:'application/pdf' });
+/* ---------- BUILDERS ---------- */
+
+// 1) FAST: remove pages in place (most robust with pdf-lib)
+async function buildByRemovePages(ab, pagesToDeleteSet){
+  const doc = await PDFLib.PDFDocument.load(ab, { ignoreEncryption: true });
+  // build list of indices to remove (0-based), sort DESC so indexes stay valid
+  const removeIdx = [];
+  for (let i=0;i<doc.getPageCount();i++){
+    const pageNum = i+1;
+    if (pagesToDeleteSet.has(pageNum)) removeIdx.push(i);
+  }
+  removeIdx.sort((a,b)=>b-a).forEach(i => doc.removePage(i));
+  const bytes = await doc.save({ useObjectStreams: false });
+  return new Blob([bytes], { type: 'application/pdf' });
 }
 
-// FALLBACK: rasterize pages via PDF.js, then write images into a new PDF
-async function buildByRaster(keepSet, ab){
+// 2) FALLBACK: rasterize kept pages and write images into a new PDF
+async function buildByRaster(ab, keepSet){
   const pdf = await pdfjsLib.getDocument({data: ab}).promise;
   const out = await PDFLib.PDFDocument.create();
 
@@ -172,10 +177,8 @@ async function buildByRaster(keepSet, ab){
     if(!keepSet.has(i)) continue;
 
     const page = await pdf.getPage(i);
-
-    // base viewport = scale 1 (gives CSS px); choose render scale for quality
     const baseVp = page.getViewport({ scale: 1 });
-    const renderScale = 2; // ~144 DPI (good balance); increase for higher quality
+    const renderScale = 2; // ~144 DPI
     const vp = page.getViewport({ scale: renderScale });
 
     const canvas = document.createElement('canvas');
@@ -183,19 +186,15 @@ async function buildByRaster(keepSet, ab){
     canvas.width = vp.width; canvas.height = vp.height;
 
     await page.render({ canvasContext: ctx, viewport: vp }).promise;
-
-    // convert canvas to PNG data URL and embed
     const dataUrl = canvas.toDataURL('image/png');
     const img = await out.embedPng(dataUrl);
 
-    // PDF points = CSS px * 72/96; use baseVp for physical page size
     const pageWidthPt  = baseVp.width  * 0.75;
     const pageHeightPt = baseVp.height * 0.75;
 
     const p = out.addPage([pageWidthPt, pageHeightPt]);
     p.drawImage(img, { x: 0, y: 0, width: pageWidthPt, height: pageHeightPt });
 
-    // free memory
     canvas.width = 0; canvas.height = 0;
   }
 
@@ -203,35 +202,36 @@ async function buildByRaster(keepSet, ab){
   return new Blob([bytes], { type:'application/pdf' });
 }
 
-// export
+/* ---------- EXPORT ---------- */
 btnExport.addEventListener('click',async()=>{
   if(!arrayBuffer) return alert('Choose a PDF first.');
   if(selected.size===0 && !confirm('No pages selected. Export original PDF?')) return;
 
   try{
-    setStatus('Building new PDF (fast)…');
-    // indices to keep (zero-based)
-    const keepIdx=[]; const keepSet=new Set();
-    for(let i=0;i<pageCount;i++){ const num=i+1; if(!selected.has(num)){ keepIdx.push(i); keepSet.add(num); } }
-    if(keepIdx.length===0){ alert('All pages selected. Nothing to keep.'); setStatus('Cancelled.'); return; }
+    // Sets we need
+    const deleteSet = new Set(selected);
+    const keepSet   = new Set();
+    for(let i=1;i<=pageCount;i++){ if(!deleteSet.has(i)) keepSet.add(i); }
+    if(keepSet.size===0){ alert('All pages selected. Nothing to keep.'); return; }
 
-    // 1) Try fast copy method
+    // 1) Try remove-in-place
+    setStatus('Building new PDF (fast remove)…');
     try{
-      const blobFast = await buildByCopy(keepIdx, arrayBuffer);
-      downloadOrOpen(blobFast, 'pdf-without-pages.pdf');
-      setStatus('Done (fast method).');
+      const blob1 = await buildByRemovePages(arrayBuffer, deleteSet);
+      downloadOrOpen(blob1, 'pdf-without-pages.pdf');
+      setStatus('Done (fast remove).');
       return;
-    }catch(err){
-      console.warn('Fast copy method failed, using fallback…', err);
+    }catch(e){
+      console.warn('Remove-in-place failed, falling back…', e);
     }
 
-    // 2) Fallback raster method
+    // 2) Fallback to raster method
     setStatus('Building new PDF (fallback)… this may take a bit.');
-    const blobSlow = await buildByRaster(keepSet, arrayBuffer);
-    downloadOrOpen(blobSlow, 'pdf-without-pages.pdf');
+    const blob2 = await buildByRaster(arrayBuffer, keepSet);
+    downloadOrOpen(blob2, 'pdf-without-pages.pdf');
     setStatus('Done (fallback).');
   }catch(err){
-    console.error(err);
+    console.error('[Delete Pages] Fatal error:', err);
     setStatus('Error: ' + (err?.message || err));
     alert('Could not create the new PDF. See console for details.');
   }
