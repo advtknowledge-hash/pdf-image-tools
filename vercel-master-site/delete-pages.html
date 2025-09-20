@@ -24,6 +24,7 @@
   .small{color:#aab7c7;font-size:12px;margin-top:6px;display:flex;align-items:center;justify-content:space-between;gap:8px}
   .badge{background:#1a2440;color:#cfe1ff;padding:2px 6px;border-radius:8px;font-size:11px}
   .muted{color:#aab7c7}
+  .hint{font-size:12px;color:#aab7c7;margin-top:6px}
 </style>
 </head>
 <body>
@@ -38,7 +39,8 @@
         <span id="meta" class="muted">No file</span>
       </div>
       <div class="row">
-        <input id="ranges" placeholder="Page ranges e.g. 1,3,5-7 (to delete)" style="padding:9px 10px;border-radius:10px;border:1px solid #2a364a;background:#0f1622;color:#e8eef6;min-width:280px">
+        <input id="ranges" placeholder="Page ranges e.g. 1,3,5-7 (to delete)"
+               style="padding:9px 10px;border-radius:10px;border:1px solid #2a364a;background:#0f1622;color:#e8eef6;min-width:280px">
         <button class="btn" id="btnSelectRanges">Mark by ranges</button>
         <button class="btn" id="btnSelectAll">Select all</button>
         <button class="btn" id="btnClear">Clear</button>
@@ -46,8 +48,9 @@
       </div>
     </div>
 
-    <div id="status" class="muted" style="margin:6px 0 12px">Idle…</div>
+    <div id="status" class="muted" style="margin:6px 0 8px">Idle…</div>
     <div id="pages" class="grid"></div>
+    <div class="hint">Tip: If a tricky PDF fails the fast method, we’ll auto-fallback to a compatible method (slightly larger file).</div>
   </div>
   <p class="muted" style="margin-top:10px">
     Privacy: All processing happens locally in your browser using <a href="https://mozilla.github.io/pdf.js/" target="_blank" rel="noopener">PDF.js</a> (for preview) and
@@ -139,58 +142,94 @@ btnRanges.addEventListener('click',()=>{
   updateMeta();
 });
 
-// robust download with fallback to new tab
+// download with fallback open
 function downloadOrOpen(blob, filename){
-  // Old Edge
-  if (navigator.msSaveOrOpenBlob) {
-    navigator.msSaveOrOpenBlob(blob, filename);
-    return;
+  if (navigator.msSaveOrOpenBlob) { navigator.msSaveOrOpenBlob(blob, filename); return; }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.rel='noopener'; a.style.display='none';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>{ try{ window.open(url,'_blank','noopener'); }catch{} setTimeout(()=>URL.revokeObjectURL(url),5000); }, 600);
+}
+
+// FAST METHOD: copy original pages
+async function buildByCopy(keepIdx, ab){
+  const src = await PDFLib.PDFDocument.load(ab);
+  const out = await PDFLib.PDFDocument.create();
+  const copied = await out.copyPages(src, keepIdx);
+  copied.forEach(p=>out.addPage(p));
+  // better compatibility for some viewers:
+  const bytes = await out.save({ useObjectStreams:false });
+  return new Blob([bytes], { type:'application/pdf' });
+}
+
+// FALLBACK: rasterize pages via PDF.js, then write images into a new PDF
+async function buildByRaster(keepSet, ab){
+  const pdf = await pdfjsLib.getDocument({data: ab}).promise;
+  const out = await PDFLib.PDFDocument.create();
+
+  for(let i=1;i<=pdf.numPages;i++){
+    if(!keepSet.has(i)) continue;
+
+    const page = await pdf.getPage(i);
+
+    // base viewport = scale 1 (gives CSS px); choose render scale for quality
+    const baseVp = page.getViewport({ scale: 1 });
+    const renderScale = 2; // ~144 DPI (good balance); increase for higher quality
+    const vp = page.getViewport({ scale: renderScale });
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    canvas.width = vp.width; canvas.height = vp.height;
+
+    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+
+    // convert canvas to PNG data URL and embed
+    const dataUrl = canvas.toDataURL('image/png');
+    const img = await out.embedPng(dataUrl);
+
+    // PDF points = CSS px * 72/96; use baseVp for physical page size
+    const pageWidthPt  = baseVp.width  * 0.75;
+    const pageHeightPt = baseVp.height * 0.75;
+
+    const p = out.addPage([pageWidthPt, pageHeightPt]);
+    p.drawImage(img, { x: 0, y: 0, width: pageWidthPt, height: pageHeightPt });
+
+    // free memory
+    canvas.width = 0; canvas.height = 0;
   }
 
-  const url = URL.createObjectURL(blob);
-
-  // Try download attribute first
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.rel = 'noopener';
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-
-  // Fallback: open in a new tab (helps iOS/Safari & some extensions)
-  // Small delay so we don't double-open on browsers that already downloaded
-  setTimeout(() => {
-    // If file didn’t download (common on iOS/Safari), opening in a new tab lets user save manually
-    try { window.open(url, '_blank', 'noopener'); } catch {}
-    // Revoke a bit later to keep the tab alive
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-  }, 600);
+  const bytes = await out.save({ useObjectStreams:false });
+  return new Blob([bytes], { type:'application/pdf' });
 }
 
 // export
 btnExport.addEventListener('click',async()=>{
   if(!arrayBuffer) return alert('Choose a PDF first.');
   if(selected.size===0 && !confirm('No pages selected. Export original PDF?')) return;
+
   try{
-    setStatus('Building new PDF…');
-    const src=await PDFLib.PDFDocument.load(arrayBuffer);
-    const keep=[];
-    for(let i=0;i<src.getPageCount();i++){ if(!selected.has(i+1)) keep.push(i); }
-    if(keep.length===0){ alert('All pages selected. Nothing to keep.'); setStatus('Cancelled.'); return; }
+    setStatus('Building new PDF (fast)…');
+    // indices to keep (zero-based)
+    const keepIdx=[]; const keepSet=new Set();
+    for(let i=0;i<pageCount;i++){ const num=i+1; if(!selected.has(num)){ keepIdx.push(i); keepSet.add(num); } }
+    if(keepIdx.length===0){ alert('All pages selected. Nothing to keep.'); setStatus('Cancelled.'); return; }
 
-    const out=await PDFLib.PDFDocument.create();
-    const copied=await out.copyPages(src, keep);
-    copied.forEach(p=>out.addPage(p));
+    // 1) Try fast copy method
+    try{
+      const blobFast = await buildByCopy(keepIdx, arrayBuffer);
+      downloadOrOpen(blobFast, 'pdf-without-pages.pdf');
+      setStatus('Done (fast method).');
+      return;
+    }catch(err){
+      console.warn('Fast copy method failed, using fallback…', err);
+    }
 
-    // Some PDFs (from scanners) are friendlier without object streams:
-    // const bytes = await out.save({ useObjectStreams: false });
-    const bytes = await out.save();
-    const blob  = new Blob([bytes], { type:'application/pdf' });
-
-    downloadOrOpen(blob, 'pdf-without-pages.pdf');
-    setStatus('Done. Downloaded.');
+    // 2) Fallback raster method
+    setStatus('Building new PDF (fallback)… this may take a bit.');
+    const blobSlow = await buildByRaster(keepSet, arrayBuffer);
+    downloadOrOpen(blobSlow, 'pdf-without-pages.pdf');
+    setStatus('Done (fallback).');
   }catch(err){
     console.error(err);
     setStatus('Error: ' + (err?.message || err));
