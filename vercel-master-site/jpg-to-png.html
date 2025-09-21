@@ -5,29 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>JPG → PNG (Client-side)</title>
 <link rel="icon" href="/favicon.svg" />
-<style>
-  :root{--bg:#0b0f14;--panel:#121821;--muted:#1b2230;--text:#e8eef6;--sub:#aab7c7;--accent:#6aa0ff}
-  *{box-sizing:border-box}
-  body{margin:0;background:linear-gradient(180deg,#0b0f14,#0e1420);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto}
-  header{padding:14px 16px;border-bottom:1px solid #1a2230;background:#0f1622}
-  header h1{margin:0;font-size:18px}
-  .wrap{max-width:1000px;margin:0 auto;padding:16px}
-  .panel{background:#121821;border:1px solid #1a2230;border-radius:14px;padding:16px}
-  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
-  .btn{appearance:none;border:1px solid #2a364a;background:#162233;color:#e8eef6;padding:9px 12px;border-radius:10px;cursor:pointer}
-  .btn.primary{background:var(--accent);border-color:#508cff;color:#08111f;font-weight:600}
-  .btn[disabled]{opacity:.55;cursor:not-allowed}
-  input[type=file]{display:none}
-  .drop{border:1px dashed #2a364a;border-radius:12px;padding:18px;text-align:center;background:#0f1622;color:#aab7c7}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-top:12px}
-  .card{background:#0f1622;border:1px solid #1b2535;border-radius:10px;padding:8px}
-  .thumb{width:100%;height:160px;background:#0c1220;border:1px solid #1b2535;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden}
-  .thumb img{max-width:100%;max-height:100%;display:block}
-  .name{color:#aab7c7;font-size:12px;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .muted{color:#aab7c7}
-  .progress{display:flex;align-items:center;gap:10px;margin:6px 0}
-  progress{width:220px;height:12px}
-</style>
+<link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <header><h1>🖼 JPG → PNG (Client-side)</h1></header>
