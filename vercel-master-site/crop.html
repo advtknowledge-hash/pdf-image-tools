@@ -5,38 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>PDF Cropper — Local & Private</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <style>
-    :root{--bg:#0b0f14;--panel:#121821;--muted:#1b2230;--text:#e8eef6;--sub:#aab7c7;--accent:#6aa0ff;--ok:#35c76f;--warn:#ffb547}
-    *{box-sizing:border-box}
-    body{margin:0;background:linear-gradient(180deg,#0b0f14,#0e1420);color:var(--text);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Arial}
-    header{padding:12px 16px;border-bottom:1px solid #1a2230;background:rgba(10,16,24,.8);backdrop-filter:blur(6px);position:sticky;top:0;z-index:10}
-    header h1{margin:0;font-size:18px}
-    .wrap{display:grid;grid-template-columns:320px 1fr;gap:12px;padding:12px}
-    @media(max-width:900px){.wrap{grid-template-columns:1fr}}
-    .panel{background:var(--panel);border:1px solid #1a2230;border-radius:14px;padding:12px}
-    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    input[type="file"]{display:none}
-    .btn{appearance:none;border:1px solid #2a364a;background:#162233;color:var(--text);padding:9px 12px;border-radius:10px;cursor:pointer}
-    .btn.primary{background:var(--accent);border-color:#508cff;color:#08111f;font-weight:600}
-    .btn.ghost{background:#141c29}
-    .btn:disabled{opacity:.5;cursor:not-allowed}
-    .small{font-size:12px;color:var(--sub)}
-    .controls{display:grid;gap:10px}
-    label span{display:block;font-size:12px;color:var(--sub);margin-bottom:4px}
-    input[type="number"],select{width:100%;padding:8px 10px;border-radius:10px;border:1px solid #2a364a;background:#0f1622;color:var(--text)}
-    .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:8px;max-height:45vh;overflow:auto;padding:6px;background:#0f1622;border-radius:10px;border:1px solid #223048}
-    .thumb{position:relative;border:2px solid transparent;border-radius:8px;overflow:hidden;cursor:pointer;background:#0b111b}
-    .thumb.active{border-color:var(--accent)}
-    .thumb canvas{display:block;width:100%;height:auto}
-    .work{display:grid;gap:10px}
-    .stage-wrap{position:relative;border:1px solid #223048;border-radius:12px;overflow:hidden;background:#0b111b}
-    canvas#stage{display:block;max-width:100%;height:auto}
-    .overlay{position:absolute;left:0;top:0;right:0;bottom:0;pointer-events:none}
-    .rect{position:absolute;border:2px dashed var(--warn);background:rgba(255,181,71,.1);display:none}
-    .hint{color:var(--sub)}
-    .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#152033;border:1px solid #253149;color:#b7c5d8;font-size:12px}
-    footer{padding:10px;text-align:center;color:#7f8ea3}
-  </style>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <header><h1>📄 PDF Cropper (Client-side)</h1></header>
