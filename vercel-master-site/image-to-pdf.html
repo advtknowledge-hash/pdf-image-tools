@@ -22,10 +22,10 @@
     input[type="file"]{display:none}
     .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#152033;border:1px solid #253149;color:#b7c5d8;font-size:12px}
     .small{font-size:12px;color:#aab7c7}
-    .drop{border:2px dashed #2a364a;border-radius:12px;padding:18px;text-align:center;background:#0f1622}
-    .drop.drag{border-color:var(--accent)}
+    .drop{border:2px dashed #2a364a;border-radius:12px;padding:18px;text-align:center;background:#0f1622;outline:none}
+    .drop.drag{border-color:var(--accent);background:#0f1b2b}
     .list{display:grid;gap:8px;max-height:50vh;overflow:auto;margin-top:10px}
-    .item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;border:1px solid #223048;background:#0f1622;border-radius:10px;padding:8px}
+    .item{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:center;border:1px solid #223048;background:#0f1622;border-radius:10px;padding:8px}
     .item.dragging{opacity:.6}
     .handle{cursor:grab;padding:6px;border-radius:8px;border:1px dashed #2a364a}
     .name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -34,21 +34,25 @@
     select,input[type="number"],input[type="color"]{padding:8px 10px;border-radius:10px;border:1px solid #2a364a;background:#0f1622;color:#e8eef6}
     footer{padding:10px;text-align:center;color:#7f8ea3}
     label.inline{display:flex;align-items:center;gap:6px}
+    .error{margin-top:8px;padding:10px;border-radius:10px;background:#2b1414;border:1px solid #5a2626;color:#ffdede;display:none}
+    .progress{display:none;margin-top:10px;font-size:12px;color:#aab7c7}
   </style>
 </head>
 <body>
   <header><h1>🖼 Image → PDF (JPG / PNG / WEBP / AVIF / HEIC)</h1></header>
+
   <div class="wrap">
     <aside class="panel">
       <div class="row" style="justify-content:space-between">
         <label for="file" class="btn primary">Add images</label>
-        <input id="file" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif" multiple />
+        <input id="file" type="file" accept="image/*,.heic,.heif,.avif" multiple />
         <button id="buildBtn" class="btn" disabled>Create PDF</button>
       </div>
+
       <div id="meta" class="pill">0 images</div>
 
-      <div id="drop" class="drop" tabindex="0">
-        Drag & drop images here (JPG/PNG/WEBP/AVIF/HEIC)<br />
+      <div id="drop" class="drop" tabindex="0" aria-label="Drag & drop images here">
+        Drag & drop images here (JPG/PNG/WEBP/AVIF/HEIC/HEIF)<br />
         <span class="small">All processing happens locally in your browser.</span>
       </div>
 
@@ -69,6 +73,7 @@
             </select>
           </label>
         </div>
+
         <div class="row" style="gap:10px;margin-top:8px">
           <label>Margins (mm)
             <input id="margin" type="number" value="10" min="0" max="50" step="1" />
@@ -85,12 +90,15 @@
             <input id="jpgQuality" type="number" value="0.92" min="0.5" max="1" step="0.01" />
           </label>
         </div>
+
         <div class="row" style="gap:10px;margin-top:8px">
           <label class="inline"><input type="checkbox" id="pngLossless" /> Use lossless for PNG</label>
           <label>Transparent BG color <input id="bgColor" type="color" value="#ffffff"/></label>
         </div>
+
         <div class="small" style="margin-top:6px">
-          Note: PDF can embed JPEG & PNG. We will convert WEBP/AVIF/HEIC to JPEG by default (smaller file). For PNG, you can choose lossless embedding to preserve transparency.
+          Note: PDF can embed JPEG & PNG. We convert WEBP/AVIF/HEIC to JPEG by default (smaller file).
+          For PNG, choose lossless embedding to preserve transparency.
         </div>
       </div>
 
@@ -98,6 +106,8 @@
         Tip: Reorder images below by dragging the handles.
       </div>
 
+      <div id="err" class="error"></div>
+      <div id="prog" class="progress">Preparing images…</div>
       <div id="list" class="list"></div>
     </aside>
 
@@ -105,7 +115,7 @@
       <h3 style="margin-top:0">How it works</h3>
       <ul>
         <li>Everything is client-side using <strong>pdf-lib</strong> + Canvas.</li>
-        <li>HEIC/HEIF decoded in-browser via a small WASM helper (no upload).</li>
+        <li>HEIC/HEIF decoded in-browser via a small helper (no upload).</li>
         <li>AVIF uses the browser decoder (Chrome/Edge ok; some older browsers may not support).</li>
       </ul>
       <div class="small">Privacy: no uploads. Everything stays on your device.</div>
@@ -113,106 +123,262 @@
     </main>
   </div>
 
+  <!-- HEIC decoder -->
   <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+  <!-- pdf-lib -->
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
   <script>
-  const fileInput = document.getElementById('file');
-  const drop = document.getElementById('drop');
-  const listEl = document.getElementById('list');
-  const metaEl = document.getElementById('meta');
-  const buildBtn = document.getElementById('buildBtn');
+  const $ = s => document.querySelector(s);
 
-  const pageSizeEl = document.getElementById('pageSize');
-  const orientationEl = document.getElementById('orientation');
-  const marginEl = document.getElementById('margin');
-  const fitModeEl = document.getElementById('fitMode');
-  const jpgQualityEl = document.getElementById('jpgQuality');
-  const pngLosslessEl = document.getElementById('pngLossless');
-  const bgColorEl = document.getElementById('bgColor');
+  const fileInput   = $('#file');
+  const drop        = $('#drop');
+  const listEl      = $('#list');
+  const metaEl      = $('#meta');
+  const buildBtn    = $('#buildBtn');
+  const errEl       = $('#err');
+  const progEl      = $('#prog');
 
-  let images = [];
+  const pageSizeEl  = $('#pageSize');
+  const orientationEl = $('#orientation');
+  const marginEl    = $('#margin');
+  const fitModeEl   = $('#fitMode');
+  const jpgQualityEl= $('#jpgQuality');
+  const pngLosslessEl = $('#pngLossless');
+  const bgColorEl   = $('#bgColor');
 
-  function updateMeta(){ metaEl.textContent = images.length + ' images'; buildBtn.disabled = images.length === 0; }
-  function renderList(){
+  // State
+  let images = []; // [{name, type, size, kind, w, h, blob}, ...]
+
+  // ---- Helpers --------------------------------------------------------------
+
+  function showErr(msg) {
+    errEl.textContent = msg;
+    errEl.style.display = msg ? 'block' : 'none';
+  }
+  function setProgress(visible, msg) {
+    progEl.textContent = msg || 'Working…';
+    progEl.style.display = visible ? 'block' : 'none';
+  }
+
+  function updateMeta() {
+    metaEl.textContent = images.length + ' images';
+    buildBtn.disabled = images.length === 0;
+  }
+
+  function renderList() {
     listEl.innerHTML = '';
-    images.forEach((img, idx)=>{
+    images.forEach((img, idx) => {
       const row = document.createElement('div'); row.className='item'; row.draggable=true; row.dataset.idx=idx;
-      const handle = Object.assign(document.createElement('div'),{className:'handle',textContent:'↕'});
-      const mid = document.createElement('div'); mid.style.display='grid'; mid.style.gap='4px';
-      const name = Object.assign(document.createElement('div'),{className:'name',textContent:img.name});
-      const sub = Object.assign(document.createElement('div'),{className:'small',textContent:`${img.w}×${img.h} • ${img.type}`});
-      mid.appendChild(name); mid.appendChild(sub);
-      const thumb = Object.assign(document.createElement('div'),{className:'thumb'});
-      const imgtag = document.createElement('img'); imgtag.src = URL.createObjectURL(img.blob); imgtag.onload = ()=> URL.revokeObjectURL(imgtag.src);
+      const handle = document.createElement('div'); handle.className='handle'; handle.textContent='↕';
+      const thumb  = document.createElement('div'); thumb.className='thumb';
+      const imgtag = document.createElement('img'); imgtag.src = URL.createObjectURL(img.blob);
+      imgtag.onload = () => URL.revokeObjectURL(imgtag.src);
       thumb.appendChild(imgtag);
-      const del = Object.assign(document.createElement('button'),{className:'btn ghost',textContent:'Remove'});
-      del.addEventListener('click', ()=>{ images.splice(idx,1); renderList(); updateMeta(); });
+
+      const mid = document.createElement('div'); mid.style.display='grid'; mid.style.gap='4px';
+      const name = document.createElement('div'); name.className='name'; name.textContent = img.name;
+      const sub  = document.createElement('div'); sub.className='small'; sub.textContent = `${img.w}×${img.h} • ${img.kind.toUpperCase()}`;
+      mid.append(name, sub);
+
+      const del = document.createElement('button'); del.className='btn ghost'; del.textContent='Remove';
+      del.addEventListener('click', () => { images.splice(idx,1); renderList(); updateMeta(); });
+
       row.append(handle, thumb, mid, del);
-      row.addEventListener('dragstart', e=>{ row.classList.add('dragging'); e.dataTransfer.setData('text/plain', String(idx)); });
-      row.addEventListener('dragend', ()=> row.classList.remove('dragging'));
-      row.addEventListener('dragover', e=> e.preventDefault());
-      row.addEventListener('drop', e=>{ e.preventDefault(); const from = Number(e.dataTransfer.getData('text/plain')); const to = idx; if(isNaN(from)) return; const [item]=images.splice(from,1); images.splice(to,0,item); renderList(); updateMeta(); });
+
+      // DnD reordering
+      row.addEventListener('dragstart', e => {
+        row.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', String(idx));
+      });
+      row.addEventListener('dragend', () => row.classList.remove('dragging'));
+      row.addEventListener('dragover', e => e.preventDefault());
+      row.addEventListener('drop', e => {
+        e.preventDefault();
+        const from = Number(e.dataTransfer.getData('text/plain'));
+        const to   = idx;
+        if (isNaN(from)) return;
+        const [item] = images.splice(from, 1);
+        images.splice(to, 0, item);
+        renderList(); updateMeta();
+      });
+
       listEl.appendChild(row);
     });
   }
 
-  function hexToRGBA(hex){ const m=hex.match(/^#?([a-f\\d]{2})([a-f\\d]{2})([a-f\\d]{2})$/i); if(!m) return [255,255,255,255]; return [parseInt(m[1],16),parseInt(m[2],16),parseInt(m[3],16),255]; }
-
-  async function decodeImageToCanvasBlob(file){
-    const type = file.type.toLowerCase();
-    const q = Math.max(0.5, Math.min(1, parseFloat(jpgQualityEl.value)||0.92));
-    const [r,g,b,a] = hexToRGBA(bgColorEl.value || '#ffffff');
-    async function drawToCanvasAndExport(img, preferPNG){
-      const w=img.width, h=img.height; const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h;
-      const ctx=canvas.getContext('2d'); ctx.fillStyle=`rgba(${r},${g},${b},${a/255})`; ctx.fillRect(0,0,w,h); ctx.drawImage(img,0,0);
-      if(preferPNG){ const blob=await new Promise(res=>canvas.toBlob(res,'image/png')); return { blob, w, h, kind:'png' }; }
-      else{ const blob=await new Promise(res=>canvas.toBlob(res,'image/jpeg',q)); return { blob, w, h, kind:'jpeg' }; }
-    }
-    if(type==='image/heic'||type==='image/heif'){ const outBlob=await window.heic2any({ blob:file, toType:'image/png' }); const bitmap=await createImageBitmap(outBlob); return await drawToCanvasAndExport(bitmap, true); }
-    try{ const bitmap=await createImageBitmap(file); const preferPNG= type==='image/png' && document.getElementById('pngLossless').checked; return await drawToCanvasAndExport(bitmap, preferPNG); }
-    catch(e){ const url=URL.createObjectURL(file); try{ const img=await new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=url; }); const preferPNG= type==='image/png' && document.getElementById('pngLossless').checked; const r=await drawToCanvasAndExport(img, preferPNG); URL.revokeObjectURL(url); return r;} finally{} }
+  function hexToRGBA(hex) {
+    const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+    if (!m) return [255,255,255,255];
+    return [parseInt(m[1],16), parseInt(m[2],16), parseInt(m[3],16), 255];
   }
 
-  async function addFiles(fileList){
-    const arr = Array.from(fileList).filter(f=> /^image\\/(jpeg|png|webp|avif|heic|heif)$/i.test(f.type));
-    if(!arr.length) return;
-    for(const f of arr){ try{ const { blob, w, h, kind } = await decodeImageToCanvasBlob(f); images.push({ name:f.name, type:f.type, size:f.size, kind, w, h, blob }); } catch(err){ alert('Failed: '+(err?.message||err)); } }
+  // Draw to canvas then export to JPEG/PNG blob
+  async function drawToCanvasAndExport(bitmap, preferPNG) {
+    const w = bitmap.width, h = bitmap.height;
+    const [r,g,b,a] = hexToRGBA(bgColorEl.value || '#ffffff');
+    const q = Math.max(0.5, Math.min(1, parseFloat(jpgQualityEl.value) || 0.92));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = `rgba(${r},${g},${b},${a/255})`;
+    ctx.fillRect(0,0,w,h);
+    ctx.drawImage(bitmap, 0, 0);
+
+    const blob = await new Promise(res => canvas.toBlob(res, preferPNG ? 'image/png' : 'image/jpeg', preferPNG ? undefined : q));
+    return { blob, w, h, kind: preferPNG ? 'png' : 'jpeg' };
+  }
+
+  // Decode any supported file to a usable canvas blob
+  async function decodeImageToCanvasBlob(file) {
+    const type = (file.type || '').toLowerCase();
+    // HEIC/HEIF → PNG first (for quality), then maybe JPEG
+    if (type.includes('heic') || type.includes('heif') || /\.hei[c|f]$/i.test(file.name)) {
+      const outBlob = await window.heic2any({ blob: file, toType: 'image/png' });
+      const bitmap  = await createImageBitmap(outBlob);
+      return await drawToCanvasAndExport(bitmap, true);
+    }
+
+    try {
+      const bitmap = await createImageBitmap(file);
+      const preferPNG = (type.includes('png') || /\.png$/i.test(file.name)) && pngLosslessEl.checked;
+      return await drawToCanvasAndExport(bitmap, preferPNG);
+    } catch (e) {
+      // Fallback decoder via <img> if createImageBitmap fails or type is empty
+      const url = URL.createObjectURL(file);
+      try {
+        const img = await new Promise((res, rej) => {
+          const im = new Image();
+          im.onload  = () => res(im);
+          im.onerror = rej;
+          im.src = url;
+        });
+        const preferPNG = (/\.png$/i.test(file.name) || type.includes('png')) && pngLosslessEl.checked;
+        return await drawToCanvasAndExport(img, preferPNG);
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    }
+  }
+
+  // Much looser acceptance: accept any image/* and also empty-type files by extension
+  function isSupportedImage(file) {
+    const t = (file.type || '').toLowerCase();
+    if (t.startsWith('image/')) return true;
+    return /\.(jpe?g|png|webp|avif|heic|heif)$/i.test(file.name);
+  }
+
+  async function addFiles(fileList) {
+    showErr('');
+    const files = Array.from(fileList).filter(isSupportedImage);
+    if (!files.length) { showErr('No supported images were found.'); return; }
+
+    setProgress(true, 'Preparing images…');
+    for (const f of files) {
+      try {
+        const { blob, w, h, kind } = await decodeImageToCanvasBlob(f);
+        images.push({ name: f.name, type: f.type || 'image/*', size: f.size, kind, w, h, blob });
+      } catch (err) {
+        showErr('Failed to read one image: ' + (err?.message || err));
+      }
+    }
+    setProgress(false);
     renderList(); updateMeta();
   }
 
-  fileInput.addEventListener('change', e=> addFiles(e.target.files));
-  ['dragenter','dragover'].forEach(ev=> drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.add('drag'); }));
-  ['dragleave','drop'].forEach(ev=> drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.remove('drag'); }));
-  drop.addEventListener('drop', e=> addFiles(e.dataTransfer.files));
+  // ---- Events ---------------------------------------------------------------
+
+  // Label click → trigger file picker
+  fileInput.addEventListener('change', e => addFiles(e.target.files));
+
+  // Drag & drop
+  ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('drag'); }));
+  drop.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+
+  // Also click on the drop zone opens picker
+  drop.addEventListener('click', () => fileInput.click());
+  drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
 
   function mmToPt(mm){ return mm*72/25.4; }
-  function getPageSizePts(){ let wMM=210,hMM=297; const s=pageSizeEl.value; if(s==='Letter'){wMM=215.9;hMM=279.4;} if(s==='A5'){wMM=148;hMM=210;} if(s==='Square'){wMM=210;hMM=210;} let w=mmToPt(wMM),h=mmToPt(hMM); if(orientationEl.value==='landscape') [w,h]=[h,w]; return {w,h}; }
+  function getPageSizePts(){
+    let wMM=210,hMM=297;
+    const s = pageSizeEl.value;
+    if (s==='Letter'){wMM=215.9;hMM=279.4;}
+    if (s==='A5'){wMM=148;hMM=210;}
+    if (s==='Square'){wMM=210;hMM=210;}
+    let w=mmToPt(wMM), h=mmToPt(hMM);
+    if (orientationEl.value==='landscape') [w,h] = [h,w];
+    return {w,h};
+  }
   async function blobToUint8Array(blob){ const buf=await blob.arrayBuffer(); return new Uint8Array(buf); }
 
-  buildBtn.addEventListener('click', async ()=>{
-    try{
-      buildBtn.disabled=true; buildBtn.textContent='Building…';
-      const {w:pageW,h:pageH}=getPageSizePts(); const margin=mmToPt(parseFloat(marginEl.value)||0); const fitMode=fitModeEl.value;
-      const doc=await PDFLib.PDFDocument.create();
-      for(const img of images){
-        let embedded, iw, ih;
-        if(img.kind==='png'){ embedded = await doc.embedPng(await blobToUint8Array(img.blob)); }
-        else { embedded = await doc.embedJpg(await blobToUint8Array(img.blob)); }
-        iw=embedded.width; ih=embedded.height;
-        const page=doc.addPage([pageW,pageH]); const availW=Math.max(1,pageW-2*margin); const availH=Math.max(1,pageH-2*margin);
-        let drawW,drawH; const ratio=iw/ih, boxRatio=availW/availH;
-        if(fitMode==='cover'){ if(ratio>boxRatio){ drawH=availH; drawW=drawH*ratio; } else { drawW=availW; drawH=drawW/ratio; } }
-        else if(fitMode==='width'){ drawW=availW; drawH=drawW/ratio; }
-        else if(fitMode==='height'){ drawH=availH; drawW=drawH*ratio; }
-        else { if(ratio>boxRatio){ drawW=availW; drawH=drawW/ratio; } else { drawH=availH; drawW=drawH*ratio; } }
-        const x=margin+(availW-drawW)/2, y=margin+(availH-drawH)/2;
-        page.drawImage(embedded,{x,y,width:drawW,height:drawH});
+  buildBtn.addEventListener('click', async () => {
+    if (!images.length) return;
+    try {
+      showErr('');
+      setProgress(true, 'Building PDF…');
+      buildBtn.disabled = true; buildBtn.textContent = 'Building…';
+
+      const {w:pageW, h:pageH} = getPageSizePts();
+      const margin  = mmToPt(parseFloat(marginEl.value) || 0);
+      const fitMode = fitModeEl.value;
+
+      const doc = await PDFLib.PDFDocument.create();
+
+      for (const img of images) {
+        let embedded;
+        if (img.kind === 'png')  embedded = await doc.embedPng(await blobToUint8Array(img.blob));
+        else                     embedded = await doc.embedJpg(await blobToUint8Array(img.blob));
+
+        const iw = embedded.width, ih = embedded.height;
+        const page = doc.addPage([pageW, pageH]);
+
+        const availW = Math.max(1, pageW - 2*margin);
+        const availH = Math.max(1, pageH - 2*margin);
+        const ratio = iw/ih, boxRatio = availW/availH;
+
+        let drawW, drawH;
+        if (fitMode === 'cover') {
+          if (ratio > boxRatio) { drawH = availH; drawW = drawH * ratio; }
+          else                  { drawW = availW; drawH = drawW / ratio; }
+        } else if (fitMode === 'width') {
+          drawW = availW; drawH = drawW / ratio;
+        } else if (fitMode === 'height') {
+          drawH = availH; drawW = drawH * ratio;
+        } else { // contain
+          if (ratio > boxRatio) { drawW = availW; drawH = drawW / ratio; }
+          else                  { drawH = availH; drawW = drawH * ratio; }
+        }
+
+        const x = margin + (availW - drawW) / 2;
+        const y = margin + (availH - drawH) / 2;
+
+        page.drawImage(embedded, { x, y, width: drawW, height: drawH });
       }
-      const bytes=await doc.save({updateFieldAppearances:false}); const blob=new Blob([bytes],{type:'application/pdf'});
-      const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='images-to-pdf.pdf'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1500);
-      buildBtn.textContent='Create PDF'; buildBtn.disabled=images.length===0;
-    }catch(err){ alert('Build failed: '+(err?.message||err)); buildBtn.textContent='Create PDF'; buildBtn.disabled=false; }
+
+      const bytes = await doc.save({ updateFieldAppearances: false });
+      const blob  = new Blob([bytes], { type: 'application/pdf' });
+
+      // Download only (no new tab)
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'images-to-pdf.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+
+      buildBtn.textContent = 'Create PDF';
+      buildBtn.disabled = images.length === 0;
+      setProgress(false);
+    } catch (err) {
+      setProgress(false);
+      showErr('Build failed: ' + (err?.message || err));
+      buildBtn.textContent = 'Create PDF';
+      buildBtn.disabled = false;
+    }
   });
   </script>
 </body>
