@@ -18,9 +18,9 @@
   .btn.primary{background:var(--accent);border-color:#508cff;color:#08111f;font-weight:600}
   .btn[disabled]{opacity:.55;cursor:not-allowed}
   input[type=file]{display:none}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
-  .card{background:#0f1622;border:1px solid #1b2535;border-radius:10px;padding:8px;cursor:move}
-  .thumb{width:100%;height:200px;background:#0c1220;border:1px solid #1b2535;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+  .card{background:#0f1622;border:1px solid #1b2535;border-radius:10px;padding:8px;cursor:move;user-select:none}
+  .thumb{width:100%;height:220px;background:#0c1220;border:1px solid #1b2535;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden}
   canvas{max-width:100%;max-height:100%}
   .small{color:#aab7c7;font-size:12px;margin-top:6px;text-align:center}
   .drag-over{outline:2px dashed var(--accent)}
@@ -39,6 +39,7 @@
         <span id="meta" class="muted">No file</span>
       </div>
       <div class="row">
+        <button class="btn" id="btnReset" disabled>Reset order</button>
         <button class="btn primary" id="btnExport" disabled>Download New PDF</button>
       </div>
     </div>
@@ -47,8 +48,8 @@
     <div id="pages" class="grid"></div>
   </div>
   <p class="muted" style="margin-top:10px">
-    Privacy: All processing happens locally in your browser using <a href="https://mozilla.github.io/pdf.js/" target="_blank">PDF.js</a> (for preview) and
-    <a href="https://pdf-lib.js.org/" target="_blank">pdf-lib</a> (for writing). No uploads.
+    All processing happens locally with <a href="https://mozilla.github.io/pdf.js/" target="_blank" rel="noopener">PDF.js</a> (preview)
+    and <a href="https://pdf-lib.js.org/" target="_blank" rel="noopener">pdf-lib</a> (write).
   </p>
 </div>
 
@@ -60,62 +61,14 @@
 
 <script>
 const $=s=>document.querySelector(s);
-const fileEl=$('#file'), pagesEl=$('#pages'), metaEl=$('#meta'), statusEl=$('#status'), btnExport=$('#btnExport');
+const fileEl=$('#file'), pagesEl=$('#pages'), metaEl=$('#meta'), statusEl=$('#status'),
+      btnExport=$('#btnExport'), btnReset=$('#btnReset');
 
-let arrayBuffer=null, pageCount=0;
+let fileBytes=null; // Uint8Array
+let pageCount=0, originalOrder=[];
 
 function setStatus(t){ statusEl.textContent=t; }
-function updateMeta(){ metaEl.textContent=arrayBuffer ? `${pageCount} pages (drag to reorder)` : 'No file'; }
-
-// render thumbnails
-async function renderPages(){
-  pagesEl.innerHTML='';
-  const pdf=await pdfjsLib.getDocument({data: arrayBuffer}).promise;
-  pageCount=pdf.numPages; updateMeta();
-
-  for(let i=1;i<=pageCount;i++){
-    const page=await pdf.getPage(i);
-    const viewport=page.getViewport({scale:0.25});
-    const canvas=document.createElement('canvas'); const ctx=canvas.getContext('2d');
-    canvas.width=viewport.width; canvas.height=viewport.height;
-    await page.render({canvasContext:ctx, viewport}).promise;
-
-    const card=document.createElement('div');
-    card.className='card';
-    card.draggable=true;
-    card.dataset.page=i-1; // zero-based index
-    const thumb=document.createElement('div'); thumb.className='thumb'; thumb.appendChild(canvas);
-    const small=document.createElement('div'); small.className='small'; small.textContent=`Page ${i}`;
-    card.append(thumb,small);
-
-    // drag & drop handlers
-    card.addEventListener('dragstart', e=>{
-      e.dataTransfer.setData('text/plain', card.dataset.page);
-      card.classList.add('dragging');
-    });
-    card.addEventListener('dragend', ()=>card.classList.remove('dragging'));
-    card.addEventListener('dragover', e=>{ e.preventDefault(); card.classList.add('drag-over'); });
-    card.addEventListener('dragleave', ()=>card.classList.remove('drag-over'));
-    card.addEventListener('drop', e=>{
-      e.preventDefault();
-      card.classList.remove('drag-over');
-      const from = document.querySelector('.dragging');
-      if(from && from!==card){
-        if([...pagesEl.children].indexOf(from) < [...pagesEl.children].indexOf(card)){
-          card.after(from);
-        }else{
-          card.before(from);
-        }
-      }
-    });
-
-    pagesEl.appendChild(card);
-  }
-  setStatus('Ready. Drag pages to reorder, then click “Download New PDF”.');
-  btnExport.disabled=false;
-}
-
-// download helper
+function updateMeta(){ metaEl.textContent=fileBytes ? `${pageCount} pages (drag to reorder)` : 'No file'; }
 function downloadBlob(blob, filename){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob); a.download=filename; a.style.display='none';
@@ -123,35 +76,99 @@ function downloadBlob(blob, filename){
   setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
 }
 
-// events
+function updateResetButtonState(){
+  const current=[...pagesEl.children].map(c=>parseInt(c.dataset.page,10));
+  const same = current.length===originalOrder.length && current.every((v,i)=>v===originalOrder[i]);
+  btnReset.disabled = same;
+}
+
+function makeCard(i, canvas){
+  const card=document.createElement('div');
+  card.className='card';
+  card.draggable=true;
+  card.dataset.page=i; // zero-based source index
+
+  const thumb=document.createElement('div'); thumb.className='thumb'; thumb.appendChild(canvas);
+  const small=document.createElement('div'); small.className='small'; small.textContent=`Page ${i+1}`;
+  card.append(thumb,small);
+
+  card.addEventListener('dragstart', e=>{
+    e.dataTransfer.setData('text/plain', i.toString());
+    card.classList.add('dragging');
+  });
+  card.addEventListener('dragend', ()=>card.classList.remove('dragging'));
+  card.addEventListener('dragover', e=>{ e.preventDefault(); card.classList.add('drag-over'); });
+  card.addEventListener('dragleave', ()=>card.classList.remove('drag-over'));
+  card.addEventListener('drop', e=>{
+    e.preventDefault();
+    card.classList.remove('drag-over');
+    const dragging = document.querySelector('.dragging');
+    if(dragging && dragging!==card){
+      const kids=[...pagesEl.children];
+      const from=kids.indexOf(dragging), to=kids.indexOf(card);
+      if(from < to) card.after(dragging); else card.before(dragging);
+      updateResetButtonState();
+    }
+  });
+
+  return card;
+}
+
+async function renderPages(){
+  pagesEl.innerHTML='';
+  const pdf=await pdfjsLib.getDocument({data: new Uint8Array(fileBytes)}).promise;
+  pageCount=pdf.numPages; updateMeta();
+
+  originalOrder = Array.from({length:pageCount}, (_,i)=>i);
+
+  for(let i=1;i<=pageCount;i++){
+    const page=await pdf.getPage(i);
+    const viewport=page.getViewport({scale:0.25});
+    const canvas=document.createElement('canvas'); const ctx=canvas.getContext('2d');
+    canvas.width=viewport.width; canvas.height=viewport.height;
+    await page.render({canvasContext:ctx, viewport}).promise;
+    pagesEl.appendChild(makeCard(i-1, canvas));
+  }
+
+  btnExport.disabled=false;
+  btnReset.disabled=true;
+  setStatus('Ready. Drag pages to reorder, then “Download New PDF”.');
+}
+
+// Load file
 fileEl.addEventListener('change', async e=>{
   const f=e.target.files?.[0]; if(!f) return;
-  metaEl.textContent = `${f.name} — loading…`;
-  arrayBuffer=await f.arrayBuffer();
+  setStatus(`${f.name} — loading…`);
+  fileBytes = new Uint8Array(await f.arrayBuffer());
   await renderPages();
 });
 
-btnExport.addEventListener('click', async ()=>{
-  if(!arrayBuffer) return alert('Choose a PDF first.');
-  setStatus('Building new PDF…');
+// Reset to original
+btnReset.addEventListener('click', async ()=>{
+  // Quick way: re-render from original order again
+  await renderPages();
+});
 
+// Export
+btnExport.addEventListener('click', async ()=>{
+  if(!fileBytes) return alert('Choose a PDF first.');
+  setStatus('Building new PDF…'); btnExport.disabled=true;
   try{
-    const src = await PDFLib.PDFDocument.load(arrayBuffer);
+    const src = await PDFLib.PDFDocument.load(new Uint8Array(fileBytes));
     const out = await PDFLib.PDFDocument.create();
 
-    // get order from DOM
-    const order=[...pagesEl.children].map(c=>parseInt(c.dataset.page));
+    const order=[...pagesEl.children].map(c=>parseInt(c.dataset.page,10)); // source indices
     const copied = await out.copyPages(src, order);
     copied.forEach(p=>out.addPage(p));
 
-    const bytes = await out.save();
-    const blob = new Blob([bytes], {type:'application/pdf'});
-    downloadBlob(blob,'pdf-reordered.pdf');
+    const bytes = await out.save({ useObjectStreams:false });
+    downloadBlob(new Blob([bytes],{type:'application/pdf'}),'pdf-reordered.pdf');
     setStatus('Done. Downloaded.');
   }catch(err){
-    console.error(err);
-    alert('Error: '+(err.message||err));
-    setStatus('Error.');
+    console.error(err); setStatus('Error.');
+    alert('Error: '+(err?.message||err));
+  }finally{
+    btnExport.disabled=false;
   }
 });
 </script>
