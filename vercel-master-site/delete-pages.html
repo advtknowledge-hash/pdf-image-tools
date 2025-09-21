@@ -17,6 +17,7 @@
   .btn{appearance:none;border:1px solid #2a364a;background:#162233;color:#e8eef6;padding:9px 12px;border-radius:10px;cursor:pointer}
   .btn.primary{background:var(--accent);border-color:#508cff;color:#08111f;font-weight:600}
   .btn.ghost{background:#0f1622}
+  .btn[disabled]{opacity:.55;cursor:not-allowed}
   input[type=file]{display:none}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
   .card{background:#0f1622;border:1px solid #1b2535;border-radius:10px;padding:8px}
@@ -50,7 +51,7 @@
         <button class="btn ghost" id="btnSelectRanges">Mark by ranges</button>
         <button class="btn ghost" id="btnSelectAll">Select all</button>
         <button class="btn ghost" id="btnClear">Clear</button>
-        <button class="btn primary" id="btnExport">Download New PDF</button>
+        <button class="btn primary" id="btnExport" disabled>Download New PDF</button>
         <button class="btn" id="btnCancel" style="display:none">Cancel</button>
       </div>
     </div>
@@ -108,7 +109,8 @@ function setProgress(done,total){
   progCount.textContent=`${done} / ${total}`;
 }
 function startCancelable(){ cancelFlag=false; btnCancel.style.display='inline-block'; btnExport.disabled=true; }
-function endCancelable(){ cancelFlag=false; btnCancel.style.display='none'; btnExport.disabled=false; setProgress(0,0); }
+function endCancelable(){ cancelFlag=false; btnCancel.style.display='none'; btnExport.disabled=(selected.size===0); setProgress(0,0); }
+function updateDownloadState(){ btnExport.disabled = !fileBytes || selected.size===0; }
 
 function cardFor(i, canvas){
   const wrap=document.createElement('div'); wrap.className='card';
@@ -123,13 +125,16 @@ function cardFor(i, canvas){
   wrap.append(thumb,small);
   return wrap;
 }
-function updateMeta(){ metaEl.textContent=fileBytes?`${pageCount} pages • ${selected.size} selected to delete`:'No file'; }
+function updateMeta(){
+  metaEl.textContent=fileBytes?`${pageCount} pages • ${selected.size} selected to delete`:'No file';
+  updateDownloadState();
+}
 
 async function renderPages(){
   pagesEl.innerHTML='';
   clearError();
   const pdf=await pdfjsLib.getDocument({data: new Uint8Array(fileBytes)}).promise;
-  pageCount=pdf.numPages; updateMeta();
+  pageCount=pdf.numPages; selected.clear(); updateMeta();
   for(let i=1;i<=pageCount;i++){
     const page=await pdf.getPage(i);
     const viewport=page.getViewport({scale:0.25});
@@ -161,6 +166,7 @@ fileEl.addEventListener('change',async e=>{
   const buf = await f.arrayBuffer();
   fileBytes = new Uint8Array(buf);
   await renderPages();
+  updateDownloadState();
 });
 btnAll.addEventListener('click',()=>{
   selected=new Set(Array.from({length:pageCount},(_,i)=>i+1));
@@ -263,8 +269,13 @@ async function buildByRaster(keepSet, startScale=2){
 
 /* --------- EXPORT --------- */
 btnExport.addEventListener('click',async()=>{
-  if(!fileBytes) return alert('Choose a PDF first.');
-  if(selected.size===0 && !confirm('No pages selected. Export original PDF?')) return;
+  if(!fileBytes) { alert('Choose a PDF first.'); return; }
+
+  // NEW: hard-stop if nothing selected
+  if (selected.size === 0) {
+    alert('Select at least one page to delete (tick checkboxes or enter ranges → “Mark by ranges”).');
+    return;
+  }
 
   clearError();
   startCancelable();
