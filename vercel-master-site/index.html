@@ -5,20 +5,113 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PDF & Image Tools — Fast & Private</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <meta name="description" content="Free, private, in-browser PDF & image tools: crop, merge, compress, convert images ↔ PDF, PNG ↔ JPG, reorder pages, and rotate pages.">
+  <meta name="description" content="Free, private, in-browser PDF & image tools: crop, merge, compress, convert images ↔ PDF, and PNG ↔ JPG.">
   <style>
-    :root{--bg:#0b0f14;--panel:#121821;--muted:#1b2230;--text:#e8eef6;--sub:#aab7c7;--accent:#6aa0ff}
-    *{box-sizing:border-box}
-    body{margin:0;background:linear-gradient(180deg,#0b0f14,#0e1420);color:var(--text);font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto}
-    header{padding:20px 16px;border-bottom:1px solid #1a2230;background:#0f1622}
-    header h1{margin:0;font-size:22px}
-    main{max-width:900px;margin:0 auto;padding:22px}
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-top:12px}
-    .card{background:#121821;border:1px solid #1a2230;border-radius:14px;padding:16px}
-    .card h3{margin:0 0 6px 0}
-    .card a{display:inline-block;margin-top:8px;color:#e8eef6;padding:8px 10px;border:1px solid #2a364a;border-radius:10px;background:#162233;text-decoration:none}
-    .small{color:#aab7c7}
-    footer{padding:24px;color:#aab7c7;text-align:center}
+    :root {
+      --bg: #f7f9fc;        /* Page background */
+      --panel: #ffffff;     /* Panel / card background */
+      --muted: #e3e8f0;     /* Border / separators */
+      --text: #1a1d23;      /* Primary text */
+      --sub: #555e6c;       /* Secondary text */
+      --accent: #0078ff;    /* Accent (buttons, links) */
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.55 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    }
+
+    header {
+      padding: 20px 16px;
+      border-bottom: 1px solid var(--muted);
+      background: #ffffff;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+      color: var(--text);
+    }
+
+    main {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 22px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+      margin-top: 14px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--muted);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+    }
+
+    .card h3 {
+      margin: 0 0 6px 0;
+      font-size: 17px;
+      color: var(--text);
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--sub);
+      font-size: 14px;
+    }
+
+    .card a {
+      display: inline-block;
+      margin-top: 10px;
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+      transition: background 0.2s ease;
+    }
+
+    .card a:hover {
+      background: #005fcc;
+    }
+
+    .small {
+      color: var(--sub);
+    }
+
+    footer {
+      padding: 24px;
+      color: var(--sub);
+      text-align: center;
+      border-top: 1px solid var(--muted);
+      margin-top: 20px;
+      background: #ffffff;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
   </style>
 </head>
 <body>
