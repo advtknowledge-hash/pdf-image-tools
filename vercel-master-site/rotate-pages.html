@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Rotate PDF Pages (Client-side)</title>
+<link rel="icon" href="/favicon.svg" />
+<style>
+  :root{--bg:#0b0f14;--panel:#121821;--muted:#1b2230;--text:#e8eef6;--sub:#aab7c7;--accent:#6aa0ff}
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0b0f14,#0e1420);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial}
+  header{padding:14px 16px;border-bottom:1px solid #1a2230;background:#0f1622}
+  header h1{margin:0;font-size:18px}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px}
+  .panel{background:#121821;border:1px solid #1a2230;border-radius:14px;padding:16px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+  .btn{appearance:none;border:1px solid #2a364a;background:#162233;color:#e8eef6;padding:9px 12px;border-radius:10px;cursor:pointer}
+  .btn.small{padding:5px 8px;font-size:12px}
+  .btn.primary{background:var(--accent);border-color:#508cff;color:#08111f;font-weight:600}
+  .btn[disabled]{opacity:.55;cursor:not-allowed}
+  input[type=file]{display:none}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+  .card{background:#0f1622;border:1px solid #1b2535;border-radius:10px;padding:8px;user-select:none}
+  .thumb{position:relative;width:100%;height:220px;background:#0c1220;border:1px solid #1b2535;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  canvas{max-width:100%;max-height:100%}
+  .small{color:#aab7c7;font-size:12px;margin-top:6px;text-align:center}
+  .controls{display:flex;gap:6px;justify-content:center;margin-top:6px}
+  .badge{position:absolute;left:8px;top:8px;background:#1a2440;color:#cfe1ff;padding:2px 6px;border-radius:8px;font-size:11px}
+  .rot-badge{position:absolute;right:8px;top:8px;background:#1a2440;color:#cfe1ff;padding:2px 6px;border-radius:8px;font-size:11px}
+  .muted{color:#aab7c7}
+</style>
+</head>
+<body>
+<header><h1>🔁 Rotate PDF Pages (Client-side)</h1></header>
+
+<div class="wrap">
+  <div class="panel">
+    <div class="row" style="justify-content:space-between">
+      <div class="row">
+        <label class="btn primary" for="file">Choose PDF</label>
+        <input id="file" type="file" accept="application/pdf">
+        <span id="meta" class="muted">No file</span>
+      </div>
+      <div class="row">
+        <button class="btn" id="btnRotateAllL" disabled>Rotate all ⟲ -90°</button>
+        <button class="btn" id="btnRotateAllR" disabled>Rotate all ⟳ +90°</button>
+        <button class="btn primary" id="btnExport" disabled>Download New PDF</button>
+      </div>
+    </div>
+
+    <div id="status" class="muted" style="margin:6px 0 12px">Idle…</div>
+    <div id="pages" class="grid"></div>
+  </div>
+
+  <p class="muted" style="margin-top:10px">
+    All processing happens locally with <a href="https://mozilla.github.io/pdf.js/" target="_blank" rel="noopener">PDF.js</a> (preview)
+    and <a href="https://pdf-lib.js.org/" target="_blank" rel="noopener">pdf-lib</a> (write).
+  </p>
+</div>
+
+<!-- PDF.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script>
+<!-- pdf-lib -->
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
+<script>
+const $=s=>document.querySelector(s);
+const fileEl=$('#file'), pagesEl=$('#pages'), metaEl=$('#meta'), statusEl=$('#status'),
+      btnExport=$('#btnExport'), btnRotateAllL=$('#btnRotateAllL'), btnRotateAllR=$('#btnRotateAllR');
+
+let fileBytes=null; // Uint8Array
+let pageCount=0, rotations=[]; // degrees per source page (0/90/180/270)
+
+function setStatus(t){ statusEl.textContent=t; }
+function updateMeta(){ metaEl.textContent=fileBytes ? `${pageCount} pages (rotate per page or all)` : 'No file'; }
+function downloadBlob(blob, filename){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=filename; a.style.display='none';
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+
+function makeCard(i, canvas){
+  const card=document.createElement('div'); card.className='card'; card.dataset.page=i;
+  const thumb=document.createElement('div'); thumb.className='thumb';
+  const num=document.createElement('div'); num.className='badge'; num.textContent = `#${i+1}`;
+  const rotBadge=document.createElement('div'); rotBadge.className='rot-badge'; rotBadge.textContent=`0°`;
+  thumb.append(canvas, num, rotBadge);
+
+  const label=document.createElement('div'); label.className='small'; label.textContent='Rotate page';
+  const controls=document.createElement('div'); controls.className='controls';
+  const leftBtn=document.createElement('button'); leftBtn.className='btn small'; leftBtn.textContent='⟲ -90°';
+  const rightBtn=document.createElement('button'); rightBtn.className='btn small'; rightBtn.textContent='⟳ +90°';
+  controls.append(leftBtn, rightBtn);
+
+  function applyPreview(){
+    const deg = rotations[i] || 0;
+    canvas.style.transform = `rotate(${deg}deg)`;
+    rotBadge.textContent = `${deg}°`;
+  }
+  leftBtn.addEventListener('click', ()=>{ rotations[i]=(((rotations[i]||0)+270)%360); applyPreview(); });
+  rightBtn.addEventListener('click', ()=>{ rotations[i]=(((rotations[i]||0)+90)%360); applyPreview(); });
+  applyPreview();
+
+  card.append(thumb,label,controls);
+  return card;
+}
+
+async function renderPages(){
+  pagesEl.innerHTML='';
+  const pdf=await pdfjsLib.getDocument({data: new Uint8Array(fileBytes)}).promise;
+  pageCount=pdf.numPages; rotations = Array.from({length:pageCount}, ()=>0); updateMeta();
+
+  for(let i=1;i<=pageCount;i++){
+    const page=await pdf.getPage(i);
+    const viewport=page.getViewport({scale:0.25});
+    const canvas=document.createElement('canvas'); const ctx=canvas.getContext('2d');
+    canvas.width=viewport.width; canvas.height=viewport.height;
+    await page.render({canvasContext:ctx, viewport}).promise;
+    pagesEl.appendChild(makeCard(i-1, canvas));
+  }
+
+  btnExport.disabled=false;
+  btnRotateAllL.disabled=false;
+  btnRotateAllR.disabled=false;
+  setStatus('Ready. Rotate pages, then “Download New PDF”.');
+}
+
+// Load file
+fileEl.addEventListener('change', async e=>{
+  const f=e.target.files?.[0]; if(!f) return;
+  setStatus(`${f.name} — loading…`);
+  fileBytes = new Uint8Array(await f.arrayBuffer());
+  await renderPages();
+});
+
+// Rotate all helpers
+function rotateAll(delta){
+  for(let i=0;i<rotations.length;i++){
+    rotations[i] = ((rotations[i] + delta + 360) % 360);
+  }
+  // refresh preview badges
+  pagesEl.querySelectorAll('canvas').forEach((cv, idx)=>{
+    cv.style.transform = `rotate(${rotations[idx]}deg)`;
+  });
+  pagesEl.querySelectorAll('.rot-badge').forEach((rb, idx)=>{
+    rb.textContent = `${rotations[idx]}°`;
+  });
+}
+btnRotateAllL.addEventListener('click', ()=>rotateAll(-90));
+btnRotateAllR.addEventListener('click', ()=>rotateAll(+90));
+
+// Export (apply rotations)
+btnExport.addEventListener('click', async ()=>{
+  if(!fileBytes) return alert('Choose a PDF first.');
+  setStatus('Building new PDF…'); btnExport.disabled=true;
+  try{
+    const src = await PDFLib.PDFDocument.load(new Uint8Array(fileBytes));
+    const out = await PDFLib.PDFDocument.create();
+
+    // copy pages in original order, apply rotations
+    const order = Array.from({length:pageCount}, (_,i)=>i);
+    const copied = await out.copyPages(src, order);
+    copied.forEach((p, idx)=>{
+      const deg = rotations[idx] || 0;
+      if(deg) p.setRotation(PDFLib.degrees(deg));
+      out.addPage(p);
+    });
+
+    const bytes = await out.save({ useObjectStreams:false });
+    downloadBlob(new Blob([bytes],{type:'application/pdf'}),'pdf-rotated.pdf');
+    setStatus('Done. Downloaded.');
+  }catch(err){
+    console.error(err); setStatus('Error.');
+    alert('Error: '+(err?.message||err));
+  }finally{
+    btnExport.disabled=false;
+  }
+});
+</script>
+</body>
+</html>
