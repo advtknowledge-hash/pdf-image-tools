@@ -16,6 +16,7 @@
   .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
   .btn{appearance:none;border:1px solid #2a364a;background:#162233;color:#e8eef6;padding:9px 12px;border-radius:10px;cursor:pointer}
   .btn.primary{background:var(--accent);border-color:#508cff;color:#08111f;font-weight:600}
+  .btn.ghost{background:#0f1622}
   input[type=file]{display:none}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
   .card{background:#0f1622;border:1px solid #1b2535;border-radius:10px;padding:8px}
@@ -27,6 +28,9 @@
   .hint{font-size:12px;color:#aab7c7;margin-top:6px}
   .error{background:#2a1320;color:#ffd4e0;border:1px solid #5a2037;padding:10px;border-radius:10px;margin-top:10px;white-space:pre-wrap}
   .toggle{display:flex;gap:8px;align-items:center}
+  .progress{display:flex;align-items:center;gap:10px;margin:6px 0}
+  progress{width:220px;height:12px}
+  .pill{padding:2px 8px;border:1px solid #2a364a;border-radius:999px;background:#0f1622;color:#aab7c7;font-size:12px}
 </style>
 </head>
 <body>
@@ -43,19 +47,27 @@
       <div class="row">
         <input id="ranges" placeholder="Page ranges e.g. 1,3,5-7 (to delete)"
                style="padding:9px 10px;border-radius:10px;border:1px solid #2a364a;background:#0f1622;color:#e8eef6;min-width:280px">
-        <button class="btn" id="btnSelectRanges">Mark by ranges</button>
-        <button class="btn" id="btnSelectAll">Select all</button>
-        <button class="btn" id="btnClear">Clear</button>
+        <button class="btn ghost" id="btnSelectRanges">Mark by ranges</button>
+        <button class="btn ghost" id="btnSelectAll">Select all</button>
+        <button class="btn ghost" id="btnClear">Clear</button>
         <button class="btn primary" id="btnExport">Download New PDF</button>
+        <button class="btn" id="btnCancel" style="display:none">Cancel</button>
       </div>
     </div>
 
     <div class="toggle" style="margin:-6px 0 8px">
       <input type="checkbox" id="forceCompat">
       <label for="forceCompat" class="muted">Force compatibility mode (use images)</label>
+      <span id="fileName" class="pill" hidden></span>
     </div>
 
-    <div id="status" class="muted" style="margin:2px 0 8px">Idle…</div>
+    <div id="status" class="muted" style="margin:2px 0 6px">Idle…</div>
+    <div class="progress" id="progressWrap" style="display:none">
+      <progress id="prog" max="100" value="0"></progress>
+      <span id="progLabel" class="muted">0%</span>
+      <span id="progCount" class="muted"></span>
+    </div>
+
     <div id="pages" class="grid"></div>
     <div class="hint">Fast mode edits the original PDF structure. Compatibility mode rebuilds pages as images (bigger file but works on tricky PDFs).</div>
     <div id="err" class="error" style="display:none"></div>
@@ -76,16 +88,27 @@
 <script>
 const $=s=>document.querySelector(s);
 const fileEl=$('#file'), pagesEl=$('#pages'), metaEl=$('#meta'), statusEl=$('#status'), errEl=$('#err');
-const rangesEl=$('#ranges'), btnRanges=$('#btnSelectRanges'), btnAll=$('#btnSelectAll'), btnClear=$('#btnClear'), btnExport=$('#btnExport');
+const rangesEl=$('#ranges'), btnRanges=$('#btnSelectRanges'), btnAll=$('#btnSelectAll'), btnClear=$('#btnClear'), btnExport=$('#btnExport'), btnCancel=$('#btnCancel');
 const forceCompatEl=$('#forceCompat');
+const progressWrap=$('#progressWrap'), prog=$('#prog'), progLabel=$('#progLabel'), progCount=$('#progCount'), fileNameEl=$('#fileName');
 
-// IMPORTANT: keep the file as Uint8Array (not raw ArrayBuffer)
-let fileBytes=null;   // Uint8Array of the PDF
+let fileBytes=null;      // Uint8Array
+let origName='document.pdf';
 let pageCount=0, selected=new Set();
+let cancelFlag=false;
 
 function setStatus(t){ statusEl.textContent=t; }
 function showError(text){ errEl.style.display='block'; errEl.textContent = String(text || '').slice(0, 4000); }
 function clearError(){ errEl.style.display='none'; errEl.textContent=''; }
+function setProgress(done,total){
+  if(total<=0){ progressWrap.style.display='none'; return; }
+  progressWrap.style.display='flex';
+  const pct = Math.round((done/total)*100);
+  prog.max=100; prog.value=pct; progLabel.textContent=pct+'%';
+  progCount.textContent=`${done} / ${total}`;
+}
+function startCancelable(){ cancelFlag=false; btnCancel.style.display='inline-block'; btnExport.disabled=true; }
+function endCancelable(){ cancelFlag=false; btnCancel.style.display='none'; btnExport.disabled=false; setProgress(0,0); }
 
 function cardFor(i, canvas){
   const wrap=document.createElement('div'); wrap.className='card';
@@ -105,13 +128,12 @@ function updateMeta(){ metaEl.textContent=fileBytes?`${pageCount} pages • ${se
 async function renderPages(){
   pagesEl.innerHTML='';
   clearError();
-  // pass a FRESH copy into PDF.js (avoid detaching the original)
   const pdf=await pdfjsLib.getDocument({data: new Uint8Array(fileBytes)}).promise;
   pageCount=pdf.numPages; updateMeta();
   for(let i=1;i<=pageCount;i++){
     const page=await pdf.getPage(i);
     const viewport=page.getViewport({scale:0.25});
-    const canvas=document.createElement('canvas'); const ctx=canvas.getContext('2d');
+    const canvas=document.createElement('canvas'), ctx=canvas.getContext('2d');
     canvas.width=viewport.width; canvas.height=viewport.height;
     await page.render({canvasContext:ctx, viewport}).promise;
     pagesEl.appendChild(cardFor(i, canvas));
@@ -133,9 +155,11 @@ function parseRanges(txt){
 
 fileEl.addEventListener('change',async e=>{
   const f=e.target.files?.[0]; if(!f) return;
-  metaEl.textContent=`${f.name} — loading…`;
+  origName = f.name || 'document.pdf';
+  fileNameEl.hidden=false; fileNameEl.textContent=origName;
+  metaEl.textContent=`${origName} — loading…`;
   const buf = await f.arrayBuffer();
-  fileBytes = new Uint8Array(buf);   // 👈 keep as typed array
+  fileBytes = new Uint8Array(buf);
   await renderPages();
 });
 btnAll.addEventListener('click',()=>{
@@ -157,19 +181,27 @@ btnRanges.addEventListener('click',()=>{
   });
   updateMeta();
 });
+btnCancel.addEventListener('click',()=>{ cancelFlag=true; setStatus('Cancelling…'); });
 
-function downloadOrOpen(blob, filename){
-  if (navigator.msSaveOrOpenBlob) { navigator.msSaveOrOpenBlob(blob, filename); return; }
-  const url = URL.createObjectURL(blob);
+function downloadBlob(blob, filename){
   const a = document.createElement('a');
-  a.href = url; a.download = filename; a.rel='noopener'; a.style.display='none';
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>{ try{ window.open(url,'_blank','noopener'); }catch{} setTimeout(()=>URL.revokeObjectURL(url),5000); }, 600);
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.style.display='none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
 }
 
-/* --------- BUILDERS (use fresh copies each time) --------- */
+function outputName(base, suffix){
+  const m = base.match(/^(.*?)(\.[^.]*)?$/);
+  const stem = m?.[1] || 'document';
+  const ext  = (m?.[2] || '.pdf');
+  return `${stem}${suffix}${ext}`;
+}
 
-// Fast: remove pages in-place
+/* --------- BUILDERS --------- */
+
 async function buildByRemovePages(deleteSet){
   const doc = await PDFLib.PDFDocument.load(new Uint8Array(fileBytes), { ignoreEncryption:true });
   const removeIdx=[];
@@ -179,15 +211,18 @@ async function buildByRemovePages(deleteSet){
   return new Blob([bytes], { type:'application/pdf' });
 }
 
-// Compatibility: rasterize kept pages (with auto quality step-down)
 async function buildByRaster(keepSet, startScale=2){
   const pdf = await pdfjsLib.getDocument({data: new Uint8Array(fileBytes)}).promise;
-
   const out = await PDFLib.PDFDocument.create();
+
   let renderScale = startScale;
+  const total = keepSet.size;
+  let done = 0;
+  setProgress(0,total);
 
   const tryOnce = async () => {
     for (let i=1;i<=pdf.numPages;i++){
+      if(cancelFlag) throw new Error('Cancelled');
       if(!keepSet.has(i)) continue;
 
       const page = await pdf.getPage(i);
@@ -209,7 +244,9 @@ async function buildByRaster(keepSet, startScale=2){
 
       canvas.width = 0; canvas.height = 0;
       page.cleanup && page.cleanup();
-      await new Promise(r => setTimeout(r, 0));
+
+      done++; setProgress(done,total);
+      await new Promise(r => setTimeout(r, 0)); // yield
     }
     pdf.cleanup && pdf.cleanup();
     const bytes = await out.save({ useObjectStreams:false });
@@ -218,8 +255,8 @@ async function buildByRaster(keepSet, startScale=2){
 
   try { return await tryOnce(); }
   catch (e1) {
-    if (renderScale > 1.5) { renderScale = 1.5; try { return await tryOnce(); } catch(e2) {} }
-    if (renderScale > 1.0) { renderScale = 1.0; return await tryOnce(); }
+    if (renderScale > 1.5){ renderScale = 1.5; done = 0; setProgress(0,total); return await tryOnce(); }
+    if (renderScale > 1.0){ renderScale = 1.0; done = 0; setProgress(0,total); return await tryOnce(); }
     throw e1;
   }
 }
@@ -230,41 +267,48 @@ btnExport.addEventListener('click',async()=>{
   if(selected.size===0 && !confirm('No pages selected. Export original PDF?')) return;
 
   clearError();
+  startCancelable();
 
   try{
     const deleteSet = new Set(selected);
     const keepSet   = new Set();
     for(let i=1;i<=pageCount;i++){ if(!deleteSet.has(i)) keepSet.add(i); }
-    if(keepSet.size===0){ alert('All pages selected. Nothing to keep.'); return; }
+    if(keepSet.size===0){ alert('All pages selected. Nothing to keep.'); endCancelable(); return; }
 
     const useCompat = forceCompatEl.checked;
+    const outName = outputName(origName, '-deleted');
 
     if (!useCompat) {
       setStatus('Building new PDF (fast remove)…');
       try{
         const blob1 = await buildByRemovePages(deleteSet);
-        downloadOrOpen(blob1, 'pdf-without-pages.pdf');
-        setStatus('Done (fast remove).');
-        return;
+        if(cancelFlag) throw new Error('Cancelled');
+        downloadBlob(blob1, outName); setStatus('Done (fast remove).');
+        endCancelable(); return;
       }catch(e){
         showError('Fast mode failed:\n' + (e?.message || e));
         console.warn('Fast remove failed, falling back to compatibility mode…', e);
       }
     }
 
-    setStatus('Building new PDF (compatibility mode)… this may take a bit.');
+    setStatus('Building new PDF (compatibility mode)…');
     try{
       const blob2 = await buildByRaster(keepSet, 2);
-      downloadOrOpen(blob2, 'pdf-without-pages.pdf');
-      setStatus('Done (compatibility mode).');
+      if(cancelFlag) throw new Error('Cancelled');
+      downloadBlob(blob2, outName); setStatus('Done (compatibility mode).');
     }catch(e){
-      showError('Compatibility mode failed:\n' + (e?.message || e));
-      setStatus('Error while building PDF.');
-      alert('Could not create the new PDF. See the red box for details.');
+      if(String(e?.message||e)==='Cancelled'){ setStatus('Cancelled.'); }
+      else{
+        showError('Compatibility mode failed:\n' + (e?.message || e));
+        setStatus('Error while building PDF.');
+        alert('Could not create the new PDF. See the red box for details.');
+      }
     }
   }catch(err){
     showError('Unexpected error:\n' + (err?.message || err));
     setStatus('Error.');
+  } finally {
+    endCancelable();
   }
 });
 </script>
