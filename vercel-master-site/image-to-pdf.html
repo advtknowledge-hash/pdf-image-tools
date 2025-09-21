@@ -1,6 +1,8 @@
+<!doctype html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Image → PDF — Local & Private</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <style>
@@ -10,7 +12,7 @@
     header{padding:12px 16px;border-bottom:1px solid #1a2230;background:rgba(10,16,24,.8);backdrop-filter:blur(6px);position:sticky;top:0;z-index:10}
     header h1{margin:0;font-size:18px}
     .wrap{display:grid;grid-template-columns:360px 1fr;gap:12px;padding:12px}
-    @media(max-width:900px){.wrap{grid-template-columns:1fr}}
+    @media(max-width:1100px){.wrap{grid-template-columns:1fr}}
     .panel{background:var(--panel);border:1px solid #1a2230;border-radius:14px;padding:12px}
     .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .btn{appearance:none;border:1px solid #2a364a;background:#162233;color:var(--text);padding:9px 12px;border-radius:10px;cursor:pointer}
@@ -18,8 +20,40 @@
     .btn.ghost{background:#141c29}
     .btn:disabled{opacity:.5;cursor:not-allowed}
     input[type="file"]{display:none}
+    .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#152033;border:1px solid #253149;color:#b7c5d8;font-size:12px}
+    .small{font-size:12px;color:#aab7c7}
+    .drop{border:2px dashed #2a364a;border-radius:12px;padding:18px;text-align:center;background:#0f1622;outline:none}
+    .drop.drag{border-color:var(--accent);background:#0f1b2b}
 
-    /* ✅ Aa j add karvanu chhe */
+    /* left reorder list keeps Remove buttons; reordering can be done in gallery too */
+    .list{display:grid;gap:8px;max-height:50vh;overflow:auto;margin-top:10px}
+    .item{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:center;border:1px solid #223048;background:#0f1622;border-radius:10px;padding:8px}
+    .name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .thumb{width:40px;height:56px;background:#0b111b;border:1px solid #223048;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#aab;overflow:hidden}
+    .thumb img{max-width:100%;max-height:100%;display:block}
+    select,input[type="number"],input[type="color"]{padding:8px 10px;border-radius:10px;border:1px solid #2a364a;background:#0f1622;color:#e8eef6}
+    footer{padding:10px;text-align:center;color:#7f8ea3}
+    label.inline{display:flex;align-items:center;gap:6px}
+    .error{margin-top:8px;padding:10px;border-radius:10px;background:#2b1414;border:1px solid #5a2626;color:#ffdede;display:none}
+
+    /* Center gallery */
+    .gallery-wrap{display:flex;justify-content:center;align-items:flex-start;min-height:460px}
+    .gallery{width:100%;max-width:1100px;margin:0 auto;display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+    .gitem{background:#0f1622;border:1px solid #1b2535;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+    .gitem[draggable="true"]{cursor:grab}
+    .gitem.drag-over{outline:2px dashed var(--accent);outline-offset:-2px}
+    .rm{position:absolute;top:6px;right:6px;background:#1b2333;border:1px solid #2a364a;color:#cfdaf0;border-radius:8px;font-size:12px;padding:2px 6px;cursor:pointer}
+    .gthumb{aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;background:#0b111b;border-bottom:1px solid #1b2535}
+    .gthumb img{max-width:100%;max-height:100%;display:block}
+    .gmeta{padding:8px 10px;font-size:12px;color:#aab7c7;display:flex;justify-content:space-between}
+
+    /* Progress overlay */
+    .overlay{position:fixed;inset:0;background:rgba(7,11,18,.7);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:50}
+    .box{background:#0f1622;border:1px solid #203048;border-radius:14px;padding:18px 16px;min-width:320px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+    .box h4{margin:0 0 8px 0;font-size:14px;color:#cfe1ff}
+    .bar{height:10px;background:#101828;border:1px solid #263248;border-radius:999px;overflow:hidden}
+    .bar > span{display:block;height:100%;width:0;background:linear-gradient(90deg,#6aa0ff,#88b6ff)}
+    .ptext{margin-top:8px;color:#aab7c7;font-size:12px}
     #list {
       display: grid;
       gap: 8px;
@@ -40,3 +74,300 @@
     }
   </style>
 </head>
+<body>
+  <header><h1>🖼 Image → PDF (JPG / PNG / WEBP / AVIF / HEIC)</h1></header>
+
+  <div class="wrap">
+    <!-- Left controls / list -->
+    <aside class="panel">
+      <div class="row" style="justify-content:space-between">
+        <label for="file" class="btn primary">Add images</label>
+        <input id="file" type="file" accept="image/*,.heic,.heif,.avif" multiple />
+        <button id="buildBtn" class="btn" disabled>Create PDF</button>
+      </div>
+
+      <div id="meta" class="pill">0 images</div>
+
+      <div id="drop" class="drop" tabindex="0">
+        Drag & drop images here (JPG/PNG/WEBP/AVIF/HEIC/HEIF)<br />
+        <span class="small">All processing happens locally in your browser.</span>
+      </div>
+
+      <div class="panel" style="margin-top:10px">
+        <div class="row" style="gap:10px">
+          <label>Page size
+            <select id="pageSize">
+              <option value="A4">A4 (210×297 mm)</option>
+              <option value="Letter">Letter (8.5×11 in)</option>
+              <option value="A5">A5 (148×210 mm)</option>
+              <option value="Square">Square (210×210 mm)</option>
+            </select>
+          </label>
+          <label>Orientation
+            <select id="orientation">
+              <option value="portrait">Portrait</option>
+              <option value="landscape">Landscape</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="row" style="gap:10px;margin-top:8px">
+          <label>Margins (mm)
+            <input id="margin" type="number" value="10" min="0" max="50" step="1" />
+          </label>
+          <label>Fit
+            <select id="fitMode">
+              <option value="contain">Contain (no crop)</option>
+              <option value="cover">Cover (fill page)</option>
+              <option value="width">Fit to width</option>
+              <option value="height">Fit to height</option>
+            </select>
+          </label>
+          <label>JPEG quality
+            <input id="jpgQuality" type="number" value="0.92" min="0.5" max="1" step="0.01" />
+          </label>
+        </div>
+
+        <div class="row" style="gap:10px;margin-top:8px">
+          <label class="inline"><input type="checkbox" id="pngLossless" /> Use lossless for PNG</label>
+          <label>Transparent BG color <input id="bgColor" type="color" value="#ffffff"/></label>
+        </div>
+
+        <div class="small" style="margin-top:6px">
+          Note: WEBP/AVIF/HEIC are converted to JPEG by default (smaller file). For PNG you can embed losslessly.
+        </div>
+      </div>
+
+      <div class="small" style="margin-top:8px">Tip: You can now drag thumbnails on the right to reorder 👇</div>
+
+      <div id="err" class="error"></div>
+      <div id="list" class="list"></div>
+    </aside>
+
+    <!-- Gallery (reorder HERE) -->
+    <main class="panel gallery-wrap">
+      <div id="gallery" class="gallery" aria-live="polite"></div>
+    </main>
+  </div>
+
+  <!-- Progress overlay -->
+  <div id="overlay" class="overlay" aria-hidden="true">
+    <div class="box">
+      <h4 id="pTitle">Working…</h4>
+      <div class="bar"><span id="pBar"></span></div>
+      <div id="pText" class="ptext">0%</div>
+    </div>
+  </div>
+
+  <!-- HEIC decoder -->
+  <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+  <!-- pdf-lib -->
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
+  <script>
+  const $ = s => document.querySelector(s);
+
+  const fileInput   = $('#file');
+  const drop        = $('#drop');
+  const listEl      = $('#list');
+  const galleryEl   = $('#gallery');
+  const metaEl      = $('#meta');
+  const buildBtn    = $('#buildBtn');
+  const errEl       = $('#err');
+
+  const pageSizeEl  = $('#pageSize');
+  const orientationEl = $('#orientation');
+  const marginEl    = $('#margin');
+  const fitModeEl   = $('#fitMode');
+  const jpgQualityEl= $('#jpgQuality');
+  const pngLosslessEl = $('#pngLossless');
+  const bgColorEl   = $('#bgColor');
+
+  // progress overlay elements
+  const overlay = $('#overlay'), pTitle = $('#pTitle'), pBar = $('#pBar'), pText = $('#pText');
+  function setProgress(show, title='', percent=0){
+    overlay.style.display = show ? 'flex' : 'none';
+    overlay.setAttribute('aria-hidden', show ? 'false' : 'true');
+    pTitle.textContent = title || 'Working…';
+    const pct = Math.max(0, Math.min(100, Math.round(percent||0)));
+    pBar.style.width = pct + '%';
+    pText.textContent = pct + '%';
+  }
+
+  let images = []; // [{name,type,size,kind,w,h,blob}]
+
+  function showErr(msg){ errEl.textContent=msg; errEl.style.display=msg?'block':'none'; }
+  function updateMeta(){ metaEl.textContent = images.length + ' images'; buildBtn.disabled = images.length===0; }
+
+  // ---------- RENDERERS ----------
+  function renderList(){
+    listEl.innerHTML = '';
+    images.forEach((img, idx)=>{
+      const row=document.createElement('div'); row.className='item';
+      const thumb=document.createElement('div'); thumb.className='thumb';
+      const imgtag=document.createElement('img'); imgtag.src=URL.createObjectURL(img.blob); imgtag.onload=()=>URL.revokeObjectURL(imgtag.src);
+      thumb.appendChild(imgtag);
+      const mid=document.createElement('div'); mid.style.display='grid'; mid.style.gap='4px';
+      const name=document.createElement('div'); name.className='name'; name.textContent=img.name;
+      const sub=document.createElement('div'); sub.className='small'; sub.textContent=`${img.w}×${img.h} • ${img.kind.toUpperCase()}`;
+      mid.append(name,sub);
+      const del=document.createElement('button'); del.className='btn ghost'; del.textContent='Remove';
+      del.addEventListener('click',()=>{ images.splice(idx,1); renderAll(); });
+      row.append(thumb,mid,del);
+      listEl.appendChild(row);
+    });
+  }
+
+  function renderGallery(){
+    galleryEl.innerHTML='';
+    if(!images.length){
+      const empty=document.createElement('div');
+      empty.className='small';
+      empty.style.gridColumn='1/-1';
+      empty.style.textAlign='center';
+      empty.style.opacity='0.8';
+      empty.textContent='Add images to see them here. Drag to reorder; click × to remove.';
+      galleryEl.appendChild(empty);
+      return;
+    }
+    images.forEach((img,i)=>{
+      const card=document.createElement('div'); card.className='gitem'; card.draggable=true; card.dataset.idx=i;
+      const rm=document.createElement('button'); rm.className='rm'; rm.type='button'; rm.textContent='×';
+      rm.title='Remove this image';
+      rm.addEventListener('click', (e)=>{ e.stopPropagation(); images.splice(i,1); renderAll(); });
+
+      const box=document.createElement('div'); box.className='gthumb';
+      const im=document.createElement('img'); im.src=URL.createObjectURL(img.blob); im.alt=img.name; im.onload=()=>URL.revokeObjectURL(im.src);
+      box.appendChild(im);
+      const meta=document.createElement('div'); meta.className='gmeta';
+      meta.innerHTML=`<span>#${i+1}</span><span>${img.w}×${img.h}</span>`;
+      card.append(rm,box,meta);
+
+      // DnD on gallery
+      card.addEventListener('dragstart', ev => {
+        ev.dataTransfer.setData('text/plain', String(i));
+      });
+      card.addEventListener('dragover', ev => {
+        ev.preventDefault();
+        card.classList.add('drag-over');
+      });
+      card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+      card.addEventListener('drop', ev => {
+        ev.preventDefault();
+        card.classList.remove('drag-over');
+        const from = Number(ev.dataTransfer.getData('text/plain'));
+        const to   = Number(card.dataset.idx);
+        if (isNaN(from) || isNaN(to) || from===to) return;
+        const [item] = images.splice(from,1);
+        images.splice(to,0,item);
+        renderAll();
+      });
+
+      galleryEl.appendChild(card);
+    });
+  }
+
+  function renderAll(){ renderList(); renderGallery(); updateMeta(); }
+
+  // ---------- DECODING ----------
+  function hexToRGBA(hex){ const m=hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i); if(!m) return [255,255,255,255]; return [parseInt(m[1],16),parseInt(m[2],16),parseInt(m[3],16),255]; }
+  async function drawToCanvasAndExport(bitmap, preferPNG){
+    const w=bitmap.width, h=bitmap.height;
+    const [r,g,b,a]=hexToRGBA(bgColorEl.value||'#ffffff');
+    const q=Math.max(0.5,Math.min(1,parseFloat(jpgQualityEl.value)||0.92));
+    const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h;
+    const ctx=canvas.getContext('2d'); ctx.fillStyle=`rgba(${r},${g},${b},${a/255})`; ctx.fillRect(0,0,w,h); ctx.drawImage(bitmap,0,0);
+    const blob=await new Promise(res=>canvas.toBlob(res, preferPNG?'image/png':'image/jpeg', preferPNG?undefined:q));
+    return { blob, w, h, kind: preferPNG?'png':'jpeg' };
+  }
+  function isSupportedImage(file){
+    const t=(file.type||'').toLowerCase();
+    if(t.startsWith('image/')) return true;
+    return /\.(jpe?g|png|webp|avif|heic|heif)$/i.test(file.name);
+  }
+  async function decodeImageToCanvasBlob(file){
+    const type=(file.type||'').toLowerCase();
+    if(type.includes('heic')||type.includes('heif')||/\.hei[c|f]$/i.test(file.name)){
+      const out=await window.heic2any({blob:file,toType:'image/png'});
+      const bm=await createImageBitmap(out); return await drawToCanvasAndExport(bm,true);
+    }
+    try{
+      const bm=await createImageBitmap(file);
+      const preferPNG=(type.includes('png')||/\.png$/i.test(file.name)) && pngLosslessEl.checked;
+      return await drawToCanvasAndExport(bm, preferPNG);
+    }catch(e){
+      const url=URL.createObjectURL(file);
+      try{
+        const img=await new Promise((res,rej)=>{const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=url;});
+        const preferPNG=(/\.png$/i.test(file.name)||type.includes('png')) && pngLosslessEl.checked;
+        return await drawToCanvasAndExport(img, preferPNG);
+      }finally{ URL.revokeObjectURL(url); }
+    }
+  }
+
+  async function addFiles(fileList){
+    showErr('');
+    const files=Array.from(fileList).filter(isSupportedImage);
+    if(!files.length){ showErr('No supported images were found.'); return; }
+    for(let i=0;i<files.length;i++){
+      setProgress(true, 'Preparing images…', ((i)/files.length)*100);
+      try{
+        const f=files[i];
+        const {blob,w,h,kind}=await decodeImageToCanvasBlob(f);
+        images.push({name:f.name,type:f.type||'image/*',size:f.size,kind,w,h,blob});
+      }catch(err){ showErr('Failed to read one image: '+(err?.message||err)); }
+    }
+    setProgress(false);
+    renderAll();
+  }
+
+  // ---------- EVENTS ----------
+  fileInput.addEventListener('change', e=> addFiles(e.target.files));
+  ['dragenter','dragover'].forEach(ev=> drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(ev=> drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.remove('drag'); }));
+  drop.addEventListener('drop', e=> addFiles(e.dataTransfer.files));
+  drop.addEventListener('click', ()=> fileInput.click());
+  drop.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' ') fileInput.click(); });
+
+  function mmToPt(mm){ return mm*72/25.4; }
+  function getPageSizePts(){ let wMM=210,hMM=297; const s=pageSizeEl.value;
+    if(s==='Letter'){wMM=215.9;hMM=279.4;} if(s==='A5'){wMM=148;hMM=210;} if(s==='Square'){wMM=210;hMM=210;}
+    let w=mmToPt(wMM), h=mmToPt(hMM); if(orientationEl.value==='landscape') [w,h]=[h,w]; return {w,h}; }
+  async function blobToUint8Array(blob){ const buf=await blob.arrayBuffer(); return new Uint8Array(buf); }
+
+  buildBtn.addEventListener('click', async ()=>{
+    if(!images.length) return;
+    try{
+      showErr(''); setProgress(true,'Building PDF…', 0);
+      buildBtn.disabled=true; buildBtn.textContent='Building…';
+      const {w:pageW,h:pageH}=getPageSizePts(); const margin=mmToPt(parseFloat(marginEl.value)||0); const fitMode=fitModeEl.value;
+      const doc=await PDFLib.PDFDocument.create();
+      for(let i=0;i<images.length;i++){
+        const img=images[i];
+        const embedded = (img.kind==='png')
+          ? await doc.embedPng(await blobToUint8Array(img.blob))
+          : await doc.embedJpg(await blobToUint8Array(img.blob));
+        const iw=embedded.width, ih=embedded.height;
+        const page=doc.addPage([pageW,pageH]);
+        const availW=Math.max(1,pageW-2*margin), availH=Math.max(1,pageH-2*margin);
+        const ratio=iw/ih, boxRatio=availW/availH;
+        let drawW,drawH;
+        if(fitMode==='cover'){ if(ratio>boxRatio){drawH=availH;drawW=drawH*ratio;} else {drawW=availW;drawH=drawW/ratio;} }
+        else if(fitMode==='width'){ drawW=availW; drawH=drawW/ratio; }
+        else if(fitMode==='height'){ drawH=availH; drawW=drawH*ratio; }
+        else { if(ratio>boxRatio){ drawW=availW; drawH=drawW/ratio; } else { drawH=availH; drawW=drawH*ratio; } }
+        const x=margin+(availW-drawW)/2, y=margin+(availH-drawH)/2;
+        page.drawImage(embedded,{x,y,width:drawW,height:drawH});
+        setProgress(true,'Building PDF…', ((i+1)/images.length)*100);
+      }
+      const bytes=await doc.save({updateFieldAppearances:false});
+      const blob=new Blob([bytes],{type:'application/pdf'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download='images-to-pdf.pdf'; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),1500);
+    }catch(err){ showErr('Build failed: '+(err?.message||err)); }
+    buildBtn.textContent='Create PDF'; buildBtn.disabled=images.length===0; setProgress(false);
+  });
+  </script>
+</body>
+</html>
