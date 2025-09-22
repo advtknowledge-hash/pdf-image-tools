@@ -85,3 +85,41 @@
     flex: 0 0 auto;       /* buttons keep natural width */
   }
 }
+
+/* Panel look & spacing (light theme polish) */
+.panel {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(16, 24, 40, .05);
+}
+
+/* Panel titles & section spacing */
+.panel h1, .panel h2, .panel h3 {
+  margin: 0 0 12px 0;
+  line-height: 1.25;
+  color: #0f172a; /* deep neutral */
+}
+.panel .row + .row, 
+.panel .controls + .controls,
+.panel .toolbar + .toolbar {
+  margin-top: 8px;
+}
+
+/* Inline label spacing */
+.panel label { 
+  display: inline-flex; 
+  align-items: center; 
+  gap: 6px; 
+}
+
+/* Extra breathing room for top control strip on wide screens */
+@media (min-width: 1280px) {
+  .panel > .row:first-child,
+  .panel > .controls:first-child,
+  .panel > .toolbar:first-child {
+    gap: 12px;
+    row-gap: 14px;
+  }
+}
+
