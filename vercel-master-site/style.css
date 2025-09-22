@@ -1,128 +1,87 @@
-/* ===== Light Theme — PDF & Image Tools ===== */
-:root{
-  --bg: #f7f9fc;           /* app background */
-  --panel: #ffffff;        /* cards/panels */
-  --muted: #eef1f6;        /* subtle fills */
-  --border: #e6eaf1;       /* hairline borders */
-  --text: #1f2430;         /* primary text */
-  --sub: #6b7380;          /* secondary text */
-  --accent: #4a67d6;       /* brand blue */
-  --accent-2:#3e59bd;
-  --shadow: 0 8px 24px rgba(20, 32, 80, .08);
+/* ===== Global toolbar + panel sizing for ALL tools ===== */
+
+/* Make every main panel (the one that holds controls) roomier & centered */
+.panel,
+.toolbox {
+  max-width: 1200px;      /* wider like your reference site */
+  margin: 16px auto;      /* center horizontally */
+  padding: 18px 16px;     /* consistent internal spacing */
 }
 
-*{box-sizing:border-box}
-html,body{height:100%}
-body{
-  margin:0;
-  background:var(--bg);
-  color:var(--text);
-  font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+/* --- Zero-HTML-change patch ---
+   Most of your pages put the control row as the FIRST child inside a .panel.
+   This rule makes that row flexible, wraps items, and adds gaps so nothing overlaps.
+*/
+.panel > .row:first-child,
+.panel > .controls:first-child,
+.panel > .toolbar:first-child {
+  display: flex;
+  flex-wrap: wrap;        /* prevents headings/inputs/buttons from colliding */
+  align-items: center;
+  gap: 10px;              /* horizontal spacing */
+  row-gap: 12px;          /* vertical spacing when wrapped */
 }
 
-/* --- Top bar ------------------------------------------------------------- */
-header{
-  position:sticky; top:0; z-index:10;
-  background:#fff; border-bottom:1px solid var(--border);
-  padding:16px 18px;
+/* If some pages already name the controls container .controls or .toolbar,
+   give them the same behavior anywhere they appear. */
+.controls,
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  row-gap: 12px;
 }
-header h1{margin:0; font-size:20px; font-weight:700}
 
-/* --- Layout wrappers ----------------------------------------------------- */
-.wrap{max-width:1200px; margin:0 auto; padding:18px; display:grid; gap:16px}
-.panel{
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:14px;
-  box-shadow:var(--shadow);
-  padding:16px;
+/* Group label + input/select together nicely (when you use .group) */
+.group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.grid{display:grid; gap:14px}
-.grid.cards{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
 
-/* --- Cards used on index grid ------------------------------------------- */
-.card{padding:16px; border-radius:14px; border:1px solid var(--border); background:#fff}
-.card h3{margin:0 0 8px 0}
-.card p{margin:0 0 10px 0; color:var(--sub)}
-.card a{display:inline-block}
-
-/* --- Buttons ------------------------------------------------------------- */
-.btn{
-  appearance:none; cursor:pointer; user-select:none;
-  border:1px solid var(--border);
-  background:#fff; color:var(--text);
-  padding:10px 12px; border-radius:10px;
-  transition:.15s ease;
+/* Normalize inputs/selects/buttons across all tools */
+.controls select,
+.controls input[type="number"],
+.controls input[type="text"],
+.controls input[type="color"],
+.toolbar select,
+.toolbar input[type="number"],
+.toolbar input[type="text"],
+.toolbar input[type="color"] {
+  min-height: 38px;
+  padding: 8px 10px;
 }
-.btn:hover{box-shadow:0 2px 10px rgba(0,0,0,.06)}
-.btn:disabled{opacity:.55; cursor:not-allowed; box-shadow:none}
-.btn.primary{
-  background:var(--accent); border-color:var(--accent);
-  color:#fff; font-weight:600;
+
+.controls .btn,
+.toolbar .btn,
+.controls button,
+.toolbar button {
+  height: 38px;
+  line-height: 38px;
+  padding: 0 14px;
 }
-.btn.primary:hover{background:var(--accent-2); border-color:var(--accent-2)}
-.btn.ghost{background:var(--muted); border-color:var(--muted)}
-.btn.danger{background:#e55353; border-color:#e55353; color:#fff}
 
-/* --- Inputs -------------------------------------------------------------- */
-input[type="text"], input[type="number"], input[type="color"],
-select, textarea{
-  width:auto; min-height:38px;
-  padding:8px 10px;
-  background:#fff; color:var(--text);
-  border:1px solid var(--border); border-radius:10px;
-  outline:none; transition:border-color .15s ease, box-shadow .15s ease;
+/* Optional status text line (use class="status-line" if you show one) */
+.status-line {
+  margin-top: 10px;
+  color: var(--sub);
+  font-size: 12px;
 }
-input:focus, select:focus, textarea:focus{
-  border-color:var(--accent);
-  box-shadow:0 0 0 3px rgba(74,103,214,.15);
+
+/* Mobile: let items expand to full width so nothing overlaps on small screens */
+@media (max-width: 720px) {
+  .panel > .row:first-child > *,
+  .panel > .controls:first-child > *,
+  .panel > .toolbar:first-child > *,
+  .controls > *,
+  .toolbar > * {
+    flex: 1 1 auto;
+  }
+  .controls .btn,
+  .toolbar .btn,
+  .controls button,
+  .toolbar button {
+    flex: 0 0 auto;       /* buttons keep natural width */
+  }
 }
-label.inline{display:flex; align-items:center; gap:8px}
-.small{color:var(--sub); font-size:12px}
-.pill{display:inline-block; background:var(--muted); color:#445; border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-size:12px}
-
-/* --- Drop zone ----------------------------------------------------------- */
-.drop{
-  border:2px dashed var(--border);
-  background:#fff; border-radius:12px; text-align:center; padding:18px;
-}
-.drop.drag{border-color:var(--accent); background:#f2f5ff}
-
-/* --- Side list (image to PDF) ------------------------------------------- */
-#list{display:grid; gap:10px; max-height:78vh; overflow:auto; padding-right:6px}
-#list .item{
-  display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center;
-  background:#fff; border:1px solid var(--border); border-radius:10px; padding:8px 10px;
-}
-.thumb{width:42px; height:56px; border-radius:6px; background:var(--muted);
-  border:1px solid var(--border); display:flex; align-items:center; justify-content:center; overflow:hidden}
-.thumb img{max-width:100%; max-height:100%; display:block}
-.name{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-
-/* --- Gallery (image to PDF) --------------------------------------------- */
-.gallery-wrap{display:flex; justify-content:center; align-items:flex-start; min-height:420px}
-.gallery{width:100%; max-width:1100px; display:grid; gap:14px;
-  grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
-.gitem{background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:var(--shadow)}
-.gthumb{aspect-ratio:3/4; display:flex; align-items:center; justify-content:center; background:#fafbff; border-bottom:1px solid var(--border)}
-.gthumb img{max-width:100%; max-height:100%}
-.gmeta{display:flex; justify-content:space-between; padding:8px 10px; font-size:12px; color:var(--sub)}
-.rm{position:absolute; top:8px; right:8px; padding:2px 8px; border-radius:999px;
-  background:#fff; border:1px solid var(--border); color:#333}
-.gitem[draggable="true"]{cursor:grab}
-.gitem.drag-over{outline:2px dashed var(--accent); outline-offset:-2px}
-
-/* --- Progress overlay ---------------------------------------------------- */
-.overlay{position:fixed; inset:0; display:none; align-items:center; justify-content:center;
-  background:rgba(255,255,255,.6); backdrop-filter:saturate(150%) blur(3px); z-index:100}
-.box{background:#fff; border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow);
-  padding:18px 16px; min-width:320px}
-.box h4{margin:0 0 8px 0}
-.bar{height:10px; background:var(--muted); border:1px solid var(--border); border-radius:999px; overflow:hidden}
-.bar>span{display:block; height:100%; width:0; background:linear-gradient(90deg,#4a67d6,#7b96ff)}
-.ptext{font-size:12px; color:var(--sub); margin-top:8px}
-
-/* --- Utilities ----------------------------------------------------------- */
-.center{text-align:center} .right{text-align:right}
-.mt-0{margin-top:0} .mt-8{margin-top:8px} .mt-12{margin-top:12px}
-.mb-0{margin-bottom:0} .mb-8{margin-bottom:8px} .mb-12{margin-bottom:12px}
