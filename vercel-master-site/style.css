@@ -1,125 +1,199 @@
-/* ===== Global toolbar + panel sizing for ALL tools ===== */
+/* ========== 1) Root & Reset ========== */
+:root{
+  --bg:#f7f9fc;
+  --surface:#ffffff;
+  --muted:#6b7280;
+  --text:#0f172a;
+  --border:#e5e7eb;
+  --accent:#2563eb;
+  --accent-2:#1d4ed8;
+  --shadow:0 6px 18px rgba(16,24,40,.06);
+  --radius:14px;
 
-/* Make every main panel (the one that holds controls) roomier & centered */
-.panel,
-.toolbox {
-  max-width: 1200px;      /* wider like your reference site */
-  margin: 16px auto;      /* center horizontally */
-  padding: 18px 16px;     /* consistent internal spacing */
+  /* sizing */
+  --container:1220px;
+  --gap:14px;
+  --gap-sm:10px;
+  --gap-lg:18px;
+
+  /* controls */
+  --control-h:40px;
+  --control-pad:10px 12px;
+  --control-radius:10px;
 }
 
-/* --- Zero-HTML-change patch ---
-   Most of your pages put the control row as the FIRST child inside a .panel.
-   This rule makes that row flexible, wraps items, and adds gaps so nothing overlaps.
-*/
-.panel > .row:first-child,
-.panel > .controls:first-child,
-.panel > .toolbar:first-child {
-  display: flex;
-  flex-wrap: wrap;        /* prevents headings/inputs/buttons from colliding */
-  align-items: center;
-  gap: 10px;              /* horizontal spacing */
-  row-gap: 12px;          /* vertical spacing when wrapped */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  color:var(--text);
+  background:var(--bg);
 }
 
-/* If some pages already name the controls container .controls or .toolbar,
-   give them the same behavior anywhere they appear. */
-.controls,
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  row-gap: 12px;
+/* ========== 2) Page Frame ========== */
+header{
+  position:sticky; top:0; z-index:20;
+  background:#fff; border-bottom:1px solid var(--border);
+  padding:14px 16px;
+}
+header h1{margin:0; font-size:20px; font-weight:650}
+
+.container{
+  max-width:var(--container);
+  margin:0 auto;
+  padding:18px 16px;
 }
 
-/* Group label + input/select together nicely (when you use .group) */
-.group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.grid-2{
+  display:grid; gap:var(--gap);
+  grid-template-columns:320px 1fr;
+}
+@media (max-width: 1024px){
+  .grid-2{ grid-template-columns:1fr; }
 }
 
-/* Normalize inputs/selects/buttons across all tools */
-.controls select,
-.controls input[type="number"],
-.controls input[type="text"],
-.controls input[type="color"],
-.toolbar select,
-.toolbar input[type="number"],
-.toolbar input[type="text"],
-.toolbar input[type="color"] {
-  min-height: 38px;
-  padding: 8px 10px;
+/* ========== 3) Panels & Sections ========== */
+.panel{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:16px;
 }
+.panel h2, .panel h3{
+  margin:0 0 8px 0;
+  line-height:1.25; font-weight:650;
+}
+.panel .section + .section{ margin-top:14px; }
 
-.controls .btn,
-.toolbar .btn,
-.controls button,
-.toolbar button {
-  height: 38px;
-  line-height: 38px;
-  padding: 0 14px;
+/* ========== 4) Toolbar / Controls ========== */
+.toolbar{
+  display:flex; flex-wrap:wrap; gap:var(--gap-sm);
+  align-items:center;
 }
+.field{ display:flex; align-items:center; gap:6px; }
+.field > label{ color:var(--muted); font-size:12px; }
 
-/* Optional status text line (use class="status-line" if you show one) */
-.status-line {
-  margin-top: 10px;
-  color: var(--sub);
-  font-size: 12px;
+input[type="text"], input[type="number"], input[type="color"], select{
+  height:var(--control-h);
+  padding:var(--control-pad);
+  border:1px solid var(--border);
+  border-radius:var(--control-radius);
+  background:#fff; color:var(--text);
+  outline:none;
 }
+input[type="color"]{ padding:0 4px; width:52px; }
+input[type="checkbox"]{ transform:translateY(1px); }
 
-/* Mobile: let items expand to full width so nothing overlaps on small screens */
-@media (max-width: 720px) {
-  .panel > .row:first-child > *,
-  .panel > .controls:first-child > *,
-  .panel > .toolbar:first-child > *,
-  .controls > *,
-  .toolbar > * {
-    flex: 1 1 auto;
-  }
-  .controls .btn,
-  .toolbar .btn,
-  .controls button,
-  .toolbar button {
-    flex: 0 0 auto;       /* buttons keep natural width */
-  }
+/* Buttons */
+.btn{
+  height:var(--control-h);
+  padding:0 14px;
+  border:1px solid var(--border);
+  border-radius:var(--control-radius);
+  background:#fff; color:var(--text);
+  cursor:pointer;
 }
+.btn:hover{ background:#f8fafc; }
+.btn.primary{
+  background:var(--accent); border-color:var(--accent);
+  color:#fff; font-weight:600;
+}
+.btn.primary:hover{ background:var(--accent-2); border-color:var(--accent-2); }
+.btn.ghost{ background:#f8fafc; }
 
-/* Panel look & spacing (light theme polish) */
-.panel {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  box-shadow: 0 6px 18px rgba(16, 24, 40, .05);
+/* ========== 5) Dropzone ========== */
+.drop{
+  border:2px dashed var(--border);
+  border-radius:var(--radius);
+  padding:18px;
+  text-align:center;
+  color:var(--muted);
+  background:#fbfdff;
+  transition:border-color .15s, background .15s;
 }
+.drop.drag{ border-color:var(--accent); background:#f2f7ff; }
 
-/* Panel titles & section spacing */
-.panel h1, .panel h2, .panel h3 {
-  margin: 0 0 12px 0;
-  line-height: 1.25;
-  color: #0f172a; /* deep neutral */
+/* ========== 6) Lists (left-side file list) ========== */
+.list{
+  display:grid; gap:10px;
+  max-height:70vh; overflow:auto;
+  padding-right:6px;
 }
-.panel .row + .row, 
-.panel .controls + .controls,
-.panel .toolbar + .toolbar {
-  margin-top: 8px;
+.item{
+  display:grid; grid-template-columns:auto 1fr auto;
+  gap:10px; align-items:center;
+  background:#fff; border:1px solid var(--border);
+  border-radius:10px; padding:8px 10px;
 }
+.item .thumb{
+  width:40px; height:56px; border:1px solid var(--border);
+  border-radius:8px; display:flex; align-items:center; justify-content:center;
+  background:#f8fafc; overflow:hidden;
+}
+.item .thumb img{ max-width:100%; max-height:100%; display:block; }
+.item .name{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.item .meta{ color:var(--muted); font-size:12px; }
 
-/* Inline label spacing */
-.panel label { 
-  display: inline-flex; 
-  align-items: center; 
-  gap: 6px; 
+/* ========== 7) Gallery (reorder area) ========== */
+.gallery{
+  display:grid; gap:var(--gap);
+  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
 }
-
-/* Extra breathing room for top control strip on wide screens */
-@media (min-width: 1280px) {
-  .panel > .row:first-child,
-  .panel > .controls:first-child,
-  .panel > .toolbar:first-child {
-    gap: 12px;
-    row-gap: 14px;
-  }
+.card{
+  background:#fff; border:1px solid var(--border);
+  border-radius:12px; overflow:hidden;
+  box-shadow:var(--shadow);
+  display:flex; flex-direction:column; position:relative;
 }
+.card[draggable="true"]{ cursor:grab }
+.card.drag-over{ outline:2px dashed var(--accent); outline-offset:-2px }
+.card .rm{
+  position:absolute; top:8px; right:8px;
+  background:#fff; border:1px solid var(--border);
+  border-radius:8px; padding:0 8px; height:28px;
+  display:inline-flex; align-items:center; cursor:pointer;
+}
+.card .thumb{
+  aspect-ratio:3/4; display:flex; align-items:center; justify-content:center;
+  background:#f8fafc; border-bottom:1px solid var(--border);
+}
+.card .thumb img{ max-width:100%; max-height:100%; display:block; }
+.card .meta{ padding:8px 10px; display:flex; justify-content:space-between; color:var(--muted); font-size:12px }
 
+/* ========== 8) Progress Overlay (shared) ========== */
+.overlay{
+  position:fixed; inset:0; display:none;
+  align-items:center; justify-content:center;
+  background:rgba(15,23,42,.35); z-index:50;
+}
+.overlay .box{
+  background:#fff; border:1px solid var(--border);
+  border-radius:14px; padding:18px 16px; min-width:320px;
+  box-shadow:0 12px 40px rgba(2,8,23,.18);
+}
+.overlay h4{ margin:0 0 10px; font-size:14px }
+.progress{
+  height:10px; border:1px solid var(--border); border-radius:999px;
+  background:#f8fafc; overflow:hidden;
+}
+.progress > span{
+  display:block; height:100%; width:0%;
+  background:linear-gradient(90deg,var(--accent),#68a0ff);
+  transition:width .2s;
+}
+.progress-text{ margin-top:8px; color:var(--muted); font-size:12px }
+
+/* ========== 9) Utilities ========== */
+.muted{ color:var(--muted) }
+.center{ text-align:center }
+.hidden{ display:none !important }
+.spacer{ height:10px }
+.maxw{ max-width:var(--container); }
+
+/* ========== 10) Tool-Specific Hooks (optional) ========== */
+/* Add class on <body> like: <body class="tool-image-to-pdf"> */
+.tool-image-to-pdf .gallery{ grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); }
+.tool-pdf-to-images .toolbar{ gap:12px; }
+.tool-merge .gallery{ grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); }
