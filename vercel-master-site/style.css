@@ -237,3 +237,9 @@ select{ appearance:none; background-image:linear-gradient(45deg,transparent 50%,
   .tool-tabs-wrap::before, .tool-tabs-wrap::after{ display:none; }
 }
 
+/* Hide arrows & edge-fades when there is no horizontal overflow */
+.tool-tabs-wrap.no-overflow .tool-scroll{ display:none; }
+.tool-tabs-wrap.no-overflow::before,
+.tool-tabs-wrap.no-overflow::after{ display:none; }
+/* Remove extra side padding when arrows are hidden */
+.tool-tabs-wrap.no-overflow .tool-tabs{ padding:8px 0; }
