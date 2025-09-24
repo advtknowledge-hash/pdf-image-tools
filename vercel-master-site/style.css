@@ -92,9 +92,14 @@ main{ padding:22px 0 40px; }
   transition:transform .06s ease, box-shadow .25s ease, background .25s ease, border-color .25s ease;
 }
 .tool-tabs a:hover{ transform:translateY(-1px); box-shadow:var(--shadow-md); }
-.tool-tabs a.active{
-  background:linear-gradient(135deg, var(--brand-1), var(--brand-2));
-  color:#fff; border-color:transparent;
+
+/* 🔥 Strong active highlight */
+.tool-tabs a.active {
+  background: var(--brand-1);
+  color:#fff !important;
+  border-color: var(--brand-1);
+  box-shadow:0 2px 12px rgba(124,58,237,.55);
+  transform: scale(1.08);
 }
 
 /* Cards / panels / rows */
