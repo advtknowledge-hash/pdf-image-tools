@@ -33,7 +33,31 @@
   <button class="tool-scroll tool-right" aria-label="Scroll tools right" title="Scroll right">›</button>
 </div>
 </header>
-  <div class="wrap">
+<!-- ===== Unified Page Frame (paste under header) ===== -->
+<section class="card" style="margin-top:10px">
+  <h1 class="title" style="margin:0">[[PAGE_TITLE]]</h1>
+  <p class="sub">[[PAGE_SUBTITLE]]</p>
+</section>
+
+<!-- Optional friendly empty-state; show only when no file is loaded -->
+<div class="empty mt-3" id="empty-state" style="display:none">
+  <div class="big">[[EMPTY_TITLE]]</div>
+  [[EMPTY_DESC]]
+</div>
+
+<!-- “How it works” (consistent across site, tool-specific bullets) -->
+<section class="card mt-3">
+  <h2 class="title" style="margin:0 0 8px 0">How it works</h2>
+  <ul class="sub" style="margin:0">
+    [[BULLETS_HTML]]
+  </ul>
+  <p class="sub" style="margin-top:10px">
+    Privacy: no uploads. Everything stays on your device. Powered by pdf.js / pdf-lib.
+  </p>
+</section>
+<!-- ===== End Unified Page Frame ===== -->
+
+<div class="wrap">
     <div class="panel">
       <div class="row" style="justify-content:space-between">
         <label for="file" class="btn primary">Choose PDF</label>
