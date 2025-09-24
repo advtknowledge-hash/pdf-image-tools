@@ -33,29 +33,30 @@
   <button class="tool-scroll tool-right" aria-label="Scroll tools right" title="Scroll right">›</button>
 </div>
 </header>
-<!-- ===== Unified Page Frame (paste under header) ===== -->
+  
 <section class="card" style="margin-top:10px">
-  <h1 class="title" style="margin:0">[[PAGE_TITLE]]</h1>
-  <p class="sub">[[PAGE_SUBTITLE]]</p>
+  <h1 class="title" style="margin:0">Compress PDF</h1>
+  <p class="sub">Shrink file size while keeping quality. Great for email & uploads.</p>
 </section>
 
-<!-- Optional friendly empty-state; show only when no file is loaded -->
+<!-- Optional empty state: show only when no file selected -->
 <div class="empty mt-3" id="empty-state" style="display:none">
-  <div class="big">[[EMPTY_TITLE]]</div>
-  [[EMPTY_DESC]]
+  <div class="big">Choose a PDF to compress</div>
+  Select a preset, then <strong>Compress &amp; Download</strong>.
 </div>
 
-<!-- “How it works” (consistent across site, tool-specific bullets) -->
 <section class="card mt-3">
   <h2 class="title" style="margin:0 0 8px 0">How it works</h2>
   <ul class="sub" style="margin:0">
-    [[BULLETS_HTML]]
+    <li>Renders pages to images and rebuilds a compact PDF via pdf-lib.</li>
+    <li>Presets: Balanced / Small / Quality — pick what suits your needs.</li>
+    <li>If compression would enlarge the file, we keep the original.</li>
   </ul>
   <p class="sub" style="margin-top:10px">
     Privacy: no uploads. Everything stays on your device. Powered by pdf.js / pdf-lib.
   </p>
 </section>
-<!-- ===== End Unified Page Frame ===== -->
+
 
 <div class="wrap">
     <div class="panel">
