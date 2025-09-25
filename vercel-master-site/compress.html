@@ -32,6 +32,47 @@
   </nav>
   <button class="tool-scroll tool-right" aria-label="Scroll tools right" title="Scroll right">›</button>
 </div>
+    <!-- ===== UNIFIED TOOL FRAME (standard across all tools) ===== -->
+<section class="card mt-3">
+  <h2 class="title" style="margin:0 0 8px 0">Add files</h2>
+
+  <!-- Unified picker: set data-accept + data-tool to specialize per page -->
+  <div class="unified-picker" data-tool="compress" data-accept=".pdf" data-multiple="true">
+    <div class="row">
+      <button class="btn btn-primary up-pick">Choose files</button>
+      <span class="sub">or drag & drop</span>
+    </div>
+
+    <div class="dropzone mt-3 up-drop">Drop files here</div>
+    <input class="up-input" type="file" hidden>
+    <div class="sub mt-2 up-status">No files yet</div>
+  </div>
+</section>
+
+<!-- Primary action bar (always just below the picker) -->
+<section class="toolbar mt-3 card">
+  <div class="row" style="justify-content:space-between; width:100%">
+    <div class="sub">Ready when your files are loaded.</div>
+    <!-- CHANGE THE BUTTON TEXT PER TOOL -->
+    <button class="btn btn-primary up-action">Compress &amp; Download</button>
+  </div>
+</section>
+
+<!-- How it works (always present) -->
+<section class="card mt-3">
+  <h2 class="title" style="margin:0 0 8px 0">How it works</h2>
+  <ul class="sub" style="margin:0">
+    <!-- Put the right bullets for THIS tool -->
+    <li>Renders pages to images and rebuilds a compact PDF via pdf-lib.</li>
+    <li>Presets: Balanced / Small / Quality — pick what suits your needs.</li>
+    <li>If compression would enlarge the file, we keep the original.</li>
+  </ul>
+  <p class="sub" style="margin-top:10px">
+    Privacy: no uploads. Everything stays on your device. Powered by pdf.js / pdf-lib.
+  </p>
+</section>
+<!-- ===== END UNIFIED TOOL FRAME ===== -->
+
 </header>
  
 <div class="wrap">
