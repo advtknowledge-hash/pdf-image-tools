@@ -333,29 +333,23 @@ html.is-home .site-header .bar{ padding-bottom:8px; }
 /* ===== 3-column layout ===== */
 .triple{
   display:grid;
-  grid-template-columns: 320px minmax(380px, 1fr) 260px;
+  grid-template-columns: 320px minmax(420px, 1fr) 260px;
   gap:16px;
 }
-
-/* Responsive */
-@media (max-width: 1100px){
+@media (max-width:1100px){
   .triple{ grid-template-columns: 1fr; }
   .col-right .sticky-card{ position:static; top:auto; }
 }
 
-/* Left settings panel */
+/* Settings grid */
 .settings-grid{
   display:grid;
   grid-template-columns: repeat(2, minmax(0,1fr));
   gap:12px;
 }
-.settings-grid .inline-span{
-  grid-column: 1 / -1; /* checkbox spans full width */
-}
-
-@media (max-width: 900px){
-  .settings-grid{ grid-template-columns: 1fr; }
-}
+.settings-grid .inline-span{ grid-column: 1 / -1; }
+.col-left label{ display:grid; gap:6px; }
+.mt-2{ margin-top:12px; }
 
 /* Center drop area (only left content now) */
 .drop-flex-only{
@@ -365,7 +359,7 @@ html.is-home .site-header .bar{ padding-bottom:8px; }
   min-height:200px;
 }
 
-/* Right sticky card */
+/* Sticky create card (right) */
 .sticky-card{
   position: sticky;
   top: 84px;
@@ -378,11 +372,8 @@ html.is-home .site-header .bar{ padding-bottom:8px; }
   padding:16px;
   box-shadow: var(--shadow-sm);
 }
-.sticky-card .hr{
-  border:0; height:1px; background:var(--border); margin:6px 0;
-}
-.sticky-card .list{ margin:0; padding-left: 18px; }
+.sticky-card .hr{ border:0; height:1px; background:var(--border); margin:6px 0; }
+.sticky-card .list{ margin:0; padding-left:18px; }
 .sticky-card .list li{ margin:2px 0; }
 
-/* Tidy labels */
-.col-left label{ display:grid; gap:6px; }
+/* Drop area base (you already have .drop…) keep existing; just ensure it looks good */
