@@ -39,9 +39,8 @@
   </header>
 
   <div class="wrap">
-    <!-- Left controls / list -->
+    <!-- Controls -->
     <aside class="panel">
-      <!-- top row: counter + build button -->
       <div class="row" style="justify-content:space-between">
         <div id="meta" class="pill" aria-live="polite">0 images</div>
         <button id="buildBtn" class="btn" disabled>Create PDF</button>
@@ -108,7 +107,6 @@
       <div class="small" style="margin-top:8px">Tip: You can now drag thumbnails on the right to reorder 👇</div>
 
       <div id="err" class="error" role="alert" aria-live="assertive"></div>
-      <div id="list" class="list"></div>
     </aside>
 
     <!-- Gallery (reorder HERE) -->
@@ -153,7 +151,6 @@
   const fileInput     = $('#file');
   const browseBtn     = $('#browseBtn');
   const drop          = $('#drop');
-  const listEl        = $('#list');
   const galleryEl     = $('#gallery');
   const metaEl        = $('#meta');
   const buildBtn      = $('#buildBtn');
@@ -198,29 +195,6 @@
   }
 
   // ---------- RENDERERS ----------
-  function renderList(){
-    listEl.innerHTML = '';
-    images.forEach((img, idx)=>{
-      const row   = document.createElement('div'); row.className='item';
-      const thumb = document.createElement('div'); thumb.className='thumb';
-      const imgtag= document.createElement('img');
-      imgtag.src = URL.createObjectURL(img.blob);
-      imgtag.onload = () => URL.revokeObjectURL(imgtag.src);
-      thumb.appendChild(imgtag);
-
-      const mid   = document.createElement('div'); mid.style.display='grid'; mid.style.gap='4px';
-      const name  = document.createElement('div'); name.className='name'; name.textContent=img.name;
-      const sub   = document.createElement('div'); sub.className='small'; sub.textContent=`${img.w}×${img.h} • ${img.kind.toUpperCase()}`;
-      mid.append(name,sub);
-
-      const del   = document.createElement('button'); del.className='btn ghost'; del.textContent='Remove';
-      del.addEventListener('click',()=>{ images.splice(idx,1); renderAll(); });
-
-      row.append(thumb,mid,del);
-      listEl.appendChild(row);
-    });
-  }
-
   function renderGallery(){
     galleryEl.innerHTML='';
     if(!images.length){
@@ -272,7 +246,7 @@
     });
   }
 
-  function renderAll(){ renderList(); renderGallery(); updateMeta(); }
+  function renderAll(){ renderGallery(); updateMeta(); }
 
   // ---------- DECODING ----------
   function hexToRGBA(hex){
@@ -406,10 +380,9 @@
         }else if(fitMode==='width'){ drawW=availW; drawH=drawW/ratio; }
         else if(fitMode==='height'){ drawH=availH; drawW=drawH*ratio; }
         else { // contain
-        if (ratio > boxRatio) { drawW = availW;  drawH = drawW / ratio; }
-       else { drawH = availH;  drawW = drawH / ratio; }
+          if (ratio > boxRatio) { drawW = availW;  drawH = drawW / ratio; }
+          else { drawH = availH;  drawW = drawH / ratio; }
         }
-
 
         const x=margin+(availW-drawW)/2, y=margin+(availH-drawH)/2;
         page.drawImage(embedded,{x,y,width:drawW,height:drawH});
