@@ -12,124 +12,105 @@
 </head>
 
 <body>
+  <!-- Header + top tools -->
   <header class="site-header">
     <div class="container bar">
       <div class="brand">
-        <span class="logo"></span>
-        <span>PDF &amp; Image Tools</span>
+        <span class="logo"></span><span>PDF &amp; Image Tools</span>
       </div>
-
       <div class="container tool-tabs-wrap">
-        <button class="tool-scroll tool-left" aria-label="Scroll tools left" title="Scroll left">‹</button>
+        <button class="tool-scroll tool-left" aria-label="Scroll left">‹</button>
         <nav class="tool-tabs" role="navigation" aria-label="Tools">
-          <a href="/merge"         data-tip="Combine multiple PDFs into one">Merge PDF</a>
-          <a href="/delete-pages"  data-tip="Remove pages you don’t need">Delete pages</a>
-          <a href="/rotate-pages"  data-tip="Rotate pages left/right">Rotate PDF</a>
-          <a href="/reorder-pages" data-tip="Drag &amp; reorder pages">Reorder PDF</a>
-          <a href="/crop"          data-tip="Cut margins or select an area">Crop PDF</a>
-          <a href="/compress"      data-tip="Reduce PDF file size">Compress PDF</a>
-          <a href="/pdf-to-images" data-tip="Export pages as PNG/JPG">PDF → Images</a>
-          <a href="/image-to-pdf"  data-tip="Make a PDF from images">Image → PDF</a>
-          <a href="/jpg-to-png"    data-tip="Convert JPG to PNG">JPG → PNG</a>
-          <a href="/png-to-jpg"    data-tip="Convert PNG to JPG">PNG → JPG</a>
+          <a href="/merge">Merge PDF</a>
+          <a href="/delete-pages">Delete pages</a>
+          <a href="/rotate-pages">Rotate PDF</a>
+          <a href="/reorder-pages">Reorder PDF</a>
+          <a href="/crop">Crop PDF</a>
+          <a href="/compress">Compress PDF</a>
+          <a href="/pdf-to-images">PDF → Images</a>
+          <a href="/image-to-pdf" class="active">Image → PDF</a>
+          <a href="/jpg-to-png">JPG → PNG</a>
+          <a href="/png-to-jpg">PNG → JPG</a>
         </nav>
-        <button class="tool-scroll tool-right" aria-label="Scroll tools right" title="Scroll right">›</button>
+        <button class="tool-scroll tool-right" aria-label="Scroll right">›</button>
       </div>
     </div>
   </header>
 
   <div class="wrap">
-    <!-- Controls -->
+    <!-- ===== Controls: 3-column ===== -->
     <aside class="panel">
-
-  <!-- 3-column layout -->
-  <div class="triple">
-
-    <!-- LEFT: Settings -->
-    <section class="col-left">
-      <h3 class="title">PDF Settings</h3>
-
-      <div class="settings-grid">
-        <label>Page size
-          <select id="pageSize">
-            <option value="A4">A4 (210×297 mm)</option>
-            <option value="Letter">Letter (8.5×11 in)</option>
-            <option value="A5">A5 (148×210 mm)</option>
-            <option value="Square">Square (210×210 mm)</option>
-          </select>
-        </label>
-
-        <label>Orientation
-          <select id="orientation">
-            <option value="portrait">Portrait</option>
-            <option value="landscape">Landscape</option>
-          </select>
-        </label>
-
-        <label>Margins (mm)
-          <input id="margin" type="number" min="0" max="50" step="1" value="10"/>
-        </label>
-
-        <label>Fit
-          <select id="fitMode">
-            <option value="contain">Contain (no crop)</option>
-            <option value="cover">Cover (fill page)</option>
-            <option value="width">Fit to width</option>
-            <option value="height">Fit to height</option>
-          </select>
-        </label>
-
-        <label>JPEG quality
-          <input id="jpgQuality" type="number" min="0.5" max="1" step="0.01" value="0.92"/>
-        </label>
-
-        <label class="inline-span">
-          <input id="pngLossless" type="checkbox"/> Use lossless for PNG
-        </label>
-
-        <label>Transparent BG color
-          <input id="bgColor" type="color" value="#ffffff"/>
-        </label>
-      </div>
-
-      <p class="small mt-2">
-        Note: WEBP/AVIF/HEIC are converted to JPEG by default (smaller file). For PNG you can embed losslessly.
-      </p>
-    </section>
-
-    <!-- CENTER: Drop/Browse only -->
-    <section class="col-center">
-      <div id="drop" class="drop drop-flex-only" tabindex="0" role="region" aria-label="Add or drop images">
-        <input id="file" type="file" multiple accept="image/*,.heic,.heif,.avif" class="sr-only"/>
-        <div class="drop-left" id="dropLeft">
-          <div class="mb-2">Drag &amp; drop images here</div>
-          <button type="button" class="btn primary" id="browseBtn">Browse images</button>
-          <div class="small" style="margin-top:8px">
-            JPG/PNG/WebP/AVIF/HEIC — everything runs in your browser (no uploads).
+      <div class="triple">
+        <!-- LEFT: PDF settings -->
+        <section class="col-left">
+          <h3 class="title">PDF Settings</h3>
+          <div class="settings-grid">
+            <label>Page size
+              <select id="pageSize">
+                <option value="A4">A4 (210×297 mm)</option>
+                <option value="Letter">Letter (8.5×11 in)</option>
+                <option value="A5">A5 (148×210 mm)</option>
+                <option value="Square">Square (210×210 mm)</option>
+              </select>
+            </label>
+            <label>Orientation
+              <select id="orientation">
+                <option value="portrait">Portrait</option>
+                <option value="landscape">Landscape</option>
+              </select>
+            </label>
+            <label>Margins (mm)
+              <input id="margin" type="number" min="0" max="50" step="1" value="10"/>
+            </label>
+            <label>Fit
+              <select id="fitMode">
+                <option value="contain">Contain (no crop)</option>
+                <option value="cover">Cover (fill page)</option>
+                <option value="width">Fit to width</option>
+                <option value="height">Fit to height</option>
+              </select>
+            </label>
+            <label>JPEG quality
+              <input id="jpgQuality" type="number" min="0.5" max="1" step="0.01" value="0.92"/>
+            </label>
+            <label class="inline-span">
+              <input id="pngLossless" type="checkbox"/> Use lossless for PNG
+            </label>
+            <label>Transparent BG color
+              <input id="bgColor" type="color" value="#ffffff"/>
+            </label>
           </div>
-        </div>
-      </div>
-    </section>
+          <p class="small mt-2">Note: WEBP/AVIF/HEIC → JPEG by default (smaller). PNG can be embedded losslessly.</p>
+        </section>
 
-    <!-- RIGHT: Counter + Create (sticky) -->
-    <aside class="col-right">
-      <div class="sticky-card">
-        <div id="meta" class="pill" aria-live="polite">0 images</div>
-        <button id="buildBtn" class="btn primary" disabled>Create PDF</button>
+        <!-- CENTER: drag-drop / browse -->
+        <section class="col-center">
+          <div id="drop" class="drop drop-flex-only" tabindex="0" role="region" aria-label="Add or drop images">
+            <input id="file" type="file" multiple accept="image/*,.heic,.heif,.avif" class="sr-only"/>
+            <div class="drop-left" id="dropLeft">
+              <div class="mb-2">Drag &amp; drop images here</div>
+              <button type="button" class="btn primary" id="browseBtn">Browse images</button>
+              <div class="small" style="margin-top:8px">JPG/PNG/WebP/AVIF/HEIC — everything runs in your browser (no uploads).</div>
+            </div>
+          </div>
+        </section>
 
-        <hr class="hr" />
-        <ul class="small list">
-          <li>Drag thumbnails below to reorder.</li>
-          <li>Click × on a thumbnail to remove.</li>
-        </ul>
+        <!-- RIGHT: counter + create (sticky) -->
+        <aside class="col-right">
+          <div class="sticky-card">
+            <div id="meta" class="pill" aria-live="polite">0 images</div>
+            <button id="buildBtn" class="btn primary" disabled>Create PDF</button>
+            <hr class="hr"/>
+            <ul class="small list">
+              <li>Drag thumbnails below to reorder.</li>
+              <li>Click × on a card to remove.</li>
+            </ul>
+          </div>
+        </aside>
       </div>
     </aside>
 
-  </div>
-
-</aside>
-
-    <!-- Gallery (reorder HERE) -->
+    <!-- ===== Gallery ===== -->
     <main class="panel gallery-wrap">
       <h1 class="page-title">Image → PDF</h1>
       <p class="sub">Convert images to a single PDF locally in your browser.</p>
@@ -143,16 +124,13 @@
           <li>Supports common formats; advanced formats depend on browser codecs.</li>
           <li>Set page size/margins; export when ready.</li>
         </ul>
-        <p class="sub" style="margin-top:10px">
-          Privacy: no uploads. Everything stays on your device. Powered by pdf.js / pdf-lib.
-        </p>
+        <p class="sub" style="margin-top:10px">Privacy: no uploads. Everything stays on your device. Powered by pdf.js / pdf-lib.</p>
       </section>
     </main>
   </div>
 
   <!-- Progress overlay -->
-  <div id="overlay" class="overlay" role="dialog" aria-modal="true"
-       aria-labelledby="pTitle" aria-describedby="pText" hidden>
+  <div id="overlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="pTitle" aria-describedby="pText" hidden>
     <div class="box">
       <h4 id="pTitle">Working…</h4>
       <div class="bar"><span id="pBar"></span></div>
@@ -160,14 +138,14 @@
     </div>
   </div>
 
-  <!-- HEIC decoder -->
+  <!-- libs -->
   <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
-  <!-- pdf-lib -->
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
   <script>
   const $ = s => document.querySelector(s);
 
+  // Elements
   const drop          = $('#drop');
   const dropLeft      = $('#dropLeft');
   const fileInput     = $('#file');
@@ -175,7 +153,7 @@
   const galleryEl     = $('#gallery');
   const metaEl        = $('#meta');
   const buildBtn      = $('#buildBtn');
-  const errEl         = $('#err');
+  const errEl         = $('#err'); // optional alert area; may be absent
 
   const pageSizeEl    = $('#pageSize');
   const orientationEl = $('#orientation');
@@ -185,14 +163,13 @@
   const pngLosslessEl = $('#pngLossless');
   const bgColorEl     = $('#bgColor');
 
-  // progress overlay elements
+  // Progress overlay
   const overlay = $('#overlay'), pTitle = $('#pTitle'), pBar = $('#pBar'), pText = $('#pText');
 
   function setDisabled(btn, v){
     btn.disabled = !!v;
     btn.setAttribute('aria-disabled', v ? 'true' : 'false');
   }
-
   function setProgress(show, title='', percent=0){
     overlay.hidden = !show;
     overlay.setAttribute('aria-hidden', show ? 'false' : 'true');
@@ -201,20 +178,20 @@
     pBar.style.width = pct + '%';
     pText.textContent = pct + '%';
   }
-
-  let images = []; // [{name,type,size,kind,w,h,blob}]
-
   function showErr(msg){
+    if(!errEl) return;
     errEl.textContent = msg || '';
     errEl.style.display = msg ? 'block' : 'none';
   }
+
+  let images = []; // [{name,type,size,kind,w,h,blob}]
 
   function updateMeta(){
     metaEl.textContent = images.length + ' images';
     setDisabled(buildBtn, images.length === 0);
   }
 
-  // ---------- RENDERERS ----------
+  // ---------- RENDER GALLERY ----------
   function renderGallery(){
     galleryEl.innerHTML='';
     if(!images.length){
@@ -241,18 +218,12 @@
       const meta=document.createElement('div'); meta.className='gmeta';
       meta.innerHTML=`<span>#${i+1}</span><span>${img.w}×${img.h}</span>`;
 
-      // DnD on gallery
-      card.addEventListener('dragstart', ev => {
-        ev.dataTransfer.setData('text/plain', String(i));
-      });
-      card.addEventListener('dragover', ev => {
-        ev.preventDefault();
-        card.classList.add('drag-over');
-      });
+      // DnD reorder
+      card.addEventListener('dragstart', ev => ev.dataTransfer.setData('text/plain', String(i)));
+      card.addEventListener('dragover', ev => { ev.preventDefault(); card.classList.add('drag-over'); });
       card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
       card.addEventListener('drop', ev => {
-        ev.preventDefault();
-        card.classList.remove('drag-over');
+        ev.preventDefault(); card.classList.remove('drag-over');
         const from = Number(ev.dataTransfer.getData('text/plain'));
         const to   = Number(card.dataset.idx);
         if (isNaN(from) || isNaN(to) || from===to) return;
@@ -265,7 +236,6 @@
       galleryEl.appendChild(card);
     });
   }
-
   function renderAll(){ renderGallery(); updateMeta(); }
 
   // ---------- DECODING ----------
@@ -274,10 +244,9 @@
     if(!m) return [255,255,255,255];
     return [parseInt(m[1],16),parseInt(m[2],16),parseInt(m[3],16),255];
   }
-
   async function drawToCanvasAndExport(bitmap, preferPNG){
     const w=bitmap.width, h=bitmap.height;
-    const [r,g,b,a]=[...hexToRGBA(bgColorEl.value||'#ffffff')];
+    const [r,g,b,a]=hexToRGBA(bgColorEl.value||'#ffffff');
     const q=Math.max(0.5,Math.min(1,parseFloat(jpgQualityEl.value)||0.92));
     const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h;
     const ctx=canvas.getContext('2d');
@@ -286,13 +255,11 @@
     const blob=await new Promise(res=>canvas.toBlob(res, preferPNG?'image/png':'image/jpeg', preferPNG?undefined:q));
     return { blob, w, h, kind: preferPNG?'png':'jpeg' };
   }
-
   function isSupportedImage(file){
     const t=(file.type||'').toLowerCase();
     if(t.startsWith('image/')) return true;
     return /\.(jpe?g|png|webp|avif|heic|heif)$/i.test(file.name);
   }
-
   async function decodeImageToCanvasBlob(file){
     const type=(file.type||'').toLowerCase();
     if(type.includes('heic')||type.includes('heif')||/\.hei[c|f]$/i.test(file.name)){
@@ -313,14 +280,13 @@
       }finally{ URL.revokeObjectURL(url); }
     }
   }
-
   async function addFiles(fileList){
     showErr('');
     const incoming = Array.from(fileList || []);
     const files = incoming.filter(f => isSupportedImage(f) && f.size > 0);
     if(!files.length){ showErr('No supported images were found.'); return; }
 
-    // dedupe by name+size
+    // de-dupe by name+size
     const seen = new Set(images.map(i => i.name+'|'+i.size));
     const todo = files.filter(f => !seen.has(f.name+'|'+f.size));
     if(!todo.length){ showErr('All selected images are already added.'); return; }
@@ -331,50 +297,42 @@
         const f=todo[i];
         const {blob,w,h,kind}=await decodeImageToCanvasBlob(f);
         images.push({name:f.name,type:f.type||'image/*',size:f.size,kind,w,h,blob});
-      }catch(err){
-        showErr('Failed to read one image: '+(err?.message||err));
-      }
+      }catch(err){ showErr('Failed to read one image: '+(err?.message||err)); }
     }
     setProgress(false);
     renderAll();
   }
 
-  // ---------- EVENTS ----------
-  // 1) File input → add files
-  fileInput.addEventListener('change', (e) => addFiles(e.target.files));
-
-  // 2) Browse button → open picker (no bubbling)
+  // ---------- EVENTS (no double triggers) ----------
+  // Input -> add
+  fileInput.addEventListener('change', (e) => {
+    if (!e.target.files || !e.target.files.length) return;
+    addFiles(e.target.files);
+  });
+  // Browse button
   browseBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    fileInput.click();
+    e.preventDefault(); e.stopPropagation(); fileInput.click();
   });
-
-  // 3) Clicking the LEFT area opens picker
+  // Click left area
   dropLeft.addEventListener('click', (e) => {
-    if (e.target.closest('#browseBtn')) return; // already handled
+    if (e.target.closest('#browseBtn')) return;
     fileInput.click();
   });
-
-  // 4) Keyboard on the whole region still works
+  // Keyboard
   drop.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') fileInput.click();
   });
-
-  // 5) Drag & drop on the WHOLE rectangle
+  // Drag & drop on whole rectangle
   ['dragenter','dragover'].forEach((ev) => {
-    drop.addEventListener(ev, (e) => {
-      e.preventDefault();
-      drop.classList.add('is-dragover','drag');
-    });
+    drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('is-dragover','drag'); });
   });
   ['dragleave','drop'].forEach((ev) => {
-    drop.addEventListener(ev, (e) => {
-      e.preventDefault();
-      drop.classList.remove('is-dragover','drag');
-    });
+    drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('is-dragover','drag'); });
   });
-  drop.addEventListener('drop', (e) => addFiles(e.dataTransfer.files));
+  drop.addEventListener('drop', (e) => {
+    if (!e.dataTransfer || !e.dataTransfer.files) return;
+    addFiles(e.dataTransfer.files);
+  });
 
   // ---------- PDF BUILD ----------
   function mmToPt(mm){ return mm*72/25.4; }
@@ -392,10 +350,8 @@
   buildBtn.addEventListener('click', async ()=>{
     if(!images.length) return;
     try{
-      showErr('');
-      setProgress(true,'Building PDF…', 0);
-      setDisabled(buildBtn, true);
-      buildBtn.textContent='Building…';
+      showErr(''); setProgress(true,'Building PDF…', 0);
+      setDisabled(buildBtn,true); buildBtn.textContent='Building…';
 
       const {w:pageW,h:pageH}=getPageSizePts();
       const margin=mmToPt(parseFloat(marginEl.value)||0);
@@ -415,7 +371,6 @@
         const availW=Math.max(1,pageW-2*margin), availH=Math.max(1,pageH-2*margin);
         const ratio=iw/ih, boxRatio=availW/availH;
         let drawW,drawH;
-
         if(fitMode==='cover'){
           if(ratio>boxRatio){drawH=availH;drawW=drawH*ratio;}
           else {drawW=availW;drawH=drawW/ratio;}
@@ -425,30 +380,22 @@
           if (ratio > boxRatio) { drawW = availW;  drawH = drawW / ratio; }
           else { drawH = availH;  drawW = drawH / ratio; }
         }
-
         const x=margin+(availW-drawW)/2, y=margin+(availH-drawH)/2;
         page.drawImage(embedded,{x,y,width:drawW,height:drawH});
-
         setProgress(true,'Building PDF…', ((i+1)/images.length)*100);
       }
 
       const bytes=await doc.save({updateFieldAppearances:false});
       const blob=new Blob([bytes],{type:'application/pdf'});
       const url=URL.createObjectURL(blob);
-
       const a=document.createElement('a'); a.href=url;
-      const stamp = new Date().toISOString().slice(0,10); // YYYY-MM-DD
+      const stamp = new Date().toISOString().slice(0,10);
       const base = images[0]?.name?.replace(/\.[^.]+$/,'') || 'images';
       a.download = `${base}-to-pdf-${stamp}.pdf`;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(()=>URL.revokeObjectURL(url),1500);
-
-    }catch(err){
-      showErr('Build failed: '+(err?.message||err));
-    }
-    buildBtn.textContent='Create PDF';
-    setDisabled(buildBtn, images.length===0);
-    setProgress(false);
+    }catch(err){ showErr('Build failed: '+(err?.message||err)); }
+    buildBtn.textContent='Create PDF'; setDisabled(buildBtn, images.length===0); setProgress(false);
   });
   </script>
 </body>
