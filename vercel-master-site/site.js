@@ -82,3 +82,10 @@
   });
 })();
 
+// Mark home page (for CSS toggles)
+(function(){
+  if (location.pathname === "/" || location.pathname.endsWith("/index.html")) {
+    document.documentElement.classList.add("is-home");
+  }
+})();
+
