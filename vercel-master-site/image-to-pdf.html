@@ -42,11 +42,65 @@
     <!-- Controls -->
     <aside class="panel">
 
-      <!-- ONE rectangle that contains: left (drop/browse) + right (count & create) -->
-      <div id="drop" class="drop drop-flex" tabindex="0" role="region" aria-label="Add or drop images">
-        <input id="file" type="file" multiple accept="image/*,.heic,.heif,.avif" class="sr-only"/>
+  <!-- 3-column layout -->
+  <div class="triple">
 
-        <!-- LEFT side: drag & drop + browse -->
+    <!-- LEFT: Settings -->
+    <section class="col-left">
+      <h3 class="title">PDF Settings</h3>
+
+      <div class="settings-grid">
+        <label>Page size
+          <select id="pageSize">
+            <option value="A4">A4 (210×297 mm)</option>
+            <option value="Letter">Letter (8.5×11 in)</option>
+            <option value="A5">A5 (148×210 mm)</option>
+            <option value="Square">Square (210×210 mm)</option>
+          </select>
+        </label>
+
+        <label>Orientation
+          <select id="orientation">
+            <option value="portrait">Portrait</option>
+            <option value="landscape">Landscape</option>
+          </select>
+        </label>
+
+        <label>Margins (mm)
+          <input id="margin" type="number" min="0" max="50" step="1" value="10"/>
+        </label>
+
+        <label>Fit
+          <select id="fitMode">
+            <option value="contain">Contain (no crop)</option>
+            <option value="cover">Cover (fill page)</option>
+            <option value="width">Fit to width</option>
+            <option value="height">Fit to height</option>
+          </select>
+        </label>
+
+        <label>JPEG quality
+          <input id="jpgQuality" type="number" min="0.5" max="1" step="0.01" value="0.92"/>
+        </label>
+
+        <label class="inline-span">
+          <input id="pngLossless" type="checkbox"/> Use lossless for PNG
+        </label>
+
+        <label>Transparent BG color
+          <input id="bgColor" type="color" value="#ffffff"/>
+        </label>
+      </div>
+
+      <p class="small mt-2">
+        Note: WEBP/AVIF/HEIC are converted to JPEG by default (smaller file). For PNG you can embed losslessly.
+      </p>
+    </section>
+
+    <!-- CENTER: Drop/Browse only -->
+    <section class="col-center">
+      <div id="drop" class="drop drop-flex-only" tabindex="0" role="region" aria-label="Add or drop images">
+        <input id="file" type="file" multiple accept="image/*,.heic,.heif,.avif" class="sr-only"/>
         <div class="drop-left" id="dropLeft">
           <div class="mb-2">Drag &amp; drop images here</div>
           <button type="button" class="btn primary" id="browseBtn">Browse images</button>
@@ -54,65 +108,26 @@
             JPG/PNG/WebP/AVIF/HEIC — everything runs in your browser (no uploads).
           </div>
         </div>
-
-        <!-- RIGHT side: count + create -->
-        <div class="drop-right">
-          <div id="meta" class="pill" aria-live="polite">0 images</div>
-          <button id="buildBtn" class="btn primary" disabled>Create PDF</button>
-        </div>
       </div>
+    </section>
 
-      <div class="panel" style="margin-top:10px">
-        <!-- All controls in one line (wraps on small screens) -->
-        <div class="controls-inline">
-          <label>Page size
-            <select id="pageSize">
-              <option value="A4">A4 (210×297 mm)</option>
-              <option value="Letter">Letter (8.5×11 in)</option>
-              <option value="A5">A5 (148×210 mm)</option>
-              <option value="Square">Square (210×210 mm)</option>
-            </select>
-          </label>
+    <!-- RIGHT: Counter + Create (sticky) -->
+    <aside class="col-right">
+      <div class="sticky-card">
+        <div id="meta" class="pill" aria-live="polite">0 images</div>
+        <button id="buildBtn" class="btn primary" disabled>Create PDF</button>
 
-          <label>Orientation
-            <select id="orientation">
-              <option value="portrait">Portrait</option>
-              <option value="landscape">Landscape</option>
-            </select>
-          </label>
-
-          <label>Margins (mm)
-            <input id="margin" type="number" min="0" max="50" step="1" value="10"/>
-          </label>
-
-          <label>Fit
-            <select id="fitMode">
-              <option value="contain">Contain (no crop)</option>
-              <option value="cover">Cover (fill page)</option>
-              <option value="width">Fit to width</option>
-              <option value="height">Fit to height</option>
-            </select>
-          </label>
-
-          <label>JPEG quality
-            <input id="jpgQuality" type="number" min="0.5" max="1" step="0.01" value="0.92"/>
-          </label>
-        </div>
-
-        <div class="row" style="gap:10px;margin-top:8px">
-          <label class="inline"><input id="pngLossless" type="checkbox"/> Use lossless for PNG</label>
-          <label>Transparent BG color <input id="bgColor" type="color" value="#ffffff"/></label>
-        </div>
-
-        <div class="small" style="margin-top:6px">
-          Note: WEBP/AVIF/HEIC are converted to JPEG by default (smaller file). For PNG you can embed losslessly.
-        </div>
+        <hr class="hr" />
+        <ul class="small list">
+          <li>Drag thumbnails below to reorder.</li>
+          <li>Click × on a thumbnail to remove.</li>
+        </ul>
       </div>
-
-      <div class="small" style="margin-top:8px">Tip: You can now drag thumbnails on the right to reorder 👇</div>
-
-      <div id="err" class="error" role="alert" aria-live="assertive"></div>
     </aside>
+
+  </div>
+
+</aside>
 
     <!-- Gallery (reorder HERE) -->
     <main class="panel gallery-wrap">
