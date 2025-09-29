@@ -41,9 +41,10 @@
   <div class="wrap">
     <!-- Controls -->
     <aside class="panel">
-      <div class="row" style="justify-content:space-between">
+      <!-- Count + Create on the right -->
+      <div class="row actions">
         <div id="meta" class="pill" aria-live="polite">0 images</div>
-        <button id="buildBtn" class="btn" disabled>Create PDF</button>
+        <button id="buildBtn" class="btn primary" disabled>Create PDF</button>
       </div>
 
       <!-- One combined area: click to browse OR drag & drop -->
@@ -57,7 +58,8 @@
       </div>
 
       <div class="panel" style="margin-top:10px">
-        <div class="row" style="gap:10px">
+        <!-- All controls in one line (wraps on small screens) -->
+        <div class="controls-inline">
           <label>Page size
             <select id="pageSize">
               <option value="A4">A4 (210×297 mm)</option>
@@ -73,9 +75,7 @@
               <option value="landscape">Landscape</option>
             </select>
           </label>
-        </div>
 
-        <div class="row" style="gap:10px;margin-top:8px">
           <label>Margins (mm)
             <input id="margin" type="number" min="0" max="50" step="1" value="10"/>
           </label>
@@ -321,7 +321,13 @@
 
   // ---------- EVENTS ----------
   fileInput.addEventListener('change', e=> addFiles(e.target.files));
-  browseBtn.addEventListener('click', () => fileInput.click());
+
+  // IMPORTANT: avoid double-trigger when clicking the Browse button inside #drop
+  browseBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();        // stop bubbling to #drop
+    fileInput.click();
+  });
 
   ['dragenter','dragover'].forEach(ev=> drop.addEventListener(ev, e=>{
     e.preventDefault();
@@ -331,8 +337,13 @@
     e.preventDefault();
     drop.classList.remove('is-dragover','drag');
   }));
-  drop.addEventListener('drop', e=> addFiles(e.dataTransfer.files));
-  drop.addEventListener('click', ()=> fileInput.click());
+
+  // Only trigger file dialog when clicking the drop background, not inner button
+  drop.addEventListener('click', e=>{
+    if (e.target !== drop) return;  // ignore clicks on children (like Browse button)
+    fileInput.click();
+  });
+
   drop.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' ') fileInput.click(); });
 
   function mmToPt(mm){ return mm*72/25.4; }
@@ -378,7 +389,7 @@
           if(ratio>boxRatio){drawH=availH;drawW=drawH*ratio;}
           else {drawW=availW;drawH=drawW/ratio;}
         }else if(fitMode==='width'){ drawW=availW; drawH=drawW/ratio; }
-        else if(fitMode==='height'){ drawH=availH; drawW=drawH*ratio; }
+        else if(fitMode==='height'){ drawH=availH; draw W=drawH*ratio; }
         else { // contain
           if (ratio > boxRatio) { drawW = availW;  drawH = drawW / ratio; }
           else { drawH = availH;  drawW = drawH / ratio; }
