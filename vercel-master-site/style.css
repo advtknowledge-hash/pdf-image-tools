@@ -166,6 +166,40 @@ label.inline{ display:flex; align-items:center; gap:8px; }
   background:linear-gradient(0deg, rgba(124,58,237,.12), rgba(6,182,212,.12));
 }
 
+/* Split drop area into left (drag+browse) and right (count+create) */
+.drop-flex{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  min-height:160px;
+}
+
+.drop-left{
+  flex:1;
+  text-align:center;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+}
+
+.drop-right{
+  width:220px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  align-items:stretch;
+}
+
+/* Mobile/tablet: stack nicely */
+@media (max-width: 900px){
+  .drop-flex{ flex-direction:column; align-items:stretch; }
+  .drop-right{ width:100%; align-items:center; }
+  .drop-right .btn{ width:220px; }
+}
+
 /* Pill & error */
 .pill{
   display:inline-flex; align-items:center; gap:8px;
