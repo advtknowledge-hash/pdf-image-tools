@@ -166,17 +166,6 @@ label.inline{ display:flex; align-items:center; gap:8px; }
   background:linear-gradient(0deg, rgba(124,58,237,.12), rgba(6,182,212,.12));
 }
 
-/* Left list (filename rows) */
-.list{ display:grid; gap:10px; margin-top:10px; }
-.item{
-  display:flex; align-items:center; gap:10px;
-  background:var(--surface); border:1px solid var(--border);
-  border-radius:12px; padding:10px; box-shadow:var(--shadow-sm);
-}
-.item .thumb{ width:46px; height:46px; border-radius:8px; overflow:hidden; background:var(--surface-2); }
-.item .thumb img{ width:100%; height:100%; object-fit:cover; }
-.item .name{ font-weight:700; }
-
 /* Pill & error */
 .pill{
   display:inline-flex; align-items:center; gap:8px;
@@ -198,7 +187,6 @@ label.inline{ display:flex; align-items:center; gap:8px; }
 .overlay .bar{ height:10px; background:var(--surface-2); border:1px solid var(--border); border-radius:999px; overflow:hidden; margin-top:10px; }
 .overlay .bar span{ display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--brand-1),var(--brand-2)); transition:width .25s ease; }
 .overlay .ptext{ text-align:right; margin-top:8px; color:var(--muted); font-variant-numeric: tabular-nums; }
-
 /* Respect hidden attribute for overlay */
 .overlay[hidden]{ display:none !important; }
 
@@ -259,7 +247,7 @@ label.inline{ display:flex; align-items:center; gap:8px; }
 .page-title{ font-size:26px; line-height:1.25; margin:6px 0 14px; color:var(--text); }
 .sub{ color:var(--muted); font-size:14px; margin:-6px 0 14px; }
 
-/* Hide top tools bar ONLY on home (you can also hide whole header if you want) */
+/* Hide top tools bar ONLY on home */
 html.is-home .tool-tabs-wrap{ display:none; }
 html.is-home .site-header .bar{ padding-bottom:8px; }
 /* html.is-home .site-header{ display:none; } */
