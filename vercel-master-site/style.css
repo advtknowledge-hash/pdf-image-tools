@@ -241,3 +241,11 @@ input[type="checkbox"],input[type="radio"]{ width:18px; height:18px; accent-colo
 /* === Page headings (used by H1 we added) === */
 .page-title{ font-size:26px; line-height:1.25; margin:6px 0 14px; color:var(--text); }
 .sub{ color:var(--muted); font-size:14px; margin:-6px 0 14px; }
+
+/* Hide top tools bar ONLY on home */
+html.is-home .tool-tabs-wrap{ display:none; }
+/* Optional: thodu tight header spacing on home */
+html.is-home .site-header .bar{ padding-bottom: 8px; }
+/* If you also want the entire sticky header gone on home, use this instead: */
+/* html.is-home .site-header{ display:none; }  */
+
