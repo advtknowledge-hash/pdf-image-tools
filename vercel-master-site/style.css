@@ -333,3 +333,17 @@ input[type="file"] {
 /* Compact slider and checkbox consistency */
 input[type="range"]{ width:100%; accent-color: var(--brand-1); }
 input[type="checkbox"], input[type="radio"] { width:18px; height:18px; accent-color: var(--brand-1); }
+
+/* Active tab highlight */
+.tool-tabs a.active,
+nav a.active{
+  outline: 2px solid var(--accent);
+  background: rgba(0,0,0,0.06);
+  border-radius: 10px;
+}
+.tool-tabs a:focus-visible,
+nav a:focus-visible{
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
