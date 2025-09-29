@@ -41,31 +41,26 @@
   <div class="wrap">
     <!-- Controls -->
     <aside class="panel">
-      <!-- Count + Create on the right -->
-      <div class="row actions">
-        <div id="meta" class="pill" aria-live="polite">0 images</div>
-        <button id="buildBtn" class="btn primary" disabled>Create PDF</button>
-      </div>
 
       <!-- ONE rectangle that contains: left (drop/browse) + right (count & create) -->
-<div id="drop" class="drop drop-flex" tabindex="0" role="region" aria-label="Add or drop images">
-  <input id="file" type="file" multiple accept="image/*,.heic,.heif,.avif" class="sr-only"/>
+      <div id="drop" class="drop drop-flex" tabindex="0" role="region" aria-label="Add or drop images">
+        <input id="file" type="file" multiple accept="image/*,.heic,.heif,.avif" class="sr-only"/>
 
-  <!-- LEFT side: drag & drop + browse -->
-  <div class="drop-left" id="dropLeft">
-    <div class="mb-2">Drag &amp; drop images here</div>
-    <button type="button" class="btn primary" id="browseBtn">Browse images</button>
-    <div class="small" style="margin-top:8px">
-      JPG/PNG/WebP/AVIF/HEIC — everything runs in your browser (no uploads).
-    </div>
-  </div>
+        <!-- LEFT side: drag & drop + browse -->
+        <div class="drop-left" id="dropLeft">
+          <div class="mb-2">Drag &amp; drop images here</div>
+          <button type="button" class="btn primary" id="browseBtn">Browse images</button>
+          <div class="small" style="margin-top:8px">
+            JPG/PNG/WebP/AVIF/HEIC — everything runs in your browser (no uploads).
+          </div>
+        </div>
 
-  <!-- RIGHT side: count + create -->
-  <div class="drop-right">
-    <div id="meta" class="pill" aria-live="polite">0 images</div>
-    <button id="buildBtn" class="btn primary" disabled>Create PDF</button>
-  </div>
-</div>
+        <!-- RIGHT side: count + create -->
+        <div class="drop-right">
+          <div id="meta" class="pill" aria-live="polite">0 images</div>
+          <button id="buildBtn" class="btn primary" disabled>Create PDF</button>
+        </div>
+      </div>
 
       <div class="panel" style="margin-top:10px">
         <!-- All controls in one line (wraps on small screens) -->
@@ -158,9 +153,10 @@
   <script>
   const $ = s => document.querySelector(s);
 
+  const drop          = $('#drop');
+  const dropLeft      = $('#dropLeft');
   const fileInput     = $('#file');
   const browseBtn     = $('#browseBtn');
-  const drop          = $('#drop');
   const galleryEl     = $('#gallery');
   const metaEl        = $('#meta');
   const buildBtn      = $('#buildBtn');
@@ -177,7 +173,6 @@
   // progress overlay elements
   const overlay = $('#overlay'), pTitle = $('#pTitle'), pBar = $('#pBar'), pText = $('#pText');
 
-  // Helpers
   function setDisabled(btn, v){
     btn.disabled = !!v;
     btn.setAttribute('aria-disabled', v ? 'true' : 'false');
@@ -267,7 +262,7 @@
 
   async function drawToCanvasAndExport(bitmap, preferPNG){
     const w=bitmap.width, h=bitmap.height;
-    const [r,g,b,a]=hexToRGBA(bgColorEl.value||'#ffffff');
+    const [r,g,b,a]=[...hexToRGBA(bgColorEl.value||'#ffffff')];
     const q=Math.max(0.5,Math.min(1,parseFloat(jpgQualityEl.value)||0.92));
     const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h;
     const ctx=canvas.getContext('2d');
@@ -330,32 +325,43 @@
   }
 
   // ---------- EVENTS ----------
-  fileInput.addEventListener('change', e=> addFiles(e.target.files));
+  // 1) File input → add files
+  fileInput.addEventListener('change', (e) => addFiles(e.target.files));
 
-  // IMPORTANT: avoid double-trigger when clicking the Browse button inside #drop
+  // 2) Browse button → open picker (no bubbling)
   browseBtn.addEventListener('click', (e) => {
     e.preventDefault();
-    e.stopPropagation();        // stop bubbling to #drop
+    e.stopPropagation();
     fileInput.click();
   });
 
-  ['dragenter','dragover'].forEach(ev=> drop.addEventListener(ev, e=>{
-    e.preventDefault();
-    drop.classList.add('is-dragover','drag');
-  }));
-  ['dragleave','drop'].forEach(ev=> drop.addEventListener(ev, e=>{
-    e.preventDefault();
-    drop.classList.remove('is-dragover','drag');
-  }));
-
-  // Only trigger file dialog when clicking the drop background, not inner button
-  drop.addEventListener('click', e=>{
-    if (e.target !== drop) return;  // ignore clicks on children (like Browse button)
+  // 3) Clicking the LEFT area opens picker
+  dropLeft.addEventListener('click', (e) => {
+    if (e.target.closest('#browseBtn')) return; // already handled
     fileInput.click();
   });
 
-  drop.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' ') fileInput.click(); });
+  // 4) Keyboard on the whole region still works
+  drop.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') fileInput.click();
+  });
 
+  // 5) Drag & drop on the WHOLE rectangle
+  ['dragenter','dragover'].forEach((ev) => {
+    drop.addEventListener(ev, (e) => {
+      e.preventDefault();
+      drop.classList.add('is-dragover','drag');
+    });
+  });
+  ['dragleave','drop'].forEach((ev) => {
+    drop.addEventListener(ev, (e) => {
+      e.preventDefault();
+      drop.classList.remove('is-dragover','drag');
+    });
+  });
+  drop.addEventListener('drop', (e) => addFiles(e.dataTransfer.files));
+
+  // ---------- PDF BUILD ----------
   function mmToPt(mm){ return mm*72/25.4; }
   function getPageSizePts(){
     let wMM=210,hMM=297; const s=pageSizeEl.value;
@@ -399,7 +405,7 @@
           if(ratio>boxRatio){drawH=availH;drawW=drawH*ratio;}
           else {drawW=availW;drawH=drawW/ratio;}
         }else if(fitMode==='width'){ drawW=availW; drawH=drawW/ratio; }
-        else if(fitMode==='height'){ drawH=availH; draw W=drawH*ratio; }
+        else if(fitMode==='height'){ drawH=availH; drawW=drawH*ratio; }
         else { // contain
           if (ratio > boxRatio) { drawW = availW;  drawH = drawW / ratio; }
           else { drawH = availH;  drawW = drawH / ratio; }
