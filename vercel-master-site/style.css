@@ -1,11 +1,15 @@
 /* ===========================================================
-   Common Theme + Top Tools Bar
-   Works with your existing markup (btn, card/panel, grid/row, #drop)
+   Common Theme + Top Tools Bar (CLEANED)
+   - Tokens unified
+   - Active tab highlight single-source
+   - Buttons support: .btn-primary / .btn.primary / .btn-ghost / .btn.ghost
+   - Dropzone covers .drag & .is-dragover (JS mismatch handled)
    =========================================================== */
 
 /* Design tokens */
 :root{
   --brand-1:#7c3aed; --brand-2:#06b6d4;
+  --accent:#7c3aed; /* used by outlines/links */
   --bg:#f6f8fc; --surface:#ffffff; --surface-2:#eef2f7;
   --text:#0f172a; --muted:#64748b; --border:#e2e8f0;
   --ring:rgba(124,58,237,.35);
@@ -38,6 +42,7 @@ body{
 a{ color:inherit; text-decoration:none; }
 img{ max-width:100%; display:block; }
 button,input,select,textarea{ font:inherit; color:inherit; }
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
 /* Layout */
 .container{ max-width:var(--container); margin:0 auto; padding:0 20px; }
@@ -64,23 +69,13 @@ main{ padding:22px 0 40px; }
   background:linear-gradient(135deg, var(--brand-1), var(--brand-2)); }
 
 /* make top nav full width */
-.site-header .container {
-  max-width:100%; 
-  padding:0 12px;
-}
+.site-header .container { max-width:100%; padding:0 12px; }
 
 /* tool tabs (top line) */
 .tool-tabs{
-  margin:8px 0;
-  display:flex;
-  gap:8px;
-  align-items:center;
-  overflow-x:auto;
-  padding:8px 0;
-  scrollbar-width:none;
-  -ms-overflow-style:none;
-  white-space:nowrap;
-  flex-wrap:nowrap;
+  margin:8px 0; display:flex; gap:8px; align-items:center;
+  overflow-x:auto; padding:8px 0; scrollbar-width:none; -ms-overflow-style:none;
+  white-space:nowrap; flex-wrap:nowrap;
 }
 .tool-tabs::-webkit-scrollbar{ display:none; }
 
@@ -93,13 +88,19 @@ main{ padding:22px 0 40px; }
 }
 .tool-tabs a:hover{ transform:translateY(-1px); box-shadow:var(--shadow-md); }
 
-/* 🔥 Strong active highlight */
-.tool-tabs a.active {
+/* Strong active highlight (SINGLE SOURCE) */
+.tool-tabs a.active,
+nav a.active{
   background: var(--brand-1);
   color:#fff !important;
   border-color: var(--brand-1);
   box-shadow:0 2px 12px rgba(124,58,237,.55);
   transform: scale(1.08);
+}
+.tool-tabs a:focus-visible,
+nav a:focus-visible{
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* Cards / panels / rows */
@@ -117,7 +118,7 @@ main{ padding:22px 0 40px; }
 .title{ font-weight:900; margin:0 0 8px 0; }
 .sub{ color:var(--muted); margin:0 0 12px 0; }
 
-/* Buttons */
+/* Buttons (class-based) */
 .btn{
   --_bg:var(--surface-2); --_fg:var(--text); --_bd:var(--border);
   display:inline-flex; align-items:center; justify-content:center; gap:10px;
@@ -129,22 +130,37 @@ main{ padding:22px 0 40px; }
 .btn:hover{ transform:translateY(-1px); box-shadow:var(--shadow-md); }
 .btn:active{ transform:translateY(0); box-shadow:var(--shadow-sm); }
 .btn:disabled{ opacity:.6; cursor:not-allowed; }
-.btn-primary{ --_bg:linear-gradient(135deg, var(--brand-1), var(--brand-2)); --_fg:#fff; --_bd:transparent; }
-.btn-danger{ --_bg:linear-gradient(135deg,#ef4444,#f97316); --_fg:#fff; --_bd:transparent; }
-.btn-ghost{ --_bg:transparent; --_fg:var(--text); --_bd:var(--border); }
+.btn-primary, .btn.primary{
+  --_bg:linear-gradient(135deg, var(--brand-1), var(--brand-2)); --_fg:#fff; --_bd:transparent;
+}
+.btn-danger{
+  --_bg:linear-gradient(135deg,#ef4444,#f97316); --_fg:#fff; --_bd:transparent;
+}
+.btn-ghost, .btn.ghost{ --_bg:transparent; --_fg:var(--text); --_bd:var(--border); }
 
-/* Inputs */
+/* Inputs (global + auto-theme even without classes) */
 .input,.select,.textarea,
-input[type="text"],input[type="number"],input[type="file"],input[type="color"],select,textarea{
+input[type="text"],input[type="number"],input[type="file"],input[type="color"],input[type="email"],input[type="url"],
+select,textarea{
   width:100%; background:var(--surface); color:var(--text);
   border:1px solid var(--border); border-radius:12px; padding:10px 12px; outline:none;
   transition:border-color .2s ease, box-shadow .2s ease, background .2s ease;
 }
 input::placeholder,textarea::placeholder{ color:var(--muted); }
 textarea{ min-height:120px; resize:vertical; }
-select{ appearance:none; background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%), linear-gradient(135deg,var(--muted) 50%,transparent 50%);
-  background-position:calc(100% - 20px) 16px, calc(100% - 15px) 16px; background-size:5px 5px,5px 5px; background-repeat:no-repeat; }
+select{
+  appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%), linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 20px) 16px, calc(100% - 15px) 16px; background-size:5px 5px,5px 5px; background-repeat:no-repeat;
+}
 :focus-visible{ outline:3px solid var(--ring); outline-offset:2px; border-radius:12px; }
+
+/* File input small tweak */
+input[type="file"]{ padding:8px 10px; background:var(--surface); }
+
+/* Range/checkbox radio accents */
+input[type="range"]{ width:100%; accent-color: var(--brand-1); }
+input[type="checkbox"],input[type="radio"]{ width:18px; height:18px; accent-color: var(--brand-1); }
 
 /* Dropzone */
 #drop,.dropzone,.drop{
@@ -154,7 +170,8 @@ select{ appearance:none; background-image:linear-gradient(45deg,transparent 50%,
   transition:border-color .2s ease, background .2s ease, box-shadow .2s ease;
 }
 #drop:hover,.dropzone:hover,.drop:hover{ border-color:transparent; box-shadow:var(--shadow-md); }
-#drop.is-dragover,.dropzone.is-dragover,.drop.is-dragover{
+/* cover both .is-dragover (CSS) AND .drag (JS in some pages) */
+#drop.is-dragover,#drop.drag,.dropzone.is-dragover,.dropzone.drag,.drop.is-dragover,.drop.drag{
   background:linear-gradient(0deg, rgba(124,58,237,.12), rgba(6,182,212,.12));
 }
 
@@ -170,33 +187,19 @@ select{ appearance:none; background-image:linear-gradient(45deg,transparent 50%,
 
 /* ===== Scroll arrows wrapper ===== */
 .tool-tabs-wrap{
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  position: relative; display: flex; align-items: center; gap: 8px;
 }
 
 /* Arrow buttons */
 .tool-scroll{
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 34px; height: 34px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  font-weight: 900;
-  line-height: 1;
-  display: grid; place-items: center;
-  box-shadow: var(--shadow-sm);
-  cursor: pointer;
-  z-index: 2;
-  opacity: .9;
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 34px; height: 34px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--text);
+  font-weight: 900; line-height: 1; display: grid; place-items: center;
+  box-shadow: var(--shadow-sm); cursor: pointer; z-index: 2; opacity: .9;
 }
 .tool-scroll:hover{ box-shadow: var(--shadow-md); transform: translateY(-50%) scale(1.05); }
 .tool-scroll:disabled{ opacity: .35; cursor: not-allowed; }
-
 .tool-left{  left: 8px; }
 .tool-right{ right: 8px; }
 
@@ -206,9 +209,7 @@ select{ appearance:none; background-image:linear-gradient(45deg,transparent 50%,
 /* Edge masks (nice fade hint) */
 .tool-tabs-wrap::before,
 .tool-tabs-wrap::after{
-  content:"";
-  position:absolute; top:0; bottom:0; width:40px; z-index:1;
-  pointer-events:none;
+  content:""; position:absolute; top:0; bottom:0; width:40px; z-index:1; pointer-events:none;
 }
 .tool-tabs-wrap::before{ left:0;  background: linear-gradient(90deg, var(--surface), transparent); }
 .tool-tabs-wrap::after { right:0; background: linear-gradient(270deg, var(--surface), transparent); }
@@ -217,17 +218,11 @@ select{ appearance:none; background-image:linear-gradient(45deg,transparent 50%,
 .tool-tabs a{ position: relative; }
 .tool-tabs a:hover::after{
   content: attr(data-tip);
-  position: absolute;
-  left: 50%; transform: translateX(-50%);
+  position: absolute; left: 50%; transform: translateX(-50%);
   bottom: calc(100% + 8px);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 6px 8px;
-  border-radius: 8px;
-  box-shadow: var(--shadow-sm);
-  white-space: nowrap;
-  font-size: .85rem;
+  background: var(--surface); border: 1px solid var(--border); color: var(--text);
+  padding: 6px 8px; border-radius: 8px; box-shadow: var(--shadow-sm);
+  white-space: nowrap; font-size: .85rem;
 }
 
 /* Hide arrows on small screens (swipe instead) */
@@ -241,109 +236,8 @@ select{ appearance:none; background-image:linear-gradient(45deg,transparent 50%,
 .tool-tabs-wrap.no-overflow .tool-scroll{ display:none; }
 .tool-tabs-wrap.no-overflow::before,
 .tool-tabs-wrap.no-overflow::after{ display:none; }
-/* Remove extra side padding when arrows are hidden */
 .tool-tabs-wrap.no-overflow .tool-tabs{ padding:8px 0; }
 
-/* === STEP 2: Auto-theme buttons & inputs WITHOUT editing HTML === */
-
-/* Base inputs (even if no .input/.select class) */
-input[type="text"],
-input[type="number"],
-input[type="file"],
-input[type="color"],
-input[type="email"],
-input[type="url"],
-select,
-textarea {
-  width: 100%;
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 12px;
-  outline: none;
-  transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
-}
-input::placeholder, textarea::placeholder { color: var(--muted); }
-textarea { min-height: 120px; resize: vertical; }
-select {
-  appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
-                    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
-  background-position: calc(100% - 20px) 16px, calc(100% - 15px) 16px;
-  background-size: 5px 5px, 5px 5px;
-  background-repeat: no-repeat;
-}
-:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; border-radius: 12px; }
-
-/* Base button look (even if no .btn class) */
-button:not(.btn),
-input[type="button"]:not(.btn),
-input[type="submit"]:not(.btn) {
-  --_bg: var(--surface-2); --_fg: var(--text); --_bd: var(--border);
-  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-  padding: 10px 14px; border-radius: 12px; border: 1px solid var(--_bd);
-  background: var(--_bg); color: var(--_fg); font-weight: 800; cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  transition: transform .06s ease, box-shadow .25s ease, background .25s ease, border-color .25s ease;
-}
-button:not(.btn):hover,
-input[type="button"]:not(.btn):hover,
-input[type="submit"]:not(.btn):hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
-button:not(.btn):active,
-input[type="button"]:not(.btn):active,
-input[type="submit"]:not(.btn):active { transform: translateY(0); box-shadow: var(--shadow-sm); }
-button:disabled, input[type="button"]:disabled, input[type="submit"]:disabled { opacity:.6; cursor:not-allowed; }
-
-/* Auto-detect PRIMARY actions by id/text (merge/export/build/apply/compress/convert/download) */
-button[id*="merge" i],
-button[id*="export" i],
-button[id*="build" i],
-button[id*="apply" i],
-button[id*="compress" i],
-button[id*="convert" i],
-button[id*="download" i],
-input[type="submit"][value*="export" i],
-input[type="submit"][value*="download" i] {
-  background: linear-gradient(135deg, var(--brand-1), var(--brand-2)) !important;
-  color: #fff !important;
-  border-color: transparent !important;
-}
-
-/* Auto-detect DANGER actions by id/text (delete/remove/clear/reset) */
-button[id*="delete" i],
-button[id*="remove" i],
-button[id*="clear"  i],
-button[id*="reset"  i],
-input[type="submit"][value*="delete" i],
-input[type="submit"][value*="remove" i],
-input[type="submit"][value*="clear"  i],
-input[type="submit"][value*="reset"  i] {
-  background: linear-gradient(135deg, #ef4444, #f97316) !important;
-  color: #fff !important;
-  border-color: transparent !important;
-}
-
-/* Make file inputs look cleaner (optional) */
-input[type="file"] {
-  padding: 8px 10px;
-  background: var(--surface);
-}
-
-/* Compact slider and checkbox consistency */
-input[type="range"]{ width:100%; accent-color: var(--brand-1); }
-input[type="checkbox"], input[type="radio"] { width:18px; height:18px; accent-color: var(--brand-1); }
-
-/* Active tab highlight */
-.tool-tabs a.active,
-nav a.active{
-  outline: 2px solid var(--accent);
-  background: rgba(0,0,0,0.06);
-  border-radius: 10px;
-}
-.tool-tabs a:focus-visible,
-nav a:focus-visible{
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
+/* === Page headings (used by H1 we added) === */
+.page-title{ font-size:26px; line-height:1.25; margin:6px 0 14px; color:var(--text); }
+.sub{ color:var(--muted); font-size:14px; margin:-6px 0 14px; }
