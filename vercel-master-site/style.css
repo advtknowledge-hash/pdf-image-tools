@@ -1,15 +1,11 @@
 /* ===========================================================
    Common Theme + Top Tools Bar (CLEANED)
-   - Tokens unified
-   - Active tab highlight single-source
-   - Buttons support: .btn-primary / .btn.primary / .btn-ghost / .btn.ghost
-   - Dropzone covers .drag & .is-dragover (JS mismatch handled)
    =========================================================== */
 
 /* Design tokens */
 :root{
   --brand-1:#7c3aed; --brand-2:#06b6d4;
-  --accent:#7c3aed; /* used by outlines/links */
+  --accent:#7c3aed; /* outlines/links */
   --bg:#f6f8fc; --surface:#ffffff; --surface-2:#eef2f7;
   --text:#0f172a; --muted:#64748b; --border:#e2e8f0;
   --ring:rgba(124,58,237,.35);
@@ -71,14 +67,13 @@ main{ padding:22px 0 40px; }
 /* make top nav full width */
 .site-header .container { max-width:100%; padding:0 12px; }
 
-/* tool tabs (top line) */
+/* tool tabs */
 .tool-tabs{
   margin:8px 0; display:flex; gap:8px; align-items:center;
   overflow-x:auto; padding:8px 0; scrollbar-width:none; -ms-overflow-style:none;
   white-space:nowrap; flex-wrap:nowrap;
 }
 .tool-tabs::-webkit-scrollbar{ display:none; }
-
 .tool-tabs a{
   flex:0 0 auto;
   padding:10px 14px; border-radius:10px;
@@ -88,17 +83,15 @@ main{ padding:22px 0 40px; }
 }
 .tool-tabs a:hover{ transform:translateY(-1px); box-shadow:var(--shadow-md); }
 
-/* Strong active highlight (SINGLE SOURCE) */
-.tool-tabs a.active,
-nav a.active{
+/* active highlight */
+.tool-tabs a.active, nav a.active{
   background: var(--brand-1);
   color:#fff !important;
   border-color: var(--brand-1);
   box-shadow:0 2px 12px rgba(124,58,237,.55);
   transform: scale(1.08);
 }
-.tool-tabs a:focus-visible,
-nav a:focus-visible{
+.tool-tabs a:focus-visible, nav a:focus-visible{
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -118,7 +111,7 @@ nav a:focus-visible{
 .title{ font-weight:900; margin:0 0 8px 0; }
 .sub{ color:var(--muted); margin:0 0 12px 0; }
 
-/* Buttons (class-based) */
+/* Buttons */
 .btn{
   --_bg:var(--surface-2); --_fg:var(--text); --_bd:var(--border);
   display:inline-flex; align-items:center; justify-content:center; gap:10px;
@@ -130,15 +123,11 @@ nav a:focus-visible{
 .btn:hover{ transform:translateY(-1px); box-shadow:var(--shadow-md); }
 .btn:active{ transform:translateY(0); box-shadow:var(--shadow-sm); }
 .btn:disabled{ opacity:.6; cursor:not-allowed; }
-.btn-primary, .btn.primary{
-  --_bg:linear-gradient(135deg, var(--brand-1), var(--brand-2)); --_fg:#fff; --_bd:transparent;
-}
-.btn-danger{
-  --_bg:linear-gradient(135deg,#ef4444,#f97316); --_fg:#fff; --_bd:transparent;
-}
+.btn-primary, .btn.primary{ --_bg:linear-gradient(135deg, var(--brand-1), var(--brand-2)); --_fg:#fff; --_bd:transparent; }
+.btn-danger{ --_bg:linear-gradient(135deg,#ef4444,#f97316); --_fg:#fff; --_bd:transparent; }
 .btn-ghost, .btn.ghost{ --_bg:transparent; --_fg:var(--text); --_bd:var(--border); }
 
-/* Inputs (global + auto-theme even without classes) */
+/* Inputs */
 .input,.select,.textarea,
 input[type="text"],input[type="number"],input[type="file"],input[type="color"],input[type="email"],input[type="url"],
 select,textarea{
@@ -151,16 +140,18 @@ textarea{ min-height:120px; resize:vertical; }
 select{
   appearance:none;
   background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%), linear-gradient(135deg,var(--muted) 50%,transparent 50%);
-  background-position:calc(100% - 20px) 16px, calc(100% - 15px) 16px; background-size:5px 5px,5px 5px; background-repeat:no-repeat;
+  background-position:calc(100% - 20px) 16px, calc(100% - 15px) 16px;
+  background-size:5px 5px,5px 5px; background-repeat:no-repeat;
 }
 :focus-visible{ outline:3px solid var(--ring); outline-offset:2px; border-radius:12px; }
-
-/* File input small tweak */
 input[type="file"]{ padding:8px 10px; background:var(--surface); }
-
-/* Range/checkbox radio accents */
 input[type="range"]{ width:100%; accent-color: var(--brand-1); }
 input[type="checkbox"],input[type="radio"]{ width:18px; height:18px; accent-color: var(--brand-1); }
+
+/* Helpers */
+.small{ font-size:12.5px; color:var(--muted); }
+label.inline{ display:flex; align-items:center; gap:8px; }
+.center{text-align:center}.mb-2{margin-bottom:12px}.mb-3{margin-bottom:16px}.mb-4{margin-bottom:24px}.mt-2{margin-top:12px}.mt-3{margin-top:16px}.mt-4{margin-top:24px}
 
 /* Dropzone */
 #drop,.dropzone,.drop{
@@ -170,147 +161,146 @@ input[type="checkbox"],input[type="radio"]{ width:18px; height:18px; accent-colo
   transition:border-color .2s ease, background .2s ease, box-shadow .2s ease;
 }
 #drop:hover,.dropzone:hover,.drop:hover{ border-color:transparent; box-shadow:var(--shadow-md); }
-/* cover both .is-dragover (CSS) AND .drag (JS in some pages) */
+/* support both .is-dragover and .drag classes */
 #drop.is-dragover,#drop.drag,.dropzone.is-dragover,.dropzone.drag,.drop.is-dragover,.drop.drag{
   background:linear-gradient(0deg, rgba(124,58,237,.12), rgba(6,182,212,.12));
 }
 
-/* Progress bar */
-.progress{ width:100%; height:12px; background:var(--surface-2); border:1px solid var(--border); border-radius:999px; overflow:hidden; }
-.progress>span{ display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--brand-1),var(--brand-2)); transition:width .25s ease; }
+/* Left list (filename rows) */
+.list{ display:grid; gap:10px; margin-top:10px; }
+.item{
+  display:flex; align-items:center; gap:10px;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:12px; padding:10px; box-shadow:var(--shadow-sm);
+}
+.item .thumb{ width:46px; height:46px; border-radius:8px; overflow:hidden; background:var(--surface-2); }
+.item .thumb img{ width:100%; height:100%; object-fit:cover; }
+.item .name{ font-weight:700; }
+
+/* Pill & error */
+.pill{
+  display:inline-flex; align-items:center; gap:8px;
+  background:var(--surface-2); border:1px solid var(--border);
+  color:var(--muted); padding:6px 10px; border-radius:999px; font-weight:800;
+}
+.error{
+  display:none; margin-top:10px;
+  color:#b91c1c; background:rgba(239,68,68,.08); border:1px solid #fecaca;
+  padding:10px; border-radius:10px;
+}
+
+/* Overlay / progress */
+.overlay{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.35); z-index:1000; }
+.overlay .box{
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:14px; padding:18px 16px; width:min(360px,92vw); box-shadow:var(--shadow-md);
+}
+.overlay .bar{ height:10px; background:var(--surface-2); border:1px solid var(--border); border-radius:999px; overflow:hidden; margin-top:10px; }
+.overlay .bar span{ display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--brand-1),var(--brand-2)); transition:width .25s ease; }
+.overlay .ptext{ text-align:right; margin-top:8px; color:var(--muted); font-variant-numeric: tabular-nums; }
 
 /* Footer */
 .site-footer{ border-top:1px solid var(--border); background:var(--surface); color:var(--muted); padding:16px 0; }
 
-/* Small helpers */
-.center{text-align:center}.mb-2{margin-bottom:12px}.mb-3{margin-bottom:16px}.mb-4{margin-bottom:24px}.mt-2{margin-top:12px}.mt-3{margin-top:16px}.mt-4{margin-top:24px}
-
 /* ===== Scroll arrows wrapper ===== */
-.tool-tabs-wrap{
-  position: relative; display: flex; align-items: center; gap: 8px;
-}
+.tool-tabs-wrap{ position:relative; display:flex; align-items:center; gap:8px; }
 
 /* Arrow buttons */
 .tool-scroll{
-  position: absolute; top: 50%; transform: translateY(-50%);
-  width: 34px; height: 34px; border-radius: 999px;
-  border: 1px solid var(--border); background: var(--surface); color: var(--text);
-  font-weight: 900; line-height: 1; display: grid; place-items: center;
-  box-shadow: var(--shadow-sm); cursor: pointer; z-index: 2; opacity: .9;
+  position:absolute; top:50%; transform:translateY(-50%);
+  width:34px; height:34px; border-radius:999px;
+  border:1px solid var(--border); background:var(--surface); color:var(--text);
+  font-weight:900; line-height:1; display:grid; place-items:center;
+  box-shadow:var(--shadow-sm); cursor:pointer; z-index:2; opacity:.9;
 }
-.tool-scroll:hover{ box-shadow: var(--shadow-md); transform: translateY(-50%) scale(1.05); }
-.tool-scroll:disabled{ opacity: .35; cursor: not-allowed; }
-.tool-left{  left: 8px; }
-.tool-right{ right: 8px; }
+.tool-scroll:hover{ box-shadow:var(--shadow-md); transform:translateY(-50%) scale(1.05); }
+.tool-scroll:disabled{ opacity:.35; cursor:not-allowed; }
+.tool-left{ left:8px; } .tool-right{ right:8px; }
 
-/* Room for arrows; don’t overlap text */
-.tool-tabs{ padding: 8px 48px; }
+/* Room for arrows */
+.tool-tabs{ padding:8px 48px; }
 
-/* Edge masks (nice fade hint) */
+/* Edge masks */
 .tool-tabs-wrap::before,
 .tool-tabs-wrap::after{
   content:""; position:absolute; top:0; bottom:0; width:40px; z-index:1; pointer-events:none;
 }
-.tool-tabs-wrap::before{ left:0;  background: linear-gradient(90deg, var(--surface), transparent); }
-.tool-tabs-wrap::after { right:0; background: linear-gradient(270deg, var(--surface), transparent); }
+.tool-tabs-wrap::before{ left:0;  background:linear-gradient(90deg, var(--surface), transparent); }
+.tool-tabs-wrap::after { right:0; background:linear-gradient(270deg, var(--surface), transparent); }
 
-/* Tooltips via data-tip */
-.tool-tabs a{ position: relative; }
+/* Tooltips */
+.tool-tabs a{ position:relative; }
 .tool-tabs a:hover::after{
-  content: attr(data-tip);
-  position: absolute; left: 50%; transform: translateX(-50%);
-  bottom: calc(100% + 8px);
-  background: var(--surface); border: 1px solid var(--border); color: var(--text);
-  padding: 6px 8px; border-radius: 8px; box-shadow: var(--shadow-sm);
-  white-space: nowrap; font-size: .85rem;
+  content:attr(data-tip);
+  position:absolute; left:50%; transform:translateX(-50%);
+  bottom:calc(100% + 8px);
+  background:var(--surface); border:1px solid var(--border); color:var(--text);
+  padding:6px 8px; border-radius:8px; box-shadow:var(--shadow-sm);
+  white-space:nowrap; font-size:.85rem;
 }
 
-/* Hide arrows on small screens (swipe instead) */
-@media (max-width: 860px){
+/* Hide arrows on small screens */
+@media (max-width:860px){
   .tool-scroll{ display:none; }
-  .tool-tabs{ padding: 8px 0; }
+  .tool-tabs{ padding:8px 0; }
   .tool-tabs-wrap::before, .tool-tabs-wrap::after{ display:none; }
 }
 
-/* Hide arrows & edge-fades when there is no horizontal overflow */
+/* Hide arrows & fades when no overflow */
 .tool-tabs-wrap.no-overflow .tool-scroll{ display:none; }
 .tool-tabs-wrap.no-overflow::before,
 .tool-tabs-wrap.no-overflow::after{ display:none; }
 .tool-tabs-wrap.no-overflow .tool-tabs{ padding:8px 0; }
 
-/* === Page headings (used by H1 we added) === */
+/* Page headings */
 .page-title{ font-size:26px; line-height:1.25; margin:6px 0 14px; color:var(--text); }
 .sub{ color:var(--muted); font-size:14px; margin:-6px 0 14px; }
 
-/* Hide top tools bar ONLY on home */
+/* Hide top tools bar ONLY on home (you can also hide whole header if you want) */
 html.is-home .tool-tabs-wrap{ display:none; }
-/* Optional: thodu tight header spacing on home */
-html.is-home .site-header .bar{ padding-bottom: 8px; }
-/* If you also want the entire sticky header gone on home, use this instead: */
-/* html.is-home .site-header{ display:none; }  */
+html.is-home .site-header .bar{ padding-bottom:8px; }
+/* html.is-home .site-header{ display:none; } */
 
 /* === Image → PDF: tile gallery === */
 .gallery{
   display:grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 16px;
+  grid-template-columns:repeat(auto-fill, minmax(170px,1fr));
+  gap:16px;
 }
-
 .gitem{
-  position: relative;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: var(--shadow-sm);
-  padding: 10px 10px 38px; /* space for meta strip */
-  cursor: grab;
-  transition: transform .08s ease, box-shadow .2s ease, border-color .2s ease;
+  position:relative;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow:var(--shadow-sm);
+  padding:10px 10px 38px; /* meta strip space */
+  cursor:grab;
+  transition:transform .08s ease, box-shadow .2s ease, border-color .2s ease;
 }
-.gitem:active{ cursor: grabbing; }
-.gitem:hover{ transform: translateY(-1px); box-shadow: var(--shadow-md); }
-
+.gitem:active{ cursor:grabbing; }
+.gitem:hover{ transform:translateY(-1px); box-shadow:var(--shadow-md); }
 .gthumb{
-  width: 100%;
-  height: 190px;            /* card height */
-  border-radius: 10px;
-  background: var(--surface-2);
-  display: grid;
-  place-items: center;
-  overflow: hidden;
+  width:100%; height:190px;
+  border-radius:10px; background:var(--surface-2);
+  display:grid; place-items:center; overflow:hidden;
 }
 .gthumb img{
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center;
-  user-select: none;
-  -webkit-user-drag: none;
+  width:100%; height:100%; object-fit:contain; object-position:center;
+  user-select:none; -webkit-user-drag:none;
 }
-
 .gmeta{
-  position: absolute;
-  left: 10px; right: 10px; bottom: 8px;
-  display: flex; align-items: center; justify-content: space-between;
-  font-size: 12px; color: var(--muted);
+  position:absolute; left:10px; right:10px; bottom:8px;
+  display:flex; align-items:center; justify-content:space-between;
+  font-size:12px; color:var(--muted);
 }
-
 .rm{
-  position: absolute;
-  top: 8px; right: 8px;
-  width: 28px; height: 28px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  line-height: 1; font-weight: 900;
-  display: grid; place-items: center;
-  box-shadow: var(--shadow-sm);
-  opacity: 0; transform: scale(.9);
-  transition: opacity .15s ease, transform .15s ease;
+  position:absolute; top:8px; right:8px; width:28px; height:28px;
+  border-radius:999px; border:1px solid var(--border);
+  background:var(--surface); color:var(--text);
+  line-height:1; font-weight:900; display:grid; place-items:center;
+  box-shadow:var(--shadow-sm);
+  opacity:0; transform:scale(.9);
+  transition:opacity .15s ease, transform .15s ease;
 }
-.gitem:hover .rm{ opacity: 1; transform: scale(1); }
-
-.gitem.drag-over{
-  border-color: var(--brand-1);
-  box-shadow: 0 0 0 3px rgba(124,58,237,.18);
-}
+.gitem:hover .rm{ opacity:1; transform:scale(1); }
+.gitem.drag-over{ border-color:var(--brand-1); box-shadow:0 0 0 3px rgba(124,58,237,.18); }
