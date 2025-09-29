@@ -41,17 +41,20 @@
   <div class="wrap">
     <!-- Left controls / list -->
     <aside class="panel">
+      <!-- top row: counter + build button -->
       <div class="row" style="justify-content:space-between">
-        <label class="btn primary" for="file">Add images</label>
-        <input id="file" type="file" multiple accept="image/*,.heic,.heif,.avif"/>
+        <div id="meta" class="pill" aria-live="polite">0 images</div>
         <button id="buildBtn" class="btn" disabled>Create PDF</button>
       </div>
 
-      <div id="meta" class="pill" aria-live="polite">0 images</div>
-
-      <div id="drop" class="drop" tabindex="0" role="region" aria-label="Drag &amp; drop images area">
-        Drag &amp; drop images here (JPG/PNG/WEBP/AVIF/HEIC/HEIF)<br/>
-        <span class="small">All processing happens locally in your browser.</span>
+      <!-- One combined area: click to browse OR drag & drop -->
+      <div id="drop" class="drop" tabindex="0" role="region" aria-label="Add or drop images">
+        <input id="file" type="file" multiple accept="image/*,.heic,.heif,.avif" class="sr-only"/>
+        <div class="mb-2">Drag &amp; drop images here</div>
+        <button type="button" class="btn primary" id="browseBtn">Browse images</button>
+        <div class="small" style="margin-top:8px">
+          JPG/PNG/WebP/AVIF/HEIC — everything runs in your browser (no uploads).
+        </div>
       </div>
 
       <div class="panel" style="margin-top:10px">
@@ -148,6 +151,7 @@
   const $ = s => document.querySelector(s);
 
   const fileInput     = $('#file');
+  const browseBtn     = $('#browseBtn');
   const drop          = $('#drop');
   const listEl        = $('#list');
   const galleryEl     = $('#gallery');
@@ -343,6 +347,7 @@
 
   // ---------- EVENTS ----------
   fileInput.addEventListener('change', e=> addFiles(e.target.files));
+  browseBtn.addEventListener('click', () => fileInput.click());
 
   ['dragenter','dragover'].forEach(ev=> drop.addEventListener(ev, e=>{
     e.preventDefault();
@@ -402,7 +407,7 @@
         else if(fitMode==='height'){ drawH=availH; drawW=drawH*ratio; }
         else { // contain
           if(ratio>boxRatio){ drawW=availW; drawH=drawW/ratio; }
-          else { drawH=availH; drawW=drawH*ratio; }
+          else { drawH=availH; draw W=drawH*ratio; }
         }
 
         const x=margin+(availW-drawW)/2, y=margin+(availH-drawH)/2;
