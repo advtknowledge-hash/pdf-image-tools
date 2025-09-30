@@ -483,3 +483,27 @@ html.is-home .site-header .bar{ padding-bottom:8px; }
   padding-right: 36px;       /* room for caret */
 }
 
+/* Bigger caret for selects inside PDF Settings */
+.settings-grid select,
+.col-left select {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' \
+stroke='%23555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>\
+<polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 18px 18px;   /* ← arrow size (16–20px chale) */
+  padding-right: 2.5rem;         /* ← arrow ne jagya */
+}
+select::-ms-expand { display: none; } /* old Edge/IE arrow hide */
+@media (prefers-color-scheme: dark) {
+  .settings-grid select,
+  .col-left select {
+    background-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' \
+stroke='%23bbb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>\
+<polyline points='6 9 12 15 18 9'/></svg>");
+  }
+}
