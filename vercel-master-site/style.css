@@ -376,39 +376,4 @@ html.is-home .site-header .bar{ padding-bottom:8px; }
 .sticky-card .list{ margin:0; padding-left:18px; }
 .sticky-card .list li{ margin:2px 0; }
 
-/* Drop area base (you already have .drop…) keep existing; just ensure it looks good */
-
-/* === Compact settings panel (reduce height to match center/right) === */
-.col-left .title{ margin:0 0 6px; font-size: 16px; }
-
-.settings-grid{
-  gap: 8px;                           /* less vertical spacing */
-  grid-template-columns: repeat(2,minmax(0,1fr));
-}
-.col-left label{ gap:4px; }           /* label+input gap smaller */
-
-.settings-grid select,
-.settings-grid input[type="number"],
-.settings-grid input[type="color"]{
-  height: 36px;                       /* smaller controls */
-  padding: 8px 10px;
-}
-
-.settings-grid .inline-span{ 
-  grid-column: auto;                  /* don’t force full width */
-  display: flex; align-items: center; gap: 8px;
-}
-
-.col-left .small{ margin-top: 6px; line-height: 1.35; }
-
-/* Make the whole 3-col row align heights better */
-.triple{ align-items: start; }
-.col-left, .col-center, .col-right{ display: flex; flex-direction: column; }
-
-/* Keep drop box visually comparable in height (but not huge) */
-.drop-flex-only{ min-height: 180px; }
-
-/* Right sticky card: slightly tighter */
-.sticky-card{ gap:10px; padding:14px; }
-.sticky-card .pill{ align-self: flex-start; }
 
