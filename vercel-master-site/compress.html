@@ -22,7 +22,6 @@
     <div class="container tool-tabs-wrap">
       <button class="tool-scroll tool-left" aria-label="Scroll tools left" title="Scroll left">‹</button>
       <nav class="tool-tabs" role="navigation" aria-label="Tools">
-        <!-- keep your real links -->
         <a href="/merge"        data-tip="Combine multiple PDFs into one">Merge PDF</a>
         <a href="/delete-pages" data-tip="Remove pages you don’t need">Delete pages</a>
         <a href="/rotate-pages" data-tip="Rotate pages left/right">Rotate PDF</a>
@@ -43,25 +42,15 @@
   <!-- 3-box layout FIRST -->
   <div class="wrap grid-3">
     <!-- LEFT: Upload / Drop -->
-<section class="panel card box upload-box theme-center" id="dropzone" aria-label="Upload PDF">
-  <h2 class="title">Upload PDF</h2>
-
-  <!-- 1) Drag & drop / Browse -->
-  <p class="muted">Drag &amp; drop PDF here</p>
-  <label for="file" class="btn gradient big">Browse PDF</label>
-  <input id="file" type="file" accept="application/pdf" hidden />
-
-  <!-- 2) No File (status line) -->
-  <div class="pill mt-2" id="meta">No file</div>
-
-  <!-- 3) Clear -->
-  <button class="btn subtle mt-1" id="clearBtn" disabled>Clear</button>
-
-  <div class="small mt-2">
-    Everything runs in your browser (no uploads).
-  </div>
-</section>
-
+    <section class="panel card box upload-box theme-center" id="dropzone" aria-label="Upload PDF">
+      <h2 class="title">Upload PDF</h2>
+      <p class="muted">Drag &amp; drop PDF here</p>
+      <label for="file" class="btn gradient big">Browse PDF</label>
+      <input id="file" type="file" accept="application/pdf" hidden />
+      <div class="pill mt-2" id="meta">No file</div>
+      <button class="btn subtle mt-1" id="clearBtn" disabled>Clear</button>
+      <div class="small mt-2">Everything runs in your browser (no uploads).</div>
+    </section>
 
     <!-- MIDDLE: Settings -->
     <section class="panel card box settings-box theme-center" aria-label="Compression Settings">
@@ -89,23 +78,22 @@
       </details>
 
       <div class="small mt-2">Presets auto-set DPI &amp; JPEG quality. You can fine-tune above if needed.</div>
-
     </section>
+
     <!-- RIGHT: Run / Progress / Download -->
     <section class="panel card box action-box theme-center" aria-label="Compress & Download">
-  <h2 class="title">Compress</h2>
-  <progress id="prog" max="100" value="0" class="w-100"></progress>
-  <div id="status" class="small">Idle…</div>
-  <!-- add center to row -->
-  <div class="row center mt-2" style="gap:10px">
-    <button id="compressBtn" class="btn" disabled>Compress &amp; Download</button>
-    <button id="testBtn" class="btn subtle" title="Run on a tiny dummy PDF to test UI">Test</button>
-  </div>
-  <div class="small mt-2">Output name: <code>compressed.pdf</code></div>
-  </section>
+      <h2 class="title">Compress</h2>
+      <progress id="prog" max="100" value="0" class="w-100"></progress>
+      <div id="status" class="small">Idle…</div>
+      <div class="row center mt-2" style="gap:10px">
+        <button id="compressBtn" class="btn" disabled>Compress &amp; Download</button>
+        <button id="testBtn" class="btn subtle" title="Run on a tiny dummy PDF to test UI">Test</button>
+      </div>
+      <div class="small mt-2">Output name: <code>compressed.pdf</code></div>
+    </section>
   </div>
 
-  <!-- Now the title/subtitle UNDER the 3 boxes -->
+  <!-- Title/subtitle under the 3 boxes -->
   <section class="after-grid">
     <h1 class="page-title">Compress PDF</h1>
     <p class="sub">Reduce file size while keeping quality — everything runs in your browser.</p>
@@ -173,6 +161,7 @@
       meta.textContent = 'No file';
       statusEl.textContent = 'Idle…';
       compressBtn.disabled = true;
+      compressBtn.classList.remove('primary-blue');   // reset CTA color
       clearBtn.disabled = true;
       prog.value = 0; prog.max = 100;
     });
@@ -200,7 +189,9 @@
       pdfDocJS = await pdfjsLib.getDocument({ data: pdfBytesOriginal.slice() }).promise;
       pageCount = pdfDocJS.numPages;
       meta.textContent = `${fileName} • ${pageCount} pages • ${(f.size/1024/1024).toFixed(2)} MB`;
+
       compressBtn.disabled = false;
+      compressBtn.classList.add('primary-blue');      // turn CTA blue once ready
       clearBtn.disabled = false;
       statusEl.textContent = 'Ready to compress.';
     }
@@ -239,7 +230,6 @@
         const page = await pdfDocJS.getPage(i);
         const viewport = page.getViewport({ scale: dpi/72 });
 
-        // Canvas
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d', { alpha: false });
         canvas.width  = Math.max(1, Math.floor(viewport.width));
@@ -247,7 +237,6 @@
 
         await page.render({ canvasContext: ctx, viewport }).promise;
 
-        // JPEG
         const dataUrl = canvas.toDataURL('image/jpeg', quality);
         const jpgBytes = dataURLToUint8Array(dataUrl);
         const jpgImage = await out.embedJpg(jpgBytes);
@@ -257,9 +246,7 @@
 
         page.cleanup();
         prog.value = i;
-
-        // allow UI paint
-        await new Promise(r => setTimeout(r, 0));
+        await new Promise(r => setTimeout(r, 0)); // allow UI paint
       }
 
       statusEl.textContent = 'Saving PDF…';
@@ -280,6 +267,7 @@
 
       statusEl.textContent = 'Done.';
       compressBtn.disabled = false;
+      // keep the blue CTA (file still loaded)
     }
 
     function dataURLToUint8Array(dataURL){
