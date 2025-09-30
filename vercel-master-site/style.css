@@ -456,3 +456,30 @@ html.is-home .site-header .bar{ padding-bottom:8px; }
 
 /* tighter labels */
 .col-left label{ display:grid; gap:6px; }
+
+/* make left settings column wider */
+.triple{
+  grid-template-columns: 400px minmax(520px,1fr) 260px; /* was ~320px */
+}
+@media (max-width: 1300px){
+  .triple{
+    grid-template-columns: 360px minmax(480px,1fr) 260px;
+  }
+}
+
+/* controls fill the cell; no clipping of the arrow */
+.col-left .settings-grid select,
+.col-left .settings-grid input[type="number"],
+.col-left .settings-grid input[type="color"]{
+  width: 100%;
+  min-width: 0;              /* allow grid to shrink gracefully */
+  box-sizing: border-box;
+}
+
+/* if you use the custom select caret from earlier, move it in a bit */
+.col-left .settings-grid select{
+  background-position: calc(100% - 16px) 16px, calc(100% - 11px) 16px;
+  /* ↑ first triangle, second triangle */
+  padding-right: 36px;       /* room for caret */
+}
+
