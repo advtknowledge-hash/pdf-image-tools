@@ -468,3 +468,32 @@ select::-ms-expand{ display:none; }
 /* Align spacing */
 .upload-box .pill { display:inline-block; }
 
+/* Center theme for middle & right boxes (match left box look) */
+.theme-center { text-align: center; }
+.theme-center .title { text-align: center; }
+.theme-center .small,
+.theme-center details,
+.theme-center .select-lg {
+  display: inline-block;
+  text-align: left;            /* texts readable in center layout */
+  max-width: 420px;
+  width: 100%;
+}
+.action-box.theme-center progress {
+  display: block;
+  max-width: 420px;
+  width: 100%;
+  margin: 0 auto 8px;
+}
+
+/* Center the button row */
+.row.center { display:flex; justify-content:center; align-items:center; gap:10px; }
+
+/* Blue/gradient primary (same feel as other tools' call-to-action) */
+.btn.primary-blue {
+  background: linear-gradient(90deg, #7b61ff, #00b8ff);
+  color: #fff; border: none;
+  box-shadow: 0 6px 20px rgba(0,0,0,.08);
+}
+.btn.primary-blue:hover { filter: brightness(0.98); }
+.btn.primary-blue:disabled { opacity: .55; filter: grayscale(25%); cursor: not-allowed; }
