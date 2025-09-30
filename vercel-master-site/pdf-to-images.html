@@ -22,26 +22,31 @@
       <div class="container tool-tabs-wrap">
         <button class="tool-scroll tool-left" aria-label="Scroll tools left" title="Scroll left">‹</button>
         <nav class="tool-tabs" role="navigation" aria-label="Tools">
-          <a href="/merge" data-tip="Combine multiple PDFs into one">Merge PDF</a>
-          <a href="/delete-pages" data-tip="Remove pages you don’t need">Delete pages</a>
-          <a href="/rotate-pages" data-tip="Rotate pages left/right">Rotate PDF</a>
-          <a href="/reorder-pages" data-tip="Drag &amp; reorder pages">Reorder PDF</a>
-          <a href="/crop" data-tip="Cut margins or select an area">Crop PDF</a>
-          <a href="/compress" data-tip="Reduce PDF file size">Compress PDF</a>
-          <a href="/pdf-to-images" class="active" data-tip="Export pages as PNG/JPG">PDF → Images</a>
-          <a href="/image-to-pdf" data-tip="Make a PDF from images">Image → PDF</a>
-          <a href="/jpg-to-png" data-tip="Convert JPG to PNG">JPG → PNG</a>
-          <a href="/png-to-jpg" data-tip="Convert PNG to JPG">PNG → JPG</a>
+          <a href="/merge">Merge PDF</a>
+          <a href="/delete-pages">Delete pages</a>
+          <a href="/rotate-pages">Rotate PDF</a>
+          <a href="/reorder-pages">Reorder PDF</a>
+          <a href="/crop">Crop PDF</a>
+          <a href="/compress">Compress PDF</a>
+          <a href="/pdf-to-images" class="active">PDF → Images</a>
+          <a href="/image-to-pdf">Image → PDF</a>
+          <a href="/jpg-to-png">JPG → PNG</a>
+          <a href="/png-to-jpg">PNG → JPG</a>
         </nav>
         <button class="tool-scroll tool-right" aria-label="Scroll tools right" title="Scroll right">›</button>
       </div>
     </div>
   </header>
 
-  <main><!-- 3‑column layout to match Image → PDF page -->
-    <div class="container triple">
+  <main>
+    <!-- top title/subtitle block -->
+    <h1 class="page-title center" style="margin-top:20px">PDF → Images</h1>
+    <p class="sub center" style="margin-top:6px">Export PDF pages as PNG/JPG at custom DPI — 100% client‑side.</p>
 
-      <!-- LEFT: PDF Settings (same look & spacing) -->
+    <!-- 3‑column layout full width -->
+    <div class="container triple fullwidth">
+
+      <!-- LEFT: PDF Settings -->
       <section class="col-left" aria-labelledby="pdf-settings-title">
         <h2 id="pdf-settings-title" class="title">PDF Settings</h2>
         <div class="settings-grid">
@@ -68,19 +73,19 @@
       <section class="col-center">
         <div id="drop" class="drop drop-flex-only" aria-label="Drop area">
           <div>
-            <div class="title center">Drop your PDF here</div>
-            <p class="small center">…or use <strong>Choose PDF</strong> on the right</p>
+            <div class="title center">Drag &amp; drop PDF here</div>
+            <p class="small center">…or use <strong>Browse PDF</strong> below</p>
+            <label for="file" class="btn primary mt-2">Browse PDF</label>
           </div>
         </div>
 
         <div id="thumbs" class="grid mt-3"></div>
       </section>
 
-      <!-- RIGHT: Sticky action card -->
+      <!-- RIGHT: Sticky action card (simplified like Image→PDF) -->
       <aside class="col-right">
         <div class="sticky-card" role="region" aria-label="Actions">
           <input id="file" type="file" accept="application/pdf" hidden />
-          <label for="file" class="btn primary">Choose PDF</label>
 
           <div id="meta" class="pill">No file</div>
 
@@ -101,10 +106,9 @@
 
     </div>
 
+    <!-- bottom subtitle same as Image→PDF -->
     <h1 class="page-title center" style="margin-top:20px">PDF → Images</h1>
-    <p class="sub center" style="margin-top:6px">
-      Export PDF pages as PNG/JPG at custom DPI — 100% client‑side.
-    </p>
+    <p class="sub center" style="margin-top:6px">Export PDF pages as PNG/JPG at custom DPI — 100% client‑side.</p>
 
     <section class="card mt-3">
       <h2 class="title">How it works</h2>
@@ -122,7 +126,7 @@
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
-  <!-- App logic (kept IDs the same so existing code works; added drop support + active tab safety) -->
+  <!-- App logic -->
   <script>
     const $ = s => document.querySelector(s);
     const fileEl = $('#file');
