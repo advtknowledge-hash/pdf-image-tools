@@ -507,3 +507,46 @@ stroke='%23bbb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>
 <polyline points='6 9 12 15 18 9'/></svg>");
   }
 }
+
+/* Make native arrow invisible and add our perfectly-centered arrow */
+.settings-grid select,
+.col-left select {
+  -webkit-appearance: none;
+  appearance: none;
+  background: none;            /* remove background arrow */
+  padding-right: 2.6rem;       /* space for the arrow */
+}
+
+/* Parent becomes positioning context */
+.settings-grid label:has(> select),
+.col-left label:has(> select) {
+  position: relative;
+}
+
+/* Our arrow (always vertically centered) */
+.settings-grid label:has(> select)::after,
+.col-left label:has(> select)::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  transform: translateY(-50%);  /* <-- perfect centering */
+  pointer-events: none;
+  background: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' \
+stroke='%23555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>\
+<polyline points='6 9 12 15 18 9'/></svg>") no-repeat center/contain;
+  opacity: .85;
+}
+
+@media (prefers-color-scheme: dark) {
+  .settings-grid label:has(> select)::after,
+  .col-left label:has(> select)::after {
+    background-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' \
+stroke='%23bbb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>\
+<polyline points='6 9 12 15 18 9'/></svg>");
+  }
+}
