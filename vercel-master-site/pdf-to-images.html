@@ -40,7 +40,6 @@
 
   <main>
     <h1 class="page-title">PDF → Images</h1>
-    <p class="sub">Export PDF pages as PNG/JPG at custom DPI — 100% client‑side.</p>
 
     <!-- 3‑column layout to match Image → PDF page -->
     <div class="container triple">
@@ -105,6 +104,11 @@
 
     </div>
 
+    <!-- Moved subtitle under the 3‑box section -->
+    <p class="sub center" style="margin-top:20px">
+      Export PDF pages as PNG/JPG at custom DPI — 100% client‑side.
+    </p>
+
     <section class="card mt-3">
       <h2 class="title">How it works</h2>
       <ul class="sub">
@@ -136,7 +140,6 @@
     const thumbs = $('#thumbs');
     const drop = $('#drop');
 
-    // Mark active tab when routed via different paths/builds
     (function ensureActiveTab(){
       try{
         const path = location.pathname.replace(/\/$/,'');
@@ -147,7 +150,6 @@
       }catch(e){}
     })();
 
-    // Enable/disable JPG quality by format
     function syncQuality(){ qEl.disabled = fmtEl.value !== 'jpg'; }
     fmtEl.addEventListener('change', syncQuality); syncQuality();
 
@@ -167,18 +169,16 @@
 
     fileEl.addEventListener('change', e => handleFile(e.target.files[0]));
 
-    // Drag & drop behavior
-    ;['dragenter','dragover'].forEach(evt=>{
+    ['dragenter','dragover'].forEach(evt=>{
       drop.addEventListener(evt, e=>{ e.preventDefault(); drop.classList.add('is-dragover'); });
     });
-    ;['dragleave','dragend','drop'].forEach(evt=>{
+    ['dragleave','dragend','drop'].forEach(evt=>{
       drop.addEventListener(evt, e=>{ if(evt!=='drop') drop.classList.remove('is-dragover'); });
     });
     drop.addEventListener('drop', async e =>{
       e.preventDefault(); drop.classList.remove('is-dragover');
       const f = e.dataTransfer?.files?.[0];
       if(f && f.type === 'application/pdf'){
-        // reflect into the hidden input so user can re‑trigger if needed
         const dt = new DataTransfer(); dt.items.add(f); fileEl.files = dt.files;
         await handleFile(f);
       } else {
