@@ -449,3 +449,6 @@ select::-ms-expand{ display:none; }
 
 /* Ensure button + progress alignment looks clean */
 .action-box progress { width: 100%; height: 10px; }
+
+.after-grid { margin-top: 8px; }
+.after-grid .page-title { margin: 0 0 4px; }
