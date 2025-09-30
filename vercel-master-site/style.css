@@ -137,12 +137,8 @@ select,textarea{
 }
 input::placeholder,textarea::placeholder{ color:var(--muted); }
 textarea{ min-height:120px; resize:vertical; }
-select{
-  appearance:none;
-  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%), linear-gradient(135deg,var(--muted) 50%,transparent 50%);
-  background-position:calc(100% - 20px) 16px, calc(100% - 15px) 16px;
-  background-size:5px 5px,5px 5px; background-repeat:no-repeat;
-}
+/* generic select: no default triangles (caret added later, scoped) */
+select{ appearance:none; background:var(--surface); }
 :focus-visible{ outline:3px solid var(--ring); outline-offset:2px; border-radius:12px; }
 input[type="file"]{ padding:8px 10px; background:var(--surface); }
 input[type="range"]{ width:100%; accent-color: var(--brand-1); }
@@ -333,8 +329,11 @@ html.is-home .site-header .bar{ padding-bottom:8px; }
 /* ===== 3-column layout ===== */
 .triple{
   display:grid;
-  grid-template-columns: 320px minmax(420px, 1fr) 260px;
+  grid-template-columns: 420px minmax(520px, 1fr) 260px; /* widened left to avoid dropdown clipping */
   gap:16px;
+}
+@media (max-width:1300px){
+  .triple{ grid-template-columns: 360px minmax(480px,1fr) 260px; }
 }
 @media (max-width:1100px){
   .triple{ grid-template-columns: 1fr; }
@@ -342,80 +341,25 @@ html.is-home .site-header .bar{ padding-bottom:8px; }
 }
 
 /* Settings grid */
-.settings-grid{
-  display:grid;
-  grid-template-columns: repeat(2, minmax(0,1fr));
-  gap:12px;
-}
-.settings-grid .inline-span{ grid-column: 1 / -1; }
+.settings-grid{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:14px; }
+@media (min-width: 1200px){ .settings-grid{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
+@media (max-width: 900px){ .settings-grid{ grid-template-columns: 1fr; } }
+.settings-grid > *{ grid-column: auto !important; }
 .col-left label{ display:grid; gap:6px; }
 .mt-2{ margin-top:12px; }
 
 /* Center drop area (only left content now) */
-.drop-flex-only{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  min-height:200px;
-}
+.drop-flex-only{ display:flex; align-items:center; justify-content:center; min-height:200px; }
 
 /* Sticky create card (right) */
 .sticky-card{
-  position: sticky;
-  top: 84px;
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-  background: var(--surface);
-  border:1px solid var(--border);
-  border-radius: var(--r-lg);
-  padding:16px;
-  box-shadow: var(--shadow-sm);
+  position: sticky; top: 84px; display:flex; flex-direction:column; gap:12px;
+  background: var(--surface); border:1px solid var(--border);
+  border-radius: var(--r-lg); padding:16px; box-shadow: var(--shadow-sm);
 }
 .sticky-card .hr{ border:0; height:1px; background:var(--border); margin:6px 0; }
 .sticky-card .list{ margin:0; padding-left:18px; }
 .sticky-card .list li{ margin:2px 0; }
-/* === PDF Settings: 3-column layout (height down) === */
-
-/* base: 2 columns on laptops/tablets */
-.settings-grid{
-  display:grid;
-  grid-template-columns: repeat(2, minmax(0,1fr));
-  gap:12px 14px;              /* vertical, horizontal gaps */
-}
-
-/* wide screens: 3 columns */
-@media (min-width: 1200px){
-  .settings-grid{ grid-template-columns: repeat(3, minmax(0,1fr)); }
-}
-
-/* small screens: 1 column */
-@media (max-width: 900px){
-  .settings-grid{ grid-template-columns: 1fr; }
-}
-
-/* make sure no item is forced full width */
-.settings-grid > *{
-  grid-column: auto !important;
-}
-
-/* compact labels/controls */
-.col-left label{ display:grid; gap:6px; }
-.settings-grid select,
-.settings-grid input[type="number"],
-.settings-grid input[type="color"]{
-  height: 36px;
-  padding: 8px 10px;
-}
-
-/* checkbox line tidy (don’t span all columns) */
-.settings-grid .inline-span{
-  display:flex; align-items:center; gap:8px;
-  grid-column: auto !important;
-}
-
-/* slightly tighten meta text */
-.col-left .small{ margin-top: 6px; line-height: 1.35; }
 
 /* === PDF Settings panel: same look as other boxes === */
 .col-left{
@@ -427,126 +371,31 @@ html.is-home .site-header .bar{ padding-bottom:8px; }
   height: auto;             /* allow dropdowns to expand */
   overflow: visible;        /* important: dropdown not cut */
 }
+.col-left .title{ margin: 0 0 10px; font-weight: 700; font-size: 1rem; }
 
-/* title inside left box */
-.col-left .title{
-  margin: 0 0 10px;
-  font-weight: 700;
-  font-size: 1rem;
-}
-
-/* grid refined: 2 cols normally, 3 cols on wide */
-.settings-grid{
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0,1fr));
-  gap: 14px;
-}
-@media (min-width: 1200px){
-  .settings-grid{ grid-template-columns: repeat(3, minmax(0,1fr)); }
-}
-@media (max-width: 900px){
-  .settings-grid{ grid-template-columns: 1fr; }
-}
-
-/* make select dropdowns safe */
-.settings-grid select{
-  min-width: 100%;
-  box-sizing: border-box;
-}
-
-/* tighter labels */
-.col-left label{ display:grid; gap:6px; }
-
-/* make left settings column wider */
-.triple{
-  grid-template-columns: 420px minmax(520px,1fr) 260px; /* was ~320px */
-}
-@media (max-width: 1300px){
-  .triple{
-    grid-template-columns: 360px minmax(480px,1fr) 260px;
-  }
-}
-
-/* controls fill the cell; no clipping of the arrow */
-.col-left .settings-grid select,
-.col-left .settings-grid input[type="number"],
-.col-left .settings-grid input[type="color"]{
-  width: 100%;
-  min-width: 0;              /* allow grid to shrink gracefully */
-  box-sizing: border-box;
-}
-
-/* if you use the custom select caret from earlier, move it in a bit */
-.col-left .settings-grid select{
-  background-position: calc(100% - 16px) 16px, calc(100% - 11px) 16px;
-  /* ↑ first triangle, second triangle */
-  padding-right: 36px;       /* room for caret */
-}
-
-/* Bigger caret for selects inside PDF Settings */
+/* keep controls compact */
 .settings-grid select,
-.col-left select {
+.settings-grid input[type="number"],
+.settings-grid input[type="color"]{ height:36px; padding:8px 10px; }
+
+/* === FINAL SELECT CARET (centered & bigger) === */
+.settings-grid select,
+.col-left select{
   -webkit-appearance: none;
   appearance: none;
-  background-image: url("data:image/svg+xml;utf8,\
-<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' \
-stroke='%23555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>\
-<polyline points='6 9 12 15 18 9'/></svg>");
+  background-color: var(--surface);
+  /* caret */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
   background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 18px 18px;   /* ← arrow size (16–20px chale) */
-  padding-right: 2.5rem;         /* ← arrow ne jagya */
+  background-position: calc(100% - 12px) 50%; /* right offset, vertically centered */
+  background-size: 18px 18px;                 /* 16–20px works */
+  padding-right: 2.6rem;                       /* room for arrow */
+  line-height: normal;                         /* Windows fix */
 }
-select::-ms-expand { display: none; } /* old Edge/IE arrow hide */
-@media (prefers-color-scheme: dark) {
+select::-ms-expand{ display:none; }
+@media (prefers-color-scheme: dark){
   .settings-grid select,
-  .col-left select {
-    background-image: url("data:image/svg+xml;utf8,\
-<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' \
-stroke='%23bbb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>\
-<polyline points='6 9 12 15 18 9'/></svg>");
-  }
-}
-
-/* Make native arrow invisible and add our perfectly-centered arrow */
-.settings-grid select,
-.col-left select {
-  -webkit-appearance: none;
-  appearance: none;
-  background: none;            /* remove background arrow */
-  padding-right: 2.6rem;       /* space for the arrow */
-}
-
-/* Parent becomes positioning context */
-.settings-grid label:has(> select),
-.col-left label:has(> select) {
-  position: relative;
-}
-
-/* Our arrow (always vertically centered) */
-.settings-grid label:has(> select)::after,
-.col-left label:has(> select)::after {
-  content: "";
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  width: 18px;
-  height: 18px;
-  transform: translateY(-50%);  /* <-- perfect centering */
-  pointer-events: none;
-  background: url("data:image/svg+xml;utf8,\
-<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' \
-stroke='%23555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>\
-<polyline points='6 9 12 15 18 9'/></svg>") no-repeat center/contain;
-  opacity: .85;
-}
-
-@media (prefers-color-scheme: dark) {
-  .settings-grid label:has(> select)::after,
-  .col-left label:has(> select)::after {
-    background-image: url("data:image/svg+xml;utf8,\
-<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' \
-stroke='%23bbb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>\
-<polyline points='6 9 12 15 18 9'/></svg>");
+  .col-left select{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23bbb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
   }
 }
