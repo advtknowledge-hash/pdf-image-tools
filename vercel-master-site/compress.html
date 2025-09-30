@@ -64,7 +64,7 @@
 
 
     <!-- MIDDLE: Settings -->
-    <section class="panel card box settings-box" aria-label="Compression Settings">
+    <section class="panel card box settings-box theme-center" aria-label="Compression Settings">
       <h2 class="title">Settings</h2>
       <label class="block mt-1">Preset
         <select id="preset" class="select-lg">
@@ -89,21 +89,20 @@
       </details>
 
       <div class="small mt-2">Presets auto-set DPI &amp; JPEG quality. You can fine-tune above if needed.</div>
-    </section>
 
+    </section>
     <!-- RIGHT: Run / Progress / Download -->
-    <section class="panel card box action-box" aria-label="Compress & Download">
-      <h2 class="title">Compress</h2>
-      <progress id="prog" max="100" value="0" class="w-100"></progress>
-      <div id="status" class="small">Idle…</div>
-
-      <div class="row mt-2" style="gap:10px">
-        <button id="compressBtn" class="btn" disabled>Compress &amp; Download</button>
-        <button id="testBtn" class="btn subtle" title="Run on a tiny dummy PDF to test UI">Test</button>
-      </div>
-
-      <div class="small mt-2">Output name: <code>compressed.pdf</code></div>
-    </section>
+    <section class="panel card box action-box theme-center" aria-label="Compress & Download">
+  <h2 class="title">Compress</h2>
+  <progress id="prog" max="100" value="0" class="w-100"></progress>
+  <div id="status" class="small">Idle…</div>
+  <!-- add center to row -->
+  <div class="row center mt-2" style="gap:10px">
+    <button id="compressBtn" class="btn" disabled>Compress &amp; Download</button>
+    <button id="testBtn" class="btn subtle" title="Run on a tiny dummy PDF to test UI">Test</button>
+  </div>
+  <div class="small mt-2">Output name: <code>compressed.pdf</code></div>
+  </section>
   </div>
 
   <!-- Now the title/subtitle UNDER the 3 boxes -->
