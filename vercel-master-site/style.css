@@ -399,3 +399,53 @@ select::-ms-expand{ display:none; }
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23bbb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
   }
 }
+
+/* --- Top 3 boxes grid (re-usable across tools) --- */
+.grid-3 {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 980px){
+  .grid-3 { grid-template-columns: 1fr; }
+}
+
+.box { padding: 14px; border: 1px solid var(--border, #e3e3e3); border-radius: 12px; }
+.box .title { margin: 0 0 6px; }
+.mt-1{ margin-top: 8px; } .mt-2{ margin-top: 12px; } .mt-3{ margin-top: 18px; }
+.w-100{ width: 100%; }
+.block{ display:block; }
+.muted{ opacity:.8; }
+.subtle{ opacity:.9; }
+
+/* Upload dropzone state */
+.upload-box { text-align: center; padding: 18px; border-style: dashed; }
+.upload-box.dropping { background: rgba(60, 120, 255, 0.06); border-color: var(--accent, #3c78ff); }
+
+/* Select: bigger & centered caret across browsers */
+.select-lg {
+  font-size: 16px;
+  padding: 10px 36px 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border, #ddd);
+  background: var(--surface, #fff);
+  line-height: 1.2;
+  /* caret */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%),
+    linear-gradient(to right, transparent, transparent);
+  background-position:
+    calc(100% - 20px) calc(50% - 4px),
+    calc(100% - 14px) calc(50% - 4px),
+    calc(100% - 2.4em) 0.5em;
+  background-size: 6px 6px, 6px 6px, 0 0; /* arrow size */
+  background-repeat: no-repeat;
+}
+.select-lg:focus { outline: 2px solid var(--accent, #3c78ff); outline-offset: 2px; }
+
+/* Ensure button + progress alignment looks clean */
+.action-box progress { width: 100%; height: 10px; }
