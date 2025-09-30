@@ -40,10 +40,7 @@
 </header>
 
 <main>
-  <h1 class="page-title">Compress PDF</h1>
-  <p class="sub">Reduce file size while keeping quality — everything runs in your browser.</p>
-
-  <!-- Top 3 boxes layout -->
+  <!-- 3-box layout FIRST -->
   <div class="wrap grid-3">
     <!-- LEFT: Upload / Drop -->
     <section class="panel card box upload-box" id="dropzone" aria-label="Upload PDF">
@@ -54,9 +51,7 @@
         <input id="file" type="file" accept="application/pdf" hidden />
         <button class="btn subtle" id="clearBtn" disabled>Clear</button>
       </div>
-
       <div class="pill mt-2" id="meta">No file</div>
-
       <div class="small mt-2">
         Tip: Works best for scanned PDFs or photo-heavy docs. Text-only PDFs may already be optimal.
       </div>
@@ -65,7 +60,6 @@
     <!-- MIDDLE: Settings -->
     <section class="panel card box settings-box" aria-label="Compression Settings">
       <h2 class="title">Settings</h2>
-
       <label class="block mt-1">Preset
         <select id="preset" class="select-lg">
           <option value="balanced">Balanced (good quality)</option>
@@ -84,7 +78,8 @@
             <input id="quality" type="number" min="0.4" max="0.9" step="0.01" value="0.70" />
           </label>
         </div>
-        <label class="row mt-1"><input id="preferOriginal" type="checkbox" checked /> <span class="small">Keep original if compressed is larger</span></label>
+        <label class="row mt-1"><input id="preferOriginal" type="checkbox" checked />
+          <span class="small">Keep original if compressed is larger</span></label>
       </details>
 
       <div class="small mt-2">Presets auto-set DPI &amp; JPEG quality. You can fine-tune above if needed.</div>
@@ -93,7 +88,6 @@
     <!-- RIGHT: Run / Progress / Download -->
     <section class="panel card box action-box" aria-label="Compress & Download">
       <h2 class="title">Compress</h2>
-
       <progress id="prog" max="100" value="0" class="w-100"></progress>
       <div id="status" class="small">Idle…</div>
 
@@ -102,11 +96,15 @@
         <button id="testBtn" class="btn subtle" title="Run on a tiny dummy PDF to test UI">Test</button>
       </div>
 
-      <div class="small mt-2">
-        Output name: <code>compressed.pdf</code>
-      </div>
+      <div class="small mt-2">Output name: <code>compressed.pdf</code></div>
     </section>
   </div>
+
+  <!-- Now the title/subtitle UNDER the 3 boxes -->
+  <section class="after-grid">
+    <h1 class="page-title">Compress PDF</h1>
+    <p class="sub">Reduce file size while keeping quality — everything runs in your browser.</p>
+  </section>
 
   <!-- Info -->
   <section class="card mt-3">
@@ -118,7 +116,7 @@
     </ul>
     <p class="sub mt-1">Privacy: No uploads. Everything stays on your device.</p>
   </section>
-
+  
   <!-- libs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script>
