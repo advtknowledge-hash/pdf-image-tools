@@ -459,7 +459,7 @@ html.is-home .site-header .bar{ padding-bottom:8px; }
 
 /* make left settings column wider */
 .triple{
-  grid-template-columns: 400px minmax(520px,1fr) 260px; /* was ~320px */
+  grid-template-columns: 420px minmax(520px,1fr) 260px; /* was ~320px */
 }
 @media (max-width: 1300px){
   .triple{
