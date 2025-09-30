@@ -387,10 +387,10 @@ html.is-home .site-header .bar{ padding-bottom:8px; }
   /* caret */
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
   background-repeat: no-repeat;
-  background-position: calc(100% - 12px) 50%; /* right offset, vertically centered */
-  background-size: 18px 18px;                 /* 16–20px works */
-  padding-right: 2.6rem;                       /* room for arrow */
-  line-height: normal;                         /* Windows fix */
+  background-position: calc(100% - 12px) 50%;
+  background-size: 18px 18px;
+  padding-right: 2.6rem;
+  line-height: normal;
 }
 select::-ms-expand{ display:none; }
 @media (prefers-color-scheme: dark){
@@ -430,7 +430,6 @@ select::-ms-expand{ display:none; }
   border: 1px solid var(--border, #ddd);
   background: var(--surface, #fff);
   line-height: 1.2;
-  /* caret */
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -442,7 +441,7 @@ select::-ms-expand{ display:none; }
     calc(100% - 20px) calc(50% - 4px),
     calc(100% - 14px) calc(50% - 4px),
     calc(100% - 2.4em) 0.5em;
-  background-size: 6px 6px, 6px 6px, 0 0; /* arrow size */
+  background-size: 6px 6px, 6px 6px, 0 0;
   background-repeat: no-repeat;
 }
 .select-lg:focus { outline: 2px solid var(--accent, #3c78ff); outline-offset: 2px; }
