@@ -43,19 +43,25 @@
   <!-- 3-box layout FIRST -->
   <div class="wrap grid-3">
     <!-- LEFT: Upload / Drop -->
-    <section class="panel card box upload-box" id="dropzone" aria-label="Upload PDF">
-      <h2 class="title">Upload PDF</h2>
-      <p class="muted">Drag &amp; drop your file here, or</p>
-      <div class="row" style="gap:10px; margin-top:6px">
-        <label for="file" class="btn primary">Browse PDF</label>
-        <input id="file" type="file" accept="application/pdf" hidden />
-        <button class="btn subtle" id="clearBtn" disabled>Clear</button>
-      </div>
-      <div class="pill mt-2" id="meta">No file</div>
-      <div class="small mt-2">
-        Tip: Works best for scanned PDFs or photo-heavy docs. Text-only PDFs may already be optimal.
-      </div>
-    </section>
+<section class="panel card box upload-box theme-center" id="dropzone" aria-label="Upload PDF">
+  <h2 class="title">Upload PDF</h2>
+
+  <!-- 1) Drag & drop / Browse -->
+  <p class="muted">Drag &amp; drop PDF here</p>
+  <label for="file" class="btn gradient big">Browse PDF</label>
+  <input id="file" type="file" accept="application/pdf" hidden />
+
+  <!-- 2) No File (status line) -->
+  <div class="pill mt-2" id="meta">No file</div>
+
+  <!-- 3) Clear -->
+  <button class="btn subtle mt-1" id="clearBtn" disabled>Clear</button>
+
+  <div class="small mt-2">
+    Everything runs in your browser (no uploads).
+  </div>
+</section>
+
 
     <!-- MIDDLE: Settings -->
     <section class="panel card box settings-box" aria-label="Compression Settings">
