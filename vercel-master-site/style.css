@@ -452,3 +452,18 @@ select::-ms-expand{ display:none; }
 
 .after-grid { margin-top: 8px; }
 .after-grid .page-title { margin: 0 0 4px; }
+
+/* Centered theme like Image→PDF */
+.upload-box.theme-center { text-align:center; padding: 22px; border-style:dashed; }
+.upload-box.theme-center .big { padding: 10px 18px; font-weight:600; border-radius:12px; }
+
+/* Gradient button (same vibe as your Browse images) */
+.btn.gradient {
+  background: linear-gradient(90deg, #7b61ff, #00b8ff);
+  color:#fff; border:none;
+  box-shadow: 0 6px 20px rgba(0,0,0,.08);
+}
+.btn.gradient:hover { filter: brightness(0.98); }
+
+/* Align spacing */
+.upload-box .pill { display:inline-block; }
