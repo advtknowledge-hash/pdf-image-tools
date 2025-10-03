@@ -1,293 +1,134 @@
+<!-- =================== CROP TOOL: crop.html (FINAL FULL CODE) =================== -->
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1" name="viewport"/>
-<title>PDF Cropper — Local &amp; Private</title>
-<link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
-<link href="/style.css" rel="stylesheet"/>
-<script defer="" src="/site.js"></script>
-<script defer src="/assets/seo.js"></script>
-<meta content="light dark" name="color-scheme"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PDF Cropper — Local & Private</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/style.css" />
+  <script defer src="/site.js"></script>
+  <script defer src="/assets/seo.js"></script>
+  <meta name="color-scheme" content="light dark" />
 </head>
-        
 <body>
-<header class="site-header">
-<div class="container bar">
-<div class="brand">
-<span class="logo"></span>
-<span>PDF &amp; Image Tools</span>
-</div>
-<div class="container tool-tabs-wrap">
-<button aria-label="Scroll tools left" class="tool-scroll tool-left" title="Scroll left">‹</button>
-<nav aria-label="Tools" class="tool-tabs" role="navigation">
-<!-- use the same links you already have; examples: -->
-<a data-tip="Combine multiple PDFs into one" href="/merge">Merge PDF</a>
-<a data-tip="Remove pages you don’t need" href="/delete-pages">Delete pages</a>
-<a data-tip="Rotate pages left/right" href="/rotate-pages">Rotate PDF</a>
-<a data-tip="Drag &amp; reorder pages" href="/reorder-pages">Reorder PDF</a>
-<a data-tip="Cut margins or select an area" href="/crop">Crop PDF</a>
-<a data-tip="Reduce PDF file size" href="/compress">Compress PDF</a>
-<a data-tip="Export pages as PNG/JPG" href="/pdf-to-images">PDF → Images</a>
-<a data-tip="Make a PDF from images" href="/image-to-pdf">Image → PDF</a>
-<a data-tip="Convert JPG to PNG" href="/jpg-to-png">JPG → PNG</a>
-<a data-tip="Convert PNG to JPG" href="/png-to-jpg">PNG → JPG</a>
-</nav>
-<button aria-label="Scroll tools right" class="tool-scroll tool-right" title="Scroll right">›</button>
-</div>
-</div></header>
-<div class="wrap">
-<aside class="panel">
-<div class="row" style="justify-content:space-between;gap:8px">
-<label class="btn primary" for="file">Upload PDF</label>
-<input accept="application/pdf" id="file" type="file"/>
-<button class="btn" disabled="" id="downloadBtn">Download Cropped PDF</button>
-</div>
-<div class="controls">
-<div class="row" style="justify-content:space-between">
-<div class="pill"><span id="meta">No file</span></div>
-<div class="pill">All local · private</div>
-</div>
-<label>
-<span>Zoom</span>
-<input id="zoom" max="2.5" min="0.5" step="0.1" type="range" value="1"/>
-</label>
-<label class="row" style="gap:6px">
-<input id="applyAll" type="checkbox"/> Apply crop to all pages
-        </label>
-<div class="row">
-<button class="btn ghost" disabled="" id="clearCrop">Clear selection</button>
-<button class="btn" disabled="" id="applyCrop">Apply crop</button>
-</div>
-<div class="small">Tip: Drag on the page to draw a crop box. You can also re-draw to replace it.</div>
-<div>
-<div class="small" style="margin:8px 0 6px">Pages</div>
-<div class="thumbs small" id="thumbs">Upload a PDF to see pages…</div>
-</div>
-</div>
-</aside>
-<main class="work">
-<h1 class="page-title">Crop PDF</h1>
-<p class="sub">Draw a box to crop one or many pages — instant, private.</p>
-<div class="panel">
-<div class="row" style="justify-content:space-between;align-items:center">
-<div class="hint">Current page: <strong id="pageLabel">–</strong></div>
-<div class="hint">Drag to select an area to keep</div>
-</div>
-<div class="stage-wrap">
-<canvas id="stage"></canvas>
-<div class="overlay">
-<div class="rect" id="rect"></div>
-</div>
-</div>
-</div>
-<footer>Made with <a href="https://mozilla.github.io/pdf.js/" rel="noreferrer" target="_blank">PDF.js</a> for viewing and <a href="https://pdf-lib.js.org/" rel="noreferrer" target="_blank">pdf-lib</a> for writing. All processing is done in your browser.</footer>
-<section class="card mt-3"><h2 class="title">How it works</h2><ul class="sub"><li>Drag on the page to draw a crop box; re-draw to replace.</li><li>Optionally apply the crop to all pages.</li><li>Non-destructive: exports a new cropped file.</li></ul><p class="sub" style="margin-top:10px">Privacy: no uploads. Everything stays on your device. Powered by pdf.js / pdf-lib.</p></section></main>
-</div>
-<!-- ✅ Stable PDF.js v3 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-  </script>
-<!-- pdf-lib -->
-<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-<script>
-  const fileInput = document.getElementById('file');
-  const stage = document.getElementById('stage');
-  const overlayRect = document.getElementById('rect');
-  const thumbsEl = document.getElementById('thumbs');
-  const metaEl = document.getElementById('meta');
-  const pageLabel = document.getElementById('pageLabel');
-  const zoomEl = document.getElementById('zoom');
-  const applyAllEl = document.getElementById('applyAll');
-  const clearBtn = document.getElementById('clearCrop');
-  const applyBtn = document.getElementById('applyCrop');
-  const downloadBtn = document.getElementById('downloadBtn');
+  <header class="site-header">
+    <div class="container bar">
+      <div class="brand">
+        <span class="logo"></span>
+        <span>PDF & Image Tools</span>
+      </div>
+      <div class="container tool-tabs-wrap">
+        <button class="tool-scroll tool-left" aria-label="Scroll tools left" title="Scroll left">‹</button>
+        <nav class="tool-tabs" aria-label="Tools" role="navigation">
+          <a href="/merge">Merge PDF</a>
+          <a href="/delete-pages">Delete pages</a>
+          <a href="/rotate-pages">Rotate PDF</a>
+          <a href="/reorder-pages">Reorder PDF</a>
+          <a href="/crop" class="active">Crop PDF</a>
+          <a href="/compress">Compress PDF</a>
+          <a href="/pdf-to-images">PDF → Images</a>
+          <a href="/image-to-pdf">Image → PDF</a>
+          <a href="/jpg-to-png">JPG → PNG</a>
+          <a href="/png-to-jpg">PNG → JPG</a>
+        </nav>
+        <button class="tool-scroll tool-right" aria-label="Scroll tools right" title="Scroll right">›</button>
+      </div>
+    </div>
+  </header>
 
-  let pdfDoc_js = null;
-  let pdfLibDoc = null;
-  let pageCount = 0;
-  let currentPage = 1;
-  let currentViewport = null;
-  let selection = null;
+  <div class="container">
+    <div class="wrap crop-wrap">
+      <aside class="panel crop-panel">
+        <div class="row" style="justify-content:space-between;gap:8px">
+          <label for="file" class="btn primary">Upload PDF</label>
+          <input id="file" type="file" accept="application/pdf" hidden />
+          <button id="downloadBtn" class="btn" disabled>Download Cropped PDF</button>
+        </div>
 
-  function fmt(n){return new Intl.NumberFormat().format(n)}
+        <div class="controls">
+          <div class="row" style="justify-content:space-between">
+            <div class="pill"><span id="meta">No file</span></div>
+            <div class="pill">All local · private</div>
+          </div>
 
-  fileInput.addEventListener('change', async (e)=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    try {
-      // Use two separate copies of the bytes (fix detached ArrayBuffer)
-      const raw = new Uint8Array(await file.arrayBuffer());
-      const bytesForPdfJs  = raw.slice();   // copy for PDF.js
-      const bytesForPdfLib = raw;           // original for pdf-lib
+          <label>
+            <span>Zoom</span>
+            <input id="zoom" type="range" min="0.5" max="2.5" step="0.1" value="1" />
+          </label>
 
-      pdfDoc_js  = await pdfjsLib.getDocument({ data: bytesForPdfJs }).promise;
-      pageCount  = pdfDoc_js.numPages;
-      pdfLibDoc  = await PDFLib.PDFDocument.load(bytesForPdfLib);
+          <label class="row" style="gap:6px">
+            <input id="applyAll" type="checkbox" /> Apply crop to all pages
+          </label>
 
-      metaEl.textContent = `${file.name} • ${fmt(pageCount)} pages • ${(file.size/1024/1024).toFixed(2)} MB`;
+          <div class="row">
+            <button id="clearCrop" class="btn ghost" disabled>Clear selection</button>
+            <button id="applyCrop" class="btn" disabled>Apply crop</button>
+          </div>
 
-      await rebuildThumbs();
-      await setPage(1);
-      downloadBtn.disabled = false;
-    } catch(err) {
-      alert("PDF load failed: " + (err?.message || err));
-      console.error(err);
-    }
-  });
+          <div class="small">Tip: Drag on the page to draw a crop box. You can also re‑draw to replace it.</div>
 
-  async function setPage(n){
-    currentPage = n;
-    pageLabel.textContent = `${n} / ${pageCount}`;
-    Array.from(thumbsEl.children).forEach((el,idx)=>{
-      el.classList.toggle('active', idx===n-1);
-    });
-    const page = await pdfDoc_js.getPage(n);
-    const scale = parseFloat(zoomEl.value);
-    currentViewport = page.getViewport({scale});
-    stage.width = currentViewport.width;
-    stage.height = currentViewport.height;
-    const ctx = stage.getContext('2d');
-    ctx.clearRect(0,0,stage.width,stage.height);
-    await page.render({canvasContext: ctx, viewport: currentViewport}).promise;
-    // reset selection UI
-    selection = null;
-    overlayRect.style.display = 'none';
-    clearBtn.disabled = true;
-    applyBtn.disabled = true;
-    page.cleanup();
-  }
+          <div>
+            <div class="small" style="margin:8px 0 6px">Pages</div>
+            <div id="thumbs" class="thumbs small">Upload a PDF to see pages…</div>
+          </div>
+        </div>
+      </aside>
 
-  zoomEl.addEventListener('input', ()=> setPage(currentPage));
+      <main class="work">
+        <h1 class="page-title">Crop PDF</h1>
+        <p class="sub">Draw a box to crop one or many pages — instant, private.</p>
 
-  const stageWrap = stage.parentElement;
-  let dragStart = null;
+        <div class="panel">
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <div class="hint">Current page: <strong id="pageLabel">–</strong></div>
+            <div class="hint">Drag to select an area to keep</div>
+          </div>
 
-  stageWrap.addEventListener('mousedown', (e)=>{
-    if(!currentViewport) return;
-    const rect = stage.getBoundingClientRect();
-    dragStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    overlayRect.style.display = 'block';
-    overlayRect.style.left = dragStart.x + 'px';
-    overlayRect.style.top = dragStart.y + 'px';
-    overlayRect.style.width = 0;
-    overlayRect.style.height = 0;
-  });
-  window.addEventListener('mousemove', (e)=>{
-    if(!dragStart) return;
-    const rect = stage.getBoundingClientRect();
-    const x = e.clientX - rect.left, y = e.clientY - rect.top;
-    const left = Math.max(0, Math.min(x, dragStart.x));
-    const top = Math.max(0, Math.min(y, dragStart.y));
-    const w = Math.min(stage.width, Math.max(x, dragStart.x)) - left;
-    const h = Math.min(stage.height, Math.max(y, dragStart.y)) - top;
-    overlayRect.style.left = left + 'px';
-    overlayRect.style.top = top + 'px';
-    overlayRect.style.width = w + 'px';
-    overlayRect.style.height = h + 'px';
-  });
-  window.addEventListener('mouseup', ()=>{
-    if(!dragStart) return;
-    const r = overlayRect.getBoundingClientRect();
-    const s = stage.getBoundingClientRect();
-    selection = { x: r.left - s.left, y: r.top - s.top, w: r.width, h: r.height };
-    dragStart = null;
-    clearBtn.disabled = false;
-    applyBtn.disabled = false;
-  });
+          <div class="stage-wrap">
+            <canvas id="stage"></canvas>
+            <div class="overlay">
+              <div id="rect" class="rect"></div>
+            </div>
+          </div>
+        </div>
 
-  clearBtn.addEventListener('click', ()=>{
-    selection = null;
-    overlayRect.style.display = 'none';
-    clearBtn.disabled = true;
-    applyBtn.disabled = true;
-  });
+        <footer class="small subtle">Made with <a href="https://mozilla.github.io/pdf.js/">PDF.js</a> & <a href="https://pdf-lib.js.org/">pdf‑lib</a>. Everything happens in your browser.</footer>
 
-  // ===== Helpers to refresh viewer after cropping =====
-  async function rebuildThumbs(){
-    thumbsEl.innerHTML = '';
-    for (let i = 1; i <= pageCount; i++) {
-      const page = await pdfDoc_js.getPage(i);
-      const viewport = page.getViewport({ scale: 0.2 });
-      const c = document.createElement('canvas');
-      const ctx = c.getContext('2d');
-      c.width = viewport.width; c.height = viewport.height;
-      await page.render({ canvasContext: ctx, viewport }).promise;
-      const div = document.createElement('div');
-      div.className = 'thumb';
-      if (i === currentPage) div.classList.add('active');
-      div.appendChild(c);
-      div.title = 'Page ' + i;
-      div.addEventListener('click', () => { setPage(i); });
-      thumbsEl.appendChild(div);
-      page.cleanup();
-    }
-  }
+        <section class="card mt-3">
+          <h2 class="title">How it works</h2>
+          <ul class="sub">
+            <li>Drag on the page to draw a crop box; re‑draw to replace.</li>
+            <li>Optionally apply the crop to all pages.</li>
+            <li>Non‑destructive: exports a new cropped file.</li>
+          </ul>
+          <p class="sub">Privacy: no uploads. Everything stays on your device.</p>
+        </section>
+      </main>
+    </div>
+  </div>
 
-  async function reloadFromPdfLib(){
-    // get latest edited bytes
-    const bytes = await pdfLibDoc.save({ updateFieldAppearances: false });
-    // reload PDF.js from new bytes so preview reflects the crop
-    const bytesForPdfJs = (bytes.slice) ? bytes.slice(0) : new Uint8Array(bytes);
-    pdfDoc_js = await pdfjsLib.getDocument({ data: bytesForPdfJs }).promise;
-    pageCount = pdfDoc_js.numPages;
-    await rebuildThumbs();
-  }
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
-  applyBtn.addEventListener('click', async ()=>{
-    if(!selection) return;
-    // write crop boxes
-    await applyCropToPages(applyAllEl.checked ? 'all' : 'current');
-    // reload viewer from edited bytes
-    await reloadFromPdfLib();
-    // re-render current page
-    await setPage(currentPage);
-    // clear selection UI
-    selection = null;
-    overlayRect.style.display = 'none';
-    clearBtn.disabled = true;
-    applyBtn.disabled = true;
-  });
-
-  async function applyCropToPages(scope){
-    const page = pdfLibDoc.getPage(currentPage-1);
-    const { width: pdfW, height: pdfH } = page.getSize();
-    const scaleX = pdfW / stage.width;
-    const scaleY = pdfH / stage.height;
-    const cropX = selection.x * scaleX;
-    const cropW = selection.w * scaleX;
-    const cropY = (pdfH - (selection.y + selection.h) * scaleY);
-    const cropH = selection.h * scaleY;
-
-    const applyToOne = (p)=>{
-      const w = Math.max(1, Math.min(cropW, p.getWidth()));
-      const h = Math.max(1, Math.min(cropH, p.getHeight()));
-      const x = Math.max(0, Math.min(cropX, p.getWidth()-w));
-      const y = Math.max(0, Math.min(cropY, p.getHeight()-h));
-      p.setCropBox(x, y, w, h);
-      p.setMediaBox(x, y, w, h);
-      if(p.setBleedBox) p.setBleedBox(x,y,w,h);
-      if(p.setTrimBox) p.setTrimBox(x,y,w,h);
-      if(p.setArtBox) p.setArtBox(x,y,w,h);
-    };
-
-    if(scope==='all'){ pdfLibDoc.getPages().forEach(applyToOne); }
-    else { applyToOne(page); }
-  }
-
-  downloadBtn.addEventListener('click', async ()=>{
-    const bytes = await pdfLibDoc.save({ updateFieldAppearances: false });
-    const blob = new Blob([bytes], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'cropped.pdf';
-    a.click();
-    setTimeout(()=> URL.revokeObjectURL(url), 2000);
-  });
+  <script>
+    const fileInput=document.getElementById('file'),stage=document.getElementById('stage'),overlayRect=document.getElementById('rect'),thumbsEl=document.getElementById('thumbs'),metaEl=document.getElementById('meta'),pageLabel=document.getElementById('pageLabel'),zoomEl=document.getElementById('zoom'),applyAllEl=document.getElementById('applyAll'),clearBtn=document.getElementById('clearCrop'),applyBtn=document.getElementById('applyCrop'),downloadBtn=document.getElementById('downloadBtn');
+    let pdfDoc_js=null,pdfLibDoc=null,pageCount=0,currentPage=1,currentViewport=null,selection=null;
+    function fmt(n){return new Intl.NumberFormat().format(n)}
+    fileInput.addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const raw=new Uint8Array(await file.arrayBuffer());const bytesForPdfJs=raw.slice(),bytesForPdfLib=raw;pdfDoc_js=await pdfjsLib.getDocument({data:bytesForPdfJs}).promise;pageCount=pdfDoc_js.numPages;pdfLibDoc=await PDFLib.PDFDocument.load(bytesForPdfLib);metaEl.textContent=`${file.name} • ${fmt(pageCount)} pages • ${(file.size/1024/1024).toFixed(2)} MB`;await rebuildThumbs();await setPage(1);downloadBtn.disabled=false;}catch(err){alert("PDF load failed: "+(err?.message||err));}});
+    async function setPage(n){currentPage=n;pageLabel.textContent=`${n} / ${pageCount}`;Array.from(thumbsEl.children).forEach((el,idx)=>{el.classList.toggle('active',idx===n-1)});const page=await pdfDoc_js.getPage(n);const scale=parseFloat(zoomEl.value);currentViewport=page.getViewport({scale});stage.width=currentViewport.width;stage.height=currentViewport.height;const ctx=stage.getContext('2d');ctx.clearRect(0,0,stage.width,stage.height);await page.render({canvasContext:ctx,viewport:currentViewport}).promise;selection=null;overlayRect.style.display='none';clearBtn.disabled=true;applyBtn.disabled=true;page.cleanup();}
+    zoomEl.addEventListener('input',()=>setPage(currentPage));
+    const stageWrap=stage.parentElement;let dragStart=null;
+    stageWrap.addEventListener('mousedown',e=>{if(!currentViewport)return;const rect=stage.getBoundingClientRect();dragStart={x:e.clientX-rect.left,y:e.clientY-rect.top};overlayRect.style.display='block';overlayRect.style.left=dragStart.x+'px';overlayRect.style.top=dragStart.y+'px';overlayRect.style.width=0;overlayRect.style.height=0;});
+    window.addEventListener('mousemove',e=>{if(!dragStart)return;const rect=stage.getBoundingClientRect();const x=e.clientX-rect.left,y=e.clientY-rect.top;const left=Math.max(0,Math.min(x,dragStart.x)),top=Math.max(0,Math.min(y,dragStart.y));const w=Math.min(stage.width,Math.max(x,dragStart.x))-left,h=Math.min(stage.height,Math.max(y,dragStart.y))-top;overlayRect.style.left=left+'px';overlayRect.style.top=top+'px';overlayRect.style.width=w+'px';overlayRect.style.height=h+'px';});
+    window.addEventListener('mouseup',()=>{if(!dragStart)return;const r=overlayRect.getBoundingClientRect(),s=stage.getBoundingClientRect();selection={x:r.left-s.left,y:r.top-s.top,w:r.width,h:r.height};dragStart=null;clearBtn.disabled=false;applyBtn.disabled=false;});
+    clearBtn.addEventListener('click',()=>{selection=null;overlayRect.style.display='none';clearBtn.disabled=true;applyBtn.disabled=true;});
+    async function rebuildThumbs(){thumbsEl.innerHTML='';for(let i=1;i<=pageCount;i++){const page=await pdfDoc_js.getPage(i);const viewport=page.getViewport({scale:.2});const c=document.createElement('canvas'),ctx=c.getContext('2d');c.width=viewport.width;c.height=viewport.height;await page.render({canvasContext:ctx,viewport}).promise;const div=document.createElement('div');div.className='thumb';if(i===currentPage)div.classList.add('active');div.appendChild(c);div.title='Page '+i;div.addEventListener('click',()=>{setPage(i)});thumbsEl.appendChild(div);page.cleanup();}} 
+    async function reloadFromPdfLib(){const bytes=await pdfLibDoc.save({updateFieldAppearances:false});const bytesForPdfJs=(bytes.slice)?bytes.slice(0):new Uint8Array(bytes);pdfDoc_js=await pdfjsLib.getDocument({data:bytesForPdfJs}).promise;pageCount=pdfDoc_js.numPages;await rebuildThumbs();}
+    document.getElementById('applyCrop').addEventListener('click',async()=>{if(!selection)return;await applyCropToPages(applyAllEl.checked?'all':'current');await reloadFromPdfLib();await setPage(currentPage);selection=null;overlayRect.style.display='none';clearBtn.disabled=true;applyBtn.disabled=true;});
+    async function applyCropToPages(scope){const page=pdfLibDoc.getPage(currentPage-1);const{width:pdfW,height:pdfH}=page.getSize();const scaleX=pdfW/stage.width,scaleY=pdfH/stage.height;const cropX=selection.x*scaleX,cropW=selection.w*scaleX,cropY=(pdfH-(selection.y+selection.h)*scaleY),cropH=selection.h*scaleY;const applyToOne=p=>{const w=Math.max(1,Math.min(cropW,p.getWidth())),h=Math.max(1,Math.min(cropH,p.getHeight()));const x=Math.max(0,Math.min(cropX,p.getWidth()-w)),y=Math.max(0,Math.min(cropY,p.getHeight()-h));p.setCropBox(x,y,w,h);p.setMediaBox(x,y,w,h);if(p.setBleedBox)p.setBleedBox(x,y,w,h);if(p.setTrimBox)p.setTrimBox(x,y,w,h);if(p.setArtBox)p.setArtBox(x,y,w,h);};if(scope==='all'){pdfLibDoc.getPages().forEach(applyToOne);}else{applyToOne(page);}}
+    document.getElementById('downloadBtn').addEventListener('click',async()=>{const bytes=await pdfLibDoc.save({updateFieldAppearances:false});const blob=new Blob([bytes],{type:'application/pdf'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='cropped.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);});
   </script>
 </body>
 </html>
