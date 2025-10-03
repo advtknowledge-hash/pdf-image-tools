@@ -6,6 +6,25 @@
   <title>Crop PDF — Local & Private</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/style.css" />
+  <style>
+  /* Crop page only */
+  main.crop-page { 
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+  main.crop-page .grid-3{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+  main.crop-page .box{ height: 100%; }
+
+  @media (max-width: 1024px){
+    main.crop-page .grid-3{ grid-template-columns: 1fr; }
+  }
+</style>
   <meta name="color-scheme" content="light dark" />
   <script defer src="/site.js"></script>
   <script defer src="/assets/seo.js"></script>
@@ -38,7 +57,7 @@
     </div>
   </header>
 
-  <main class="container">
+  <main class="container crop-page">
     <!-- === 3-BOX LAYOUT (exact same grid classes as Compress PDF) === -->
     <section class="grid-3">
       <!-- Box A: Upload -->
