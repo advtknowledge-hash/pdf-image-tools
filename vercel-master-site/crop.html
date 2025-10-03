@@ -24,12 +24,20 @@
     .thumbs.small .thumb{ border:1px solid var(--border); border-radius:10px; padding:6px; box-shadow:var(--shadow-sm); cursor:pointer; background:var(--surface-1);}
     .thumbs.small .thumb.active{ outline:2px solid var(--brand-1); }
 
-    /* Center: preview stage fits width */
+    /* Center: preview stage fits width & height; frame shows page boundary */
     .stage-wrap{ position:relative; display:block; margin:8px auto 0; max-width:100%; }
     /* Hide canvas until first render completes */
-    .stage-wrap canvas{ display:none; max-width:100%; height:auto; border-radius:12px; box-shadow:var(--shadow-sm); background:var(--surface-2); }
+    .stage-wrap canvas{ display:none; max-width:100%; height:auto; border-radius:12px; background:var(--surface-2); }
     .stage-wrap.ready canvas{ display:block; }
-    .overlay-crop{ position:absolute; inset:0; pointer-events:none; }
+    /* Page boundary frame */
+    .stage-wrap.ready{
+      border:2px solid rgba(0,0,0,0.08);
+      border-radius:12px;
+      box-shadow:var(--shadow-sm);
+      background:var(--surface-1);
+      padding:0; /* so overlay & canvas align with the border */
+    }
+    .overlay-crop{ position:absolute; inset:0; pointer-events:none; border-radius:12px; }
     .overlay-crop .rect{
       position:absolute; border:2px dashed rgba(124,58,237,.9);
       background: rgba(124,58,237,.08);
@@ -297,12 +305,23 @@
       }
     }
 
-    // Fit page to center column width
+    // Fit page to BOTH width and visible height of center column
     function computeFitScale(page){
       const v1 = page.getViewport({ scale: 1 });
+
+      // Width we can use
       const centerWidth = stageWrap.clientWidth || stageWrap.getBoundingClientRect().width || 800;
-      const target = Math.max(200, centerWidth * 0.98);
-      return target / v1.width;
+      const targetW = Math.max(240, centerWidth * 0.98);
+
+      // Height we can use: from top of stage to viewport bottom (with small margin)
+      const rect = stageWrap.getBoundingClientRect();
+      const availH = Math.max(260, window.innerHeight - rect.top - 32); // 32px breathing space
+      const targetH = availH * 0.98;
+
+      const widthScale  = targetW / v1.width;
+      const heightScale = targetH / v1.height;
+
+      return Math.min(widthScale, heightScale);
     }
 
     // Render page (cancel-safe)
@@ -311,7 +330,7 @@
       Array.from(thumbsEl.children).forEach((el, idx) => el.classList.toggle('active', idx === n-1));
 
       const page = await pdfDocJS.getPage(n);
-      const scale = computeFitScale(page);   // fit-to-width
+      const scale = computeFitScale(page);   // fit-to-screen (width & height)
       currentViewport = page.getViewport({ scale });
 
       const dpr = Math.max(1, window.devicePixelRatio || 1);
