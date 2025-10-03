@@ -22,16 +22,16 @@
     <div class="container tool-tabs-wrap">
       <button class="tool-scroll tool-left" aria-label="Scroll tools left" title="Scroll left">‹</button>
       <nav class="tool-tabs" role="navigation" aria-label="Tools">
-        <a href="/merge"        data-tip="Combine multiple PDFs into one">Merge PDF</a>
-        <a href="/delete-pages" data-tip="Remove pages you don’t need">Delete pages</a>
-        <a href="/rotate-pages" data-tip="Rotate pages left/right">Rotate PDF</a>
-        <a href="/reorder-pages"data-tip="Drag &amp; reorder pages">Reorder PDF</a>
-        <a href="/crop"         data-tip="Cut margins or select an area">Crop PDF</a>
-        <a href="/compress"     data-tip="Reduce PDF file size" class="active">Compress PDF</a>
-        <a href="/pdf-to-images"data-tip="Export pages as PNG/JPG">PDF → Images</a>
-        <a href="/image-to-pdf" data-tip="Make a PDF from images">Image → PDF</a>
-        <a href="/jpg-to-png"   data-tip="Convert JPG to PNG">JPG → PNG</a>
-        <a href="/png-to-jpg"   data-tip="Convert PNG to JPG">PNG → JPG</a>
+        <a href="/merge">Merge PDF</a>
+        <a href="/delete-pages">Delete pages</a>
+        <a href="/rotate-pages">Rotate PDF</a>
+        <a href="/reorder-pages">Reorder PDF</a>
+        <a href="/crop">Crop PDF</a>
+        <a href="/compress" class="active">Compress PDF</a>
+        <a href="/pdf-to-images">PDF → Images</a>
+        <a href="/image-to-pdf">Image → PDF</a>
+        <a href="/jpg-to-png">JPG → PNG</a>
+        <a href="/png-to-jpg">PNG → JPG</a>
       </nav>
       <button class="tool-scroll tool-right" aria-label="Scroll tools right" title="Scroll right">›</button>
     </div>
@@ -39,77 +39,81 @@
 </header>
 
 <main>
-  <div class="container page">
-  <!-- 3-box layout FIRST -->
-  <div class="wrap page grid-3">
-    <!-- LEFT: Upload / Drop -->
-    <section class="panel card box upload-box theme-center" id="dropzone" aria-label="Upload PDF">
-      <h2 class="title">Upload PDF</h2>
-      <p class="muted">Drag &amp; drop PDF here</p>
-      <label for="file" class="btn gradient big">Browse PDF</label>
-      <input id="file" type="file" accept="application/pdf" hidden />
-      <div class="pill mt-2" id="meta">No file</div>
-      <button class="btn subtle mt-1" id="clearBtn" disabled>Clear</button>
-      <div class="small mt-2">Everything runs in your browser (no uploads).</div>
-    </section>
+  <div class="wrap"><!-- SAME outer as PDF→Images -->
 
-    <!-- MIDDLE: Settings -->
-    <section class="panel card box settings-box theme-center" aria-label="Compression Settings">
-      <h2 class="title">Settings</h2>
-      <label class="block mt-1">Preset
-        <select id="preset" class="select-lg">
-          <option value="balanced">Balanced (good quality)</option>
-          <option value="small">Smaller (more compression)</option>
-          <option value="tiny">Tiny (max compression)</option>
-        </select>
-      </label>
+    <!-- ===== Controls panel (3 boxes inside one rounded panel) ===== -->
+    <aside class="panel">
+      <div class="grid-3">
+        <!-- LEFT: Upload / Drop -->
+        <section class="panel card box upload-box theme-center" id="dropzone" aria-label="Upload PDF">
+          <h2 class="title">Upload PDF</h2>
+          <p class="muted">Drag &amp; drop PDF here</p>
+          <label for="file" class="btn gradient big">Browse PDF</label>
+          <input id="file" type="file" accept="application/pdf" hidden />
+          <div class="pill mt-2" id="meta">No file</div>
+          <button class="btn subtle mt-1" id="clearBtn" disabled>Clear</button>
+          <div class="small mt-2">Everything runs in your browser (no uploads).</div>
+        </section>
 
-      <details class="mt-2">
-        <summary>Advanced</summary>
-        <div class="grid-2 mt-2">
-          <label>DPI
-            <input id="dpi" type="number" min="56" max="144" step="1" value="110" />
+        <!-- MIDDLE: Settings -->
+        <section class="panel card box settings-box theme-center" aria-label="Compression Settings">
+          <h2 class="title">Settings</h2>
+          <label class="block mt-1">Preset
+            <select id="preset" class="select-lg">
+              <option value="balanced">Balanced (good quality)</option>
+              <option value="small">Smaller (more compression)</option>
+              <option value="tiny">Tiny (max compression)</option>
+            </select>
           </label>
-          <label>JPEG Quality
-            <input id="quality" type="number" min="0.4" max="0.9" step="0.01" value="0.70" />
-          </label>
-        </div>
-        <label class="row mt-1"><input id="preferOriginal" type="checkbox" checked />
-          <span class="small">Keep original if compressed is larger</span></label>
-      </details>
 
-      <div class="small mt-2">Presets auto-set DPI &amp; JPEG quality. You can fine-tune above if needed.</div>
-    </section>
+          <details class="mt-2">
+            <summary>Advanced</summary>
+            <div class="grid-2 mt-2">
+              <label>DPI
+                <input id="dpi" type="number" min="56" max="144" step="1" value="110" />
+              </label>
+              <label>JPEG Quality
+                <input id="quality" type="number" min="0.4" max="0.9" step="0.01" value="0.70" />
+              </label>
+            </div>
+            <label class="row mt-1"><input id="preferOriginal" type="checkbox" checked />
+              <span class="small">Keep original if compressed is larger</span></label>
+          </details>
 
-    <!-- RIGHT: Run / Progress / Download -->
-    <section class="panel card box action-box theme-center" aria-label="Compress & Download">
-      <h2 class="title">Compress</h2>
-      <progress id="prog" max="100" value="0" class="w-100"></progress>
-      <div id="status" class="small">Idle…</div>
-      <div class="row center mt-2" style="gap:10px">
-        <button id="compressBtn" class="btn" disabled>Compress &amp; Download</button>
-        <button id="testBtn" class="btn subtle" title="Run on a tiny dummy PDF to test UI">Test</button>
+          <div class="small mt-2">Presets auto-set DPI &amp; JPEG quality. You can fine-tune above if needed.</div>
+        </section>
+
+        <!-- RIGHT: Run / Progress / Download -->
+        <section class="panel card box action-box theme-center" aria-label="Compress & Download">
+          <h2 class="title">Compress</h2>
+          <progress id="prog" max="100" value="0" class="w-100"></progress>
+          <div id="status" class="small">Idle…</div>
+          <div class="row center mt-2" style="gap:10px">
+            <button id="compressBtn" class="btn" disabled>Compress &amp; Download</button>
+            <button id="testBtn" class="btn subtle" title="Run on a tiny dummy PDF to test UI">Test</button>
+          </div>
+          <div class="small mt-2">Output name: <code>compressed.pdf</code></div>
+        </section>
       </div>
-      <div class="small mt-2">Output name: <code>compressed.pdf</code></div>
-    </section>
+    </aside>
+
+    <!-- ===== Title + How it works (mirror PDF→Images) ===== -->
+    <main class="panel">
+      <h1 class="page-title">Compress PDF</h1>
+      <p class="sub">Reduce file size while keeping quality — everything runs in your browser.</p>
+
+      <section class="card mt-3">
+        <h2 class="title">How it works</h2>
+        <ul class="sub">
+          <li>Each page is rendered to an image via <strong>PDF.js</strong>, then rebuilt as a compact PDF with <strong>pdf-lib</strong>.</li>
+          <li>Great for scans/photos. Text-only PDFs may not shrink much.</li>
+          <li>If the compressed file is larger and “Keep original” is ON, we serve the original.</li>
+        </ul>
+        <p class="sub mt-1">Privacy: No uploads. Everything stays on your device.</p>
+      </section>
+    </main>
+
   </div>
-
-  <!-- Title/subtitle under the 3 boxes -->
-  <section class="after-grid">
-    <h1 class="page-title">Compress PDF</h1>
-    <p class="sub">Reduce file size while keeping quality — everything runs in your browser.</p>
-  </section>
-
-  <!-- Info -->
-  <section class="card mt-3">
-    <h2 class="title">How it works</h2>
-    <ul class="sub">
-      <li>Each page is rendered to an image via <strong>PDF.js</strong>, then rebuilt as a compact PDF with <strong>pdf-lib</strong>.</li>
-      <li>Great for scans/photos. Text-only PDFs may not shrink much.</li>
-      <li>If the compressed file is larger and “Keep original” is ON, we serve the original.</li>
-    </ul>
-    <p class="sub mt-1">Privacy: No uploads. Everything stays on your device.</p>
-  </section>
   
   <!-- libs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -134,7 +138,6 @@
 
     let pdfBytesOriginal = null, pdfDocJS = null, pageCount = 0, fileName = 'input.pdf';
 
-    // --- Presets -> advanced inputs sync
     function presetValues(k){
       if(k==='balanced') return { dpi:110, quality:0.70 };
       if(k==='small')    return { dpi:96,  quality:0.65 };
@@ -149,7 +152,6 @@
     presetEl.addEventListener('change', applyPreset);
     applyPreset();
 
-    // --- File selection
     fileInput.addEventListener('change', async (e) => {
       const f = e.target.files[0];
       if(!f) return;
@@ -167,11 +169,10 @@
       prog.value = 0; prog.max = 100;
     });
 
-    // --- Drag & Drop
-    ;['dragenter','dragover'].forEach(ev =>
+    ['dragenter','dragover'].forEach(ev =>
       dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('dropping'); })
     );
-    ;['dragleave','drop'].forEach(ev =>
+    ['dragleave','drop'].forEach(ev =>
       dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dropping'); })
     );
     dropzone.addEventListener('drop', async (e) => {
@@ -192,21 +193,19 @@
       meta.textContent = `${fileName} • ${pageCount} pages • ${(f.size/1024/1024).toFixed(2)} MB`;
 
       compressBtn.disabled = false;
-      compressBtn.classList.add('primary-blue');      // turn CTA blue once ready
+      compressBtn.classList.add('primary-blue');      // CTA turns blue
       clearBtn.disabled = false;
       statusEl.textContent = 'Ready to compress.';
     }
 
-    // --- Test button (creates a 1-page dummy PDF to exercise the flow)
     testBtn.addEventListener('click', async () => {
       const doc = await PDFLib.PDFDocument.create();
-      const page = doc.addPage([595,842]); // A4
+      const page = doc.addPage([595,842]);
       page.drawText('Dummy PDF for test', { x: 50, y: 800, size: 18 });
       const bytes = await doc.save();
       await loadFile(new File([bytes], 'dummy.pdf', { type:'application/pdf' }));
     });
 
-    // --- Run compression
     compressBtn.addEventListener('click', () => runCompress().catch(err => {
       alert('Compression failed: ' + (err?.message || err));
       statusEl.textContent = 'Error.';
@@ -221,8 +220,7 @@
       compressBtn.disabled = true;
       statusEl.textContent = `Rendering pages… (DPI ${dpi}, Q ${quality.toFixed(2)})`;
 
-      prog.value = 0;
-      prog.max = pageCount;
+      prog.value = 0; prog.max = pageCount;
 
       const out = await PDFLib.PDFDocument.create();
 
@@ -247,7 +245,7 @@
 
         page.cleanup();
         prog.value = i;
-        await new Promise(r => setTimeout(r, 0)); // allow UI paint
+        await new Promise(r => setTimeout(r, 0));
       }
 
       statusEl.textContent = 'Saving PDF…';
@@ -259,16 +257,11 @@
       const finalBytes = useOriginal ? pdfBytesOriginal : outBytes;
       const blob = new Blob([finalBytes], { type:'application/pdf' });
       const url = URL.createObjectURL(blob);
-
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'compressed.pdf';
-      a.click();
+      const a = document.createElement('a'); a.href = url; a.download = 'compressed.pdf'; a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1500);
 
       statusEl.textContent = 'Done.';
       compressBtn.disabled = false;
-      // keep the blue CTA (file still loaded)
     }
 
     function dataURLToUint8Array(dataURL){
@@ -280,7 +273,6 @@
     }
     function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
   </script>
-</div>
 </main>
 </body>
 </html>
