@@ -523,3 +523,54 @@ select::-ms-expand{ display:none; }
 .thumbs{ display:flex; gap:8px; overflow:auto; padding-bottom:4px; }
 .thumbs .thumb{ border:1px solid var(--border); border-radius:8px; padding:4px; cursor:pointer; }
 .thumbs .thumb.active{ outline:2px solid var(--accent); outline-offset:2px; }
+
+/* ===== Crop specifics (stage + overlay + thumbs) ===== */
+.stage-wrap{
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+#stage{
+  max-width: 100%;
+  height: auto;
+  display: block;
+  background: var(--surface);
+}
+
+.overlay-crop{
+  position:absolute; inset:0; pointer-events:none;
+}
+.overlay-crop .rect{
+  position:absolute;
+  border:2px dashed rgba(124,58,237,.9);          /* purple (brand-1) */
+  box-shadow: inset 0 0 0 9999px rgba(0,0,0,.35); /* dim around */
+  border-radius: 8px;
+  display:none;
+}
+
+/* Thumbnails */
+.thumbs{
+  margin-top:8px;
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap:10px;
+  max-height: 260px;
+  overflow:auto;
+  padding-right:4px;
+}
+.thumb{
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:4px;
+  background:var(--surface);
+  transition: transform .06s ease, box-shadow .2s ease, border-color .2s ease;
+  cursor:pointer;
+}
+.thumb:hover{ transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.thumb.active{ border-color: var(--brand-1); box-shadow: 0 0 0 3px rgba(124,58,237,.18); }
+.thumb canvas{ width:100%; height:auto; display:block; border-radius:6px; }
