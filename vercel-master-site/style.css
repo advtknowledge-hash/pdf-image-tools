@@ -580,3 +580,16 @@ select::-ms-expand{ display:none; }
   max-width: 1200px;   /* keep it wide but not full screen */
   margin: 0 auto;
 }
+
+/* ===== Page container width tune (match PDF→Images) ===== */
+.container.page {
+  max-width: 1280px;   /* wider than default 1120px */
+  padding: 0 24px;     /* side breathing space */
+}
+
+/* Grid wrapper width for 3-box section */
+.wrap.page {
+  max-width: 1260px;   /* align visually with above */
+  margin: 0 auto;
+  /* keep existing gap from your .grid-3 */
+}
