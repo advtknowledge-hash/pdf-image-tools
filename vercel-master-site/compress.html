@@ -89,10 +89,11 @@
           <progress id="prog" max="100" value="0" class="w-100"></progress>
           <div id="status" class="small">Idle…</div>
           <div class="row center mt-2" style="gap:10px">
-            <button id="compressBtn" class="btn" disabled>Compress &amp; Download</button>
-            <button id="testBtn" class="btn subtle" title="Run on a tiny dummy PDF to test UI">Test</button>
+          <button id="compressBtn" class="btn" disabled>Compress &amp; Download</button>
           </div>
+
           <div class="small mt-2">Output name: <code>compressed.pdf</code></div>
+       
         </section>
       </div>
     </aside>
@@ -134,8 +135,7 @@
     const statusEl = $('#status');
     const preferOriginalEl = $('#preferOriginal');
     const dropzone = $('#dropzone');
-    const testBtn = $('#testBtn');
-
+   
     let pdfBytesOriginal = null, pdfDocJS = null, pageCount = 0, fileName = 'input.pdf';
 
     function presetValues(k){
@@ -198,15 +198,7 @@
       statusEl.textContent = 'Ready to compress.';
     }
 
-    testBtn.addEventListener('click', async () => {
-      const doc = await PDFLib.PDFDocument.create();
-      const page = doc.addPage([595,842]);
-      page.drawText('Dummy PDF for test', { x: 50, y: 800, size: 18 });
-      const bytes = await doc.save();
-      await loadFile(new File([bytes], 'dummy.pdf', { type:'application/pdf' }));
-    });
-
-    compressBtn.addEventListener('click', () => runCompress().catch(err => {
+      compressBtn.addEventListener('click', () => runCompress().catch(err => {
       alert('Compression failed: ' + (err?.message || err));
       statusEl.textContent = 'Error.';
       compressBtn.disabled = false;
