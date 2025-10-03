@@ -10,11 +10,23 @@
   <script defer src="/assets/seo.js"></script>
   <meta name="color-scheme" content="light dark" />
 
-  <!-- Page-scoped extras (safe; does NOT affect other tools) -->
+  <!-- Page-scoped CSS: ONLY affects this page -->
   <style>
-    /* preview stage */
+    /* 3-column layout tuned for Crop (safe: scoped to .crop-wrap) */
+    .crop-wrap .panel .grid-crop {
+      display:grid;
+      grid-template-columns: 320px 1fr 320px; /* Left (upload+pages) | Center (canvas) | Right (settings+cta) */
+      gap:20px;
+      align-items:start;
+    }
+    /* Left column: thumbnails area */
+    .thumbs.small{ display:flex; flex-direction:column; gap:10px; margin-top:10px; max-height:60vh; overflow:auto; padding-right:4px;}
+    .thumbs.small .thumb{ border:1px solid var(--border); border-radius:10px; padding:6px; box-shadow:var(--shadow-sm); cursor:pointer; background:var(--surface-1);}
+    .thumbs.small .thumb.active{ outline:2px solid var(--brand-1); }
+
+    /* Center: preview stage fits width */
     .stage-wrap{ position:relative; display:block; margin:8px auto 0; max-width:100%; }
-    .stage-wrap canvas{ display:block; max-width:100%; height:auto; border-radius:10px; box-shadow:var(--shadow-sm); background:var(--surface-2); }
+    .stage-wrap canvas{ display:block; max-width:100%; height:auto; border-radius:12px; box-shadow:var(--shadow-sm); background:var(--surface-2); }
     .overlay-crop{ position:absolute; inset:0; pointer-events:none; }
     .overlay-crop .rect{
       position:absolute; border:2px dashed rgba(124,58,237,.9);
@@ -22,13 +34,19 @@
       border-radius:10px; display:none;
       box-shadow: 0 0 0 2px rgba(255,255,255,.35) inset;
     }
-    /* thumbs */
-    .thumbs.small{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
-    .thumbs.small .thumb{ border:1px solid var(--border); border-radius:8px; padding:4px; box-shadow:var(--shadow-sm); cursor:pointer; }
-    .thumbs.small .thumb.active{ outline:2px solid var(--brand-1); }
+
+    /* Right: keep action button visible */
+    .sticky-cta{ position:sticky; bottom:8px; padding-top:8px; background:linear-gradient(to top, rgba(0,0,0,0.03), transparent); }
 
     /* inline checkbox tidy */
     .panel .inline input[type="checkbox"]{ margin:0; }
+
+    /* Responsive: collapse to one column on narrow screens */
+    @media (max-width: 1024px){
+      .crop-wrap .panel .grid-crop{ grid-template-columns: 1fr; }
+      .thumbs.small{ flex-direction:row; flex-wrap:wrap; max-height:none; }
+      .sticky-cta{ position:relative; bottom:auto; background:none; }
+    }
   </style>
 </head>
 <body>
@@ -60,13 +78,13 @@
 </header>
 
 <main>
-  <div class="wrap"><!-- SAME outer structure as Compress -->
+  <div class="wrap crop-wrap"><!-- same outer shell as Compress -->
 
-    <!-- ===== 3 boxes panel ===== -->
+    <!-- ===== Controls panel (3 columns) ===== -->
     <aside class="panel">
-      <div class="grid-3">
+      <div class="grid-crop">
 
-        <!-- LEFT: Upload -->
+        <!-- LEFT: Upload + Pages -->
         <section class="panel card box upload-box theme-center" id="dropzone" aria-label="Upload PDF">
           <h2 class="title">Upload PDF</h2>
           <p class="muted">Drag &amp; drop PDF here</p>
@@ -77,10 +95,28 @@
           <button class="btn subtle mt-1" id="clearBtnTop" disabled>Clear</button>
 
           <div class="small mt-2">Everything runs in your browser (no uploads).</div>
+
+          <div class="rule soft mt-3"></div>
+          <div class="small mt-2">Pages</div>
+          <div id="thumbs" class="thumbs small" aria-live="polite">Upload a PDF to see pages…</div>
         </section>
 
-        <!-- MIDDLE: Settings -->
-        <section class="panel card box theme-center" aria-label="Crop Settings">
+        <!-- CENTER: Big Preview (draw & crop) -->
+        <section class="panel card box action-box theme-center" aria-label="Crop">
+          <h2 class="title">Crop</h2>
+          <progress id="prog" max="100" value="0" class="w-100"></progress>
+          <div id="status" class="small">Idle…</div>
+
+          <div class="stage-wrap mt-2" id="stageWrap" tabindex="0" aria-label="Page preview">
+            <canvas id="stage"></canvas>
+            <div class="overlay-crop" aria-hidden="true">
+              <div class="rect" id="rect"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- RIGHT: Settings + Sticky CTA -->
+        <section class="panel card box theme-center" aria-label="Settings">
           <h2 class="title">Settings</h2>
 
           <div class="row" style="gap:8px; justify-content:flex-start">
@@ -95,7 +131,7 @@
             <div class="small muted mt-1">
               • Drag on the preview to draw a crop box.<br/>
               • Re-draw to replace it. Press <kbd>Esc</kbd> to clear.<br/>
-              • “Preview crop” applies to the working copy (non-destructive).
+              • “Preview crop” updates the working copy (non-destructive).
             </div>
           </details>
 
@@ -104,38 +140,21 @@
             <button id="applyCrop" class="btn" disabled>Preview crop</button>
           </div>
 
-          <div class="small mt-2">Pages</div>
-          <div id="thumbs" class="thumbs small" aria-live="polite">Upload a PDF to see pages…</div>
-        </section>
-
-        <!-- RIGHT: Crop / Action -->
-        <section class="panel card box action-box theme-center" aria-label="Crop & Download">
-          <h2 class="title">Crop</h2>
-
-          <progress id="prog" max="100" value="0" class="w-100"></progress>
-          <div id="status" class="small">Idle…</div>
-
-          <div class="stage-wrap mt-2" id="stageWrap" tabindex="0" aria-label="Page preview">
-            <canvas id="stage"></canvas>
-            <div class="overlay-crop" aria-hidden="true">
-              <div class="rect" id="rect"></div>
+          <div class="sticky-cta">
+            <div class="row center mt-2">
+              <button id="downloadBtn" class="btn" disabled>Crop &amp; Download</button>
             </div>
+            <div class="small mt-2">Output name: <code id="outName">cropped.pdf</code></div>
           </div>
-
-          <div class="row center mt-2">
-            <button id="downloadBtn" class="btn" disabled>Crop &amp; Download</button>
-          </div>
-
-          <div class="small mt-2">Output name: <code id="outName">cropped.pdf</code></div>
         </section>
 
       </div>
     </aside>
 
-    <!-- ===== Title + How it works panel (below boxes) ===== -->
+    <!-- ===== Title + How it works (below) ===== -->
     <main class="panel">
       <h1 class="page-title">Crop PDF</h1>
-      <p class="sub">3 steps: Upload • Set options • Crop &amp; Download. All processing stays on your device.</p>
+      <p class="sub">3 steps: Upload • Pick page • Draw crop • Download. All processing stays on your device.</p>
 
       <section class="card mt-3">
         <h2 class="title">How it works</h2>
@@ -158,17 +177,17 @@
     // Helpers
     const $ = (s) => document.querySelector(s);
 
-    // Elements — upload row mirrors Compress page
+    // Elements
     const fileInput   = $('#file');
     const metaEl      = $('#meta');
     const clearBtnTop = $('#clearBtnTop');
     const dropzone    = $('#dropzone');
 
-    // Crop UI
     const stage       = $('#stage');
     const stageWrap   = $('#stageWrap');
     const overlayRect = $('#rect');
     const thumbsEl    = $('#thumbs');
+
     const applyAllEl  = $('#applyAll');
     const clearBtn    = $('#clearCrop');
     const applyBtn    = $('#applyCrop');
@@ -178,14 +197,14 @@
     const outNameEl   = $('#outName');
 
     // State
-    let pdfDocJS = null;      // PDF.js document
-    let pdfLibDoc = null;     // pdf-lib document
+    let pdfDocJS = null;
+    let pdfLibDoc = null;
     let pageCount = 0;
     let currentPage = 1;
     let currentViewport = null;
 
-    let pageRenderTask = null; // <— track active render to safely cancel
-    let selection = null;      // {x,y,w,h} in CSS pixels of canvas
+    let pageRenderTask = null;
+    let selection = null;
     let dragStart = null;
     let outFileName = 'cropped.pdf';
 
@@ -205,15 +224,12 @@
       }
     }
 
-    // Upload: browse & clear
+    // Upload
     fileInput.addEventListener('change', async (e) => {
       const f = e.target.files?.[0];
       if(f) await handleFile(f);
     });
-
-    clearBtnTop.addEventListener('click', () => {
-      resetDocState();
-    });
+    clearBtnTop.addEventListener('click', resetDocState);
 
     function resetDocState(){
       cancelActiveRender();
@@ -232,7 +248,7 @@
       prog.value = 0; prog.max = 100;
     }
 
-    // Drag & drop visuals (same pattern as Compress)
+    // DnD visuals
     ['dragenter','dragover'].forEach(ev =>
       dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('dropping'); })
     );
@@ -249,7 +265,7 @@
       await handleFile(f);
     });
 
-    // Load and init
+    // Load PDF
     async function handleFile(file){
       try{
         setStatus('Loading PDF…');
@@ -278,13 +294,22 @@
       }
     }
 
-    // Render page to canvas (with safe cancellation)
+    // Compute scale to fit center column width
+    function computeFitScale(page){
+      const v1 = page.getViewport({ scale: 1 });
+      const centerWidth = stageWrap.clientWidth || stageWrap.getBoundingClientRect().width || 800;
+      // small padding
+      const target = Math.max(200, centerWidth * 0.98);
+      return target / v1.width;
+    }
+
+    // Render page (cancel-safe)
     async function setPage(n){
       currentPage = n;
       Array.from(thumbsEl.children).forEach((el, idx) => el.classList.toggle('active', idx === n-1));
 
       const page = await pdfDocJS.getPage(n);
-      const scale = 1; // (zoom removed)
+      const scale = computeFitScale(page);   // fit-to-width
       currentViewport = page.getViewport({ scale });
 
       const dpr = Math.max(1, window.devicePixelRatio || 1);
@@ -297,7 +322,7 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0,0,stage.width,stage.height);
 
-      cancelActiveRender(); // cancel previous render on this canvas
+      cancelActiveRender();
       pageRenderTask = page.render({ canvasContext: ctx, viewport: currentViewport });
 
       try { await pageRenderTask.promise; }
@@ -312,6 +337,9 @@
       clearBtn.disabled = true;
       applyBtn.disabled = true;
     }
+
+    // Re-fit on resize
+    window.addEventListener('resize', () => { if(pdfDocJS) setPage(currentPage); });
 
     // Thumbnails
     async function rebuildThumbs(){
