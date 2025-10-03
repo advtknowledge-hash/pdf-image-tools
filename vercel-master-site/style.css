@@ -418,10 +418,6 @@ select::-ms-expand{ display:none; }
 .muted{ opacity:.8; }
 .subtle{ opacity:.9; }
 
-/* keep vertical rhythm between stacked panels inside .wrap */
-.wrap > .panel + .panel { margin-top: 16px; }
-
-
 /* Upload dropzone state */
 .upload-box { text-align: center; padding: 18px; border-style: dashed; }
 .upload-box.dropping { background: rgba(60, 120, 255, 0.06); border-color: var(--accent, #3c78ff); }
