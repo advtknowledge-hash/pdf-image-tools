@@ -12,54 +12,45 @@
 
   <!-- Page-scoped CSS: ONLY affects this page -->
   <style>
-    /* 3-column layout tuned for Crop (safe: scoped to .crop-wrap) */
-    .crop-wrap .panel .grid-crop {
+    /* 3-column layout tuned for Crop */
+    .crop-wrap .panel .grid-crop{
       display:grid;
-      grid-template-columns: 320px 1fr 320px; /* Left | Center | Right */
+      grid-template-columns:320px 1fr 320px; /* Left | Center | Right */
       gap:20px;
       align-items:start;
     }
-    /* Left column: thumbnails area */
-    .thumbs.small{ display:flex; flex-direction:column; gap:10px; margin-top:10px; max-height:60vh; overflow:auto; padding-right:4px;}
-    .thumbs.small .thumb{ border:1px solid var(--border); border-radius:10px; padding:6px; box-shadow:var(--shadow-sm); cursor:pointer; background:var(--surface-1);}
-    .thumbs.small .thumb.active{ outline:2px solid var(--brand-1); }
 
-/* Center: preview stage fits width & height; frame shows page boundary */
-.stage-wrap{ position:relative; display:block; margin:8px auto 0; max-width:100%; }
+    /* Left: pages list */
+    .thumbs.small{display:flex;flex-direction:column;gap:10px;margin-top:10px;max-height:60vh;overflow:auto;padding-right:4px}
+    .thumbs.small .thumb{border:1px solid var(--border);border-radius:10px;padding:6px;box-shadow:var(--shadow-sm);cursor:pointer;background:var(--surface-1)}
+    .thumbs.small .thumb.active{outline:2px solid var(--brand-1)}
 
-/* Hide canvas until first render completes */
-.stage-wrap canvas{
-  display:none;
-  max-width:100%;
-  height:auto;
-  border-radius:12px;
-  background:var(--surface-2);
-  /* 👇 Put the frame on the canvas so it follows every page */
-  outline:2px solid rgba(0,0,0,0.10);
-  box-shadow:var(--shadow-sm);
-}
-.stage-wrap.ready canvas{ display:block; }
+    /* Center: stage */
+    .stage-wrap{position:relative;display:block;margin:8px auto 0;max-width:100%}
+    /* Hide canvas until first render; put the frame ON the canvas so it follows every page */
+    .stage-wrap canvas{
+      display:none;max-width:100%;height:auto;border-radius:12px;background:var(--surface-2);
+      outline:2px solid rgba(0,0,0,.10);box-shadow:var(--shadow-sm)
+    }
+    .stage-wrap.ready canvas{display:block}
+    .overlay-crop{position:absolute;inset:0;pointer-events:none;border-radius:12px}
+    .overlay-crop .rect{
+      position:absolute;border:2px dashed rgba(124,58,237,.9);
+      background:rgba(124,58,237,.08);border-radius:10px;display:none;
+      box-shadow:0 0 0 2px rgba(255,255,255,.35) inset
+    }
 
-.overlay-crop{ position:absolute; inset:0; pointer-events:none; border-radius:12px; }
-.overlay-crop .rect{
-  position:absolute; border:2px dashed rgba(124,58,237,.9);
-  background: rgba(124,58,237,.08);
-  border-radius:10px; display:none;
-  box-shadow: 0 0 0 2px rgba(255,255,255,.35) inset;
-}
+    /* Right: sticky CTA */
+    .sticky-cta{position:sticky;bottom:8px;padding-top:8px;background:linear-gradient(to top, rgba(0,0,0,.03), transparent)}
 
-
-    /* Right: keep action button visible */
-    .sticky-cta{ position:sticky; bottom:8px; padding-top:8px; background:linear-gradient(to top, rgba(0,0,0,0.03), transparent); }
-
-    /* inline checkbox tidy */
-    .panel .inline input[type="checkbox"]{ margin:0; }
+    /* checkbox tidy */
+    .panel .inline input[type="checkbox"]{margin:0}
 
     /* Responsive */
-    @media (max-width: 1024px){
-      .crop-wrap .panel .grid-crop{ grid-template-columns: 1fr; }
-      .thumbs.small{ flex-direction:row; flex-wrap:wrap; max-height:none; }
-      .sticky-cta{ position:relative; bottom:auto; background:none; }
+    @media (max-width:1024px){
+      .crop-wrap .panel .grid-crop{grid-template-columns:1fr}
+      .thumbs.small{flex-direction:row;flex-wrap:wrap;max-height:none}
+      .sticky-cta{position:relative;bottom:auto;background:none}
     }
   </style>
 </head>
@@ -92,9 +83,9 @@
 </header>
 
 <main>
-  <div class="wrap crop-wrap"><!-- same outer shell as Compress -->
+  <div class="wrap crop-wrap">
 
-    <!-- ===== Controls panel (3 columns) ===== -->
+    <!-- ===== Top panel: 3 columns ===== -->
     <aside class="panel">
       <div class="grid-crop">
 
@@ -109,13 +100,12 @@
           <button class="btn subtle mt-1" id="clearBtnTop" disabled>Clear</button>
 
           <div class="small mt-2">Everything runs in your browser (no uploads).</div>
-
           <div class="rule soft mt-3"></div>
           <div class="small mt-2">Pages</div>
           <div id="thumbs" class="thumbs small" aria-live="polite">Upload a PDF to see pages…</div>
         </section>
 
-        <!-- CENTER: Big Preview (draw & crop) -->
+        <!-- CENTER: Big Preview -->
         <section class="panel card box action-box theme-center" aria-label="Crop">
           <h2 class="title">Crop</h2>
           <progress id="prog" max="100" value="0" class="w-100"></progress>
@@ -129,11 +119,11 @@
           </div>
         </section>
 
-        <!-- RIGHT: Settings + Sticky CTA -->
+        <!-- RIGHT: Settings + CTA -->
         <section class="panel card box theme-center" aria-label="Settings">
           <h2 class="title">Settings</h2>
 
-          <div class="row" style="gap:8px; justify-content:flex-start">
+          <div class="row" style="gap:8px;justify-content:flex-start">
             <label class="inline" for="applyAll" style="margin:6px 0">
               <input id="applyAll" type="checkbox" disabled />
               <span>Apply crop to all pages</span>
@@ -143,8 +133,8 @@
           <details class="mt-2">
             <summary>Advanced</summary>
             <div class="small muted mt-1">
-              • Drag on the preview to draw a crop box.<br/>
-              • Re-draw to replace it. Press <kbd>Esc</kbd> to clear.<br/>
+              • Drag on the preview to draw a crop box.<br>
+              • Re-draw to replace it. Press <kbd>Esc</kbd> to clear.<br>
               • “Preview crop” updates the working copy (non-destructive).
             </div>
           </details>
@@ -165,7 +155,7 @@
       </div>
     </aside>
 
-    <!-- ===== Title + How it works (below) ===== -->
+    <!-- ===== Bottom panel: title + how it works ===== -->
     <main class="panel">
       <h1 class="page-title">Crop PDF</h1>
       <p class="sub">3 steps: Upload • Pick page • Draw crop • Download. All processing stays on your device.</p>
@@ -232,10 +222,7 @@
       downloadBtn.classList.toggle('primary-blue', !!on);
     }
     function cancelActiveRender(){
-      if (pageRenderTask && pageRenderTask.cancel){
-        try { pageRenderTask.cancel(); } catch {}
-        pageRenderTask = null;
-      }
+      if(pageRenderTask && pageRenderTask.cancel){ try{ pageRenderTask.cancel(); }catch{} pageRenderTask=null; }
     }
 
     // Upload
@@ -251,7 +238,7 @@
       pdfDocJS = null; pdfLibDoc = null;
       pageCount = 0; currentPage = 1; currentViewport = null;
       stage.width = stage.height = 0;
-      stageWrap.classList.remove('ready');   // hide canvas again
+      stageWrap.classList.remove('ready');  // hide canvas
       thumbsEl.innerHTML = 'Upload a PDF to see pages…';
       metaEl.textContent = 'No file';
       enableControls(false);
@@ -273,10 +260,7 @@
     dropzone.addEventListener('drop', async (e) => {
       const f = e.dataTransfer?.files?.[0];
       if(!f) return;
-      if(!/application\/pdf/.test(f.type) && !/\.pdf$/i.test(f.name)) {
-        alert('Please drop a PDF file.');
-        return;
-      }
+      if(!/application\/pdf/.test(f.type) && !/\.pdf$/i.test(f.name)){ alert('Please drop a PDF file.'); return; }
       await handleFile(f);
     });
 
@@ -309,22 +293,19 @@
       }
     }
 
-    // Fit page to BOTH width and visible height of center column
+    // Fit to BOTH width and a stable fraction of viewport height (scroll-proof)
     function computeFitScale(page){
       const v1 = page.getViewport({ scale: 1 });
 
-      // Width we can use
+      // Width available: actual center container width
       const centerWidth = stageWrap.clientWidth || stageWrap.getBoundingClientRect().width || 800;
       const targetW = Math.max(240, centerWidth * 0.98);
 
-      // Height we can use: from top of stage to viewport bottom (with small margin)
-      const rect = stageWrap.getBoundingClientRect();
-      const availH = Math.max(260, window.innerHeight - rect.top - 32); // 32px breathing space
-      const targetH = availH * 0.98;
+      // Height available: stable viewport fraction (independent of scroll)
+      const targetH = Math.max(260, Math.floor(window.innerHeight * 0.72)); // ~72% of screen
 
       const widthScale  = targetW / v1.width;
       const heightScale = targetH / v1.height;
-
       return Math.min(widthScale, heightScale);
     }
 
@@ -334,7 +315,11 @@
       Array.from(thumbsEl.children).forEach((el, idx) => el.classList.toggle('active', idx === n-1));
 
       const page = await pdfDocJS.getPage(n);
-      const scale = computeFitScale(page);   // fit-to-screen (width & height)
+
+      // hide current canvas while recomputing to avoid outline jumps
+      stageWrap.classList.remove('ready');
+
+      const scale = computeFitScale(page);
       currentViewport = page.getViewport({ scale });
 
       const dpr = Math.max(1, window.devicePixelRatio || 1);
@@ -350,18 +335,21 @@
       cancelActiveRender();
       pageRenderTask = page.render({ canvasContext: ctx, viewport: currentViewport });
 
-      try { await pageRenderTask.promise; }
-      catch (e){ if (e?.name !== 'RenderingCancelledException') throw e; }
-      finally { pageRenderTask = null; }
+      try{ await pageRenderTask.promise; }
+      catch(e){ if(e?.name !== 'RenderingCancelledException') throw e; }
+      finally{ pageRenderTask = null; }
 
-      stageWrap.classList.add('ready');      // show canvas now
+      stageWrap.classList.add('ready');  // show canvas with correct size
       page.cleanup();
 
-      // fresh selection
+      // reset selection
       selection = null;
       overlayRect.style.display = 'none';
       clearBtn.disabled = true;
       applyBtn.disabled = true;
+
+      // bring preview into view when choosing a page from the left list
+      stageWrap.scrollIntoView({ block:'center', inline:'nearest' });
     }
 
     // Re-fit on resize
@@ -424,7 +412,7 @@
       if(!dragStart) return;
       const r = overlayRect.getBoundingClientRect();
       const s = stage.getBoundingClientRect();
-      selection = { x: r.left - s.left, y: r.top - s.top, w: r.width, h: r.height };
+      selection = { x:r.left - s.left, y:r.top - s.top, w:r.width, h:r.height };
       dragStart = null;
 
       const ok = selection && selection.w >= 2 && selection.h >= 2;
@@ -433,10 +421,7 @@
     });
 
     // Esc clears selection
-    window.addEventListener('keydown', (e) => {
-      if(e.key === 'Escape') clearSelectionUI();
-    });
-
+    window.addEventListener('keydown', (e) => { if(e.key === 'Escape') clearSelectionUI(); });
     function clearSelectionUI(){
       selection = null;
       overlayRect.style.display = 'none';
@@ -473,7 +458,7 @@
         if(p.setArtBox)   p.setArtBox(x,y,w,h);
       };
 
-      if(scope === 'all') { pdfLibDoc.getPages().forEach(applyToOne); }
+      if(scope === 'all'){ pdfLibDoc.getPages().forEach(applyToOne); }
       else { applyToOne(page); }
     }
 
