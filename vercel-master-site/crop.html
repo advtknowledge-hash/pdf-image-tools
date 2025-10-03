@@ -10,23 +10,25 @@
   <script defer src="/assets/seo.js"></script>
   <meta name="color-scheme" content="light dark" />
 
-  <!-- Page-scoped styling for crop stage; doesn't touch other tools -->
+  <!-- Page-scoped extras (safe; does NOT affect other tools) -->
   <style>
-    /* keep the preview stage tidy inside the right box */
+    /* preview stage */
     .stage-wrap{ position:relative; display:block; margin:8px auto 0; max-width:100%; }
     .stage-wrap canvas{ display:block; max-width:100%; height:auto; border-radius:10px; box-shadow:var(--shadow-sm); background:var(--surface-2); }
     .overlay-crop{ position:absolute; inset:0; pointer-events:none; }
     .overlay-crop .rect{
       position:absolute; border:2px dashed rgba(124,58,237,.9);
       background: rgba(124,58,237,.08);
-      border-radius:10px;
+      border-radius:10px; display:none;
       box-shadow: 0 0 0 2px rgba(255,255,255,.35) inset;
-      display:none;
     }
-    /* small thumbs list in middle box */
+    /* thumbs */
     .thumbs.small{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
     .thumbs.small .thumb{ border:1px solid var(--border); border-radius:8px; padding:4px; box-shadow:var(--shadow-sm); cursor:pointer; }
     .thumbs.small .thumb.active{ outline:2px solid var(--brand-1); }
+
+    /* inline checkbox tidy */
+    .panel .inline input[type="checkbox"]{ margin:0; }
   </style>
 </head>
 <body>
@@ -58,9 +60,9 @@
 </header>
 
 <main>
-  <div class="wrap"><!-- same outer structure as Compress -->
+  <div class="wrap"><!-- SAME outer structure as Compress -->
 
-    <!-- ===== 3 boxes in one rounded panel ===== -->
+    <!-- ===== 3 boxes panel ===== -->
     <aside class="panel">
       <div class="grid-3">
 
@@ -81,13 +83,12 @@
         <section class="panel card box theme-center" aria-label="Crop Settings">
           <h2 class="title">Settings</h2>
 
-          <label class="block mt-1">Zoom
-            <input id="zoom" type="range" min="0.5" max="2.5" step="0.1" value="1" disabled />
-          </label>
-
-          <label class="row mt-2"><input id="applyAll" type="checkbox" disabled />
-            <span class="small">Apply crop to all pages</span>
-          </label>
+          <div class="row" style="gap:8px; justify-content:flex-start">
+            <label class="inline" for="applyAll" style="margin:6px 0">
+              <input id="applyAll" type="checkbox" disabled />
+              <span>Apply crop to all pages</span>
+            </label>
+          </div>
 
           <details class="mt-2">
             <summary>Advanced</summary>
@@ -154,7 +155,7 @@
 
   <!-- page script -->
   <script>
-    // Shortcuts
+    // Helpers
     const $ = (s) => document.querySelector(s);
 
     // Elements — upload row mirrors Compress page
@@ -168,7 +169,6 @@
     const stageWrap   = $('#stageWrap');
     const overlayRect = $('#rect');
     const thumbsEl    = $('#thumbs');
-    const zoomEl      = $('#zoom');
     const applyAllEl  = $('#applyAll');
     const clearBtn    = $('#clearCrop');
     const applyBtn    = $('#applyCrop');
@@ -184,21 +184,25 @@
     let currentPage = 1;
     let currentViewport = null;
 
-    let selection = null;     // {x,y,w,h} in CSS pixels of canvas
+    let pageRenderTask = null; // <— track active render to safely cancel
+    let selection = null;      // {x,y,w,h} in CSS pixels of canvas
     let dragStart = null;
-
     let outFileName = 'cropped.pdf';
 
     // Utils
     function fmt(n){ return new Intl.NumberFormat().format(n); }
     function setStatus(t){ statusEl.textContent = t; }
     function enableControls(on){
-      zoomEl.disabled = !on;
       applyAllEl.disabled = !on;
       downloadBtn.disabled = !on;
       clearBtnTop.disabled = !on;
-      // matching Compress CTA behavior
       downloadBtn.classList.toggle('primary-blue', !!on);
+    }
+    function cancelActiveRender(){
+      if (pageRenderTask && pageRenderTask.cancel){
+        try { pageRenderTask.cancel(); } catch {}
+        pageRenderTask = null;
+      }
     }
 
     // Upload: browse & clear
@@ -212,6 +216,7 @@
     });
 
     function resetDocState(){
+      cancelActiveRender();
       fileInput.value = '';
       pdfDocJS = null; pdfLibDoc = null;
       pageCount = 0; currentPage = 1; currentViewport = null;
@@ -250,6 +255,7 @@
         setStatus('Loading PDF…');
         enableControls(false);
         selection = null; overlayRect.style.display = 'none';
+        cancelActiveRender();
 
         outFileName = (file.name || 'cropped.pdf').replace(/\.pdf$/i,'') + '.cropped.pdf';
         outNameEl.textContent = outFileName;
@@ -272,13 +278,13 @@
       }
     }
 
-    // Render page to canvas
+    // Render page to canvas (with safe cancellation)
     async function setPage(n){
       currentPage = n;
       Array.from(thumbsEl.children).forEach((el, idx) => el.classList.toggle('active', idx === n-1));
 
       const page = await pdfDocJS.getPage(n);
-      const scale = parseFloat(zoomEl.value || '1');
+      const scale = 1; // (zoom removed)
       currentViewport = page.getViewport({ scale });
 
       const dpr = Math.max(1, window.devicePixelRatio || 1);
@@ -291,7 +297,13 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0,0,stage.width,stage.height);
 
-      await page.render({ canvasContext: ctx, viewport: currentViewport }).promise;
+      cancelActiveRender(); // cancel previous render on this canvas
+      pageRenderTask = page.render({ canvasContext: ctx, viewport: currentViewport });
+
+      try { await pageRenderTask.promise; }
+      catch (e){ if (e?.name !== 'RenderingCancelledException') throw e; }
+      finally { pageRenderTask = null; }
+
       page.cleanup();
 
       // fresh selection
@@ -300,8 +312,6 @@
       clearBtn.disabled = true;
       applyBtn.disabled = true;
     }
-
-    zoomEl.addEventListener('input', () => { if(pdfDocJS) setPage(currentPage); });
 
     // Thumbnails
     async function rebuildThumbs(){
@@ -422,13 +432,11 @@
       prog.value = 60;
 
       // reload preview from pdf-lib state
-      await (async () => {
-        const bytes = await pdfLibDoc.save({ updateFieldAppearances:false });
-        const bytesForJS = (bytes.slice) ? bytes.slice(0) : new Uint8Array(bytes);
-        pdfDocJS = await pdfjsLib.getDocument({ data: bytesForJS }).promise;
-        pageCount = pdfDocJS.numPages;
-        await rebuildThumbs();
-      })();
+      const bytes = await pdfLibDoc.save({ updateFieldAppearances:false });
+      const bytesForJS = (bytes.slice) ? bytes.slice(0) : new Uint8Array(bytes);
+      pdfDocJS = await pdfjsLib.getDocument({ data: bytesForJS }).promise;
+      pageCount = pdfDocJS.numPages;
+      await rebuildThumbs();
 
       prog.value = 90;
       await setPage(currentPage);
