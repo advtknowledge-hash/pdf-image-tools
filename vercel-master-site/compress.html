@@ -6,8 +6,6 @@
   <title>Compress PDF — Client-side</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/style.css" />
-  <script defer src="/site.js"></script>
-  <script defer src="/assets/seo.js"></script>
   <meta name="color-scheme" content="light dark" />
 </head>
 <body>
@@ -39,90 +37,98 @@
 </header>
 
 <main>
-  <div class="wrap"><!-- SAME outer as PDF→Images -->
+  <div class="container"><!-- same outer spacing as other tools -->
 
-    <!-- ===== Controls panel (3 boxes inside one rounded panel) ===== -->
-    <aside class="panel">
-      <div class="grid-3">
-        <!-- LEFT: Upload / Drop -->
-        <section class="panel card box upload-box theme-center" id="dropzone" aria-label="Upload PDF">
-          <h2 class="title">Upload PDF</h2>
-          <p class="muted">Drag &amp; drop PDF here</p>
-          <label for="file" class="btn gradient big">Browse PDF</label>
-          <input id="file" type="file" accept="application/pdf" hidden />
-          <div class="pill mt-2" id="meta">No file</div>
-          <button class="btn subtle mt-1" id="clearBtn" disabled>Clear</button>
-          <div class="small mt-2">Everything runs in your browser (no uploads).</div>
-        </section>
+    <!-- 3 boxes -->
+    <div class="grid-3">
+      <!-- LEFT: Upload -->
+      <section class="panel box upload-box theme-center" id="dropzone" aria-label="Upload PDF">
+        <h2 class="title">Upload PDF</h2>
+        <p class="muted">Drag &amp; drop PDF here</p>
 
-        <!-- MIDDLE: Settings -->
-        <section class="panel card box settings-box theme-center" aria-label="Compression Settings">
-          <h2 class="title">Settings</h2>
-          <label class="block mt-1">Preset
-            <select id="preset" class="select-lg">
-              <option value="balanced">Balanced (good quality)</option>
-              <option value="small">Smaller (more compression)</option>
-              <option value="tiny">Tiny (max compression)</option>
-            </select>
-          </label>
+        <label for="file" class="btn gradient big">Browse PDF</label>
+        <input id="file" type="file" accept="application/pdf" hidden />
 
-          <details class="mt-2">
-            <summary>Advanced</summary>
-            <div class="grid-2 mt-2">
-              <label>DPI
-                <input id="dpi" type="number" min="56" max="144" step="1" value="110" />
-              </label>
-              <label>JPEG Quality
-                <input id="quality" type="number" min="0.4" max="0.9" step="0.01" value="0.70" />
-              </label>
-            </div>
-            <label class="row mt-1"><input id="preferOriginal" type="checkbox" checked />
-              <span class="small">Keep original if compressed is larger</span></label>
-          </details>
+        <div class="pill mt-2" id="meta">No file</div>
+        <button class="btn subtle mt-1" id="clearBtn" disabled>Clear</button>
 
-          <div class="small mt-2">Presets auto-set DPI &amp; JPEG quality. You can fine-tune above if needed.</div>
-        </section>
+        <div class="small mt-2">Everything runs in your browser (no uploads).</div>
+      </section>
 
-        <!-- RIGHT: Run / Progress / Download -->
-        <section class="panel card box action-box theme-center" aria-label="Compress & Download">
-          <h2 class="title">Compress</h2>
-          <progress id="prog" max="100" value="0" class="w-100"></progress>
-          <div id="status" class="small">Idle…</div>
-          <div class="row center mt-2" style="gap:10px">
-            <button id="compressBtn" class="btn" disabled>Compress &amp; Download</button>
-            <button id="testBtn" class="btn subtle" title="Run on a tiny dummy PDF to test UI">Test</button>
+      <!-- MIDDLE: Settings -->
+      <section class="panel box theme-center" aria-label="Compression Settings">
+        <h2 class="title">Settings</h2>
+
+        <label class="block mt-1">Preset
+          <select id="preset" class="select-lg">
+            <option value="balanced">Balanced (good quality)</option>
+            <option value="small">Smaller (more compression)</option>
+            <option value="tiny">Tiny (max compression)</option>
+          </select>
+        </label>
+
+        <details class="mt-2">
+          <summary>Advanced</summary>
+          <div class="grid-2 mt-2">
+            <label>DPI
+              <input id="dpi" type="number" min="56" max="144" step="1" value="110" />
+            </label>
+            <label>JPEG Quality
+              <input id="quality" type="number" min="0.4" max="0.9" step="0.01" value="0.70" />
+            </label>
           </div>
-          <div class="small mt-2">Output name: <code>compressed.pdf</code></div>
-        </section>
-      </div>
-    </aside>
+          <label class="row mt-1">
+            <input id="preferOriginal" type="checkbox" checked />
+            <span class="small">Keep original if compressed is larger</span>
+          </label>
+        </details>
 
-    <!-- ===== Title + How it works (mirror PDF→Images) ===== -->
-    <main class="panel">
+        <div class="small mt-2">Presets auto-set DPI &amp; JPEG quality. You can fine-tune above if needed.</div>
+      </section>
+
+      <!-- RIGHT: Run -->
+      <section class="panel box action-box theme-center" aria-label="Compress & Download">
+        <h2 class="title">Compress</h2>
+
+        <progress id="prog" max="100" value="0" class="w-100"></progress>
+        <div id="status" class="small">Idle…</div>
+
+        <div class="row center mt-2" style="gap:10px">
+          <button id="compressBtn" class="btn" disabled>Compress &amp; Download</button>
+          <button id="testBtn" class="btn subtle" title="Run on a tiny dummy PDF to test UI">Test</button>
+        </div>
+
+        <div class="small mt-2">Output name: <code>compressed.pdf</code></div>
+      </section>
+    </div>
+
+    <!-- Title + subtitle below the 3 boxes -->
+    <section class="after-grid">
       <h1 class="page-title">Compress PDF</h1>
       <p class="sub">Reduce file size while keeping quality — everything runs in your browser.</p>
+    </section>
 
-      <section class="card mt-3">
-        <h2 class="title">How it works</h2>
-        <ul class="sub">
-          <li>Each page is rendered to an image via <strong>PDF.js</strong>, then rebuilt as a compact PDF with <strong>pdf-lib</strong>.</li>
-          <li>Great for scans/photos. Text-only PDFs may not shrink much.</li>
-          <li>If the compressed file is larger and “Keep original” is ON, we serve the original.</li>
-        </ul>
-        <p class="sub mt-1">Privacy: No uploads. Everything stays on your device.</p>
-      </section>
-    </main>
+    <!-- How it works box -->
+    <section class="panel">
+      <h2 class="title">How it works</h2>
+      <ul class="sub">
+        <li>Each page is rendered to an image via <strong>PDF.js</strong>, then rebuilt as a compact PDF with <strong>pdf-lib</strong>.</li>
+        <li>Great for scans/photos. Text-only PDFs may not shrink much.</li>
+        <li>If the compressed file is larger and “Keep original” is ON, we serve the original.</li>
+      </ul>
+      <p class="sub mt-1">Privacy: No uploads. Everything stays on your device.</p>
+    </section>
 
   </div>
-  
+
   <!-- libs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
-  <!-- page script -->
+  <!-- logic -->
   <script>
-    const $ = (s) => document.querySelector(s);
+    const $ = s => document.querySelector(s);
     const fileInput = $('#file');
     const compressBtn = $('#compressBtn');
     const clearBtn = $('#clearBtn');
@@ -138,6 +144,7 @@
 
     let pdfBytesOriginal = null, pdfDocJS = null, pageCount = 0, fileName = 'input.pdf';
 
+    // presets
     function presetValues(k){
       if(k==='balanced') return { dpi:110, quality:0.70 };
       if(k==='small')    return { dpi:96,  quality:0.65 };
@@ -146,29 +153,31 @@
     }
     function applyPreset(){
       const {dpi, quality} = presetValues(presetEl.value);
-      dpiEl.value = dpi;
-      qEl.value   = quality;
+      dpiEl.value = dpi; qEl.value = quality;
     }
     presetEl.addEventListener('change', applyPreset);
     applyPreset();
 
+    // select file
     fileInput.addEventListener('change', async (e) => {
       const f = e.target.files[0];
       if(!f) return;
       await loadFile(f);
     });
 
+    // clear
     clearBtn.addEventListener('click', () => {
       pdfBytesOriginal = null; pdfDocJS = null; pageCount = 0;
       fileInput.value = '';
       meta.textContent = 'No file';
       statusEl.textContent = 'Idle…';
       compressBtn.disabled = true;
-      compressBtn.classList.remove('primary-blue');   // reset CTA color
+      compressBtn.classList.remove('primary-blue'); // remove blue CTA
       clearBtn.disabled = true;
       prog.value = 0; prog.max = 100;
     });
 
+    // drag & drop
     ['dragenter','dragover'].forEach(ev =>
       dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('dropping'); })
     );
@@ -178,10 +187,7 @@
     dropzone.addEventListener('drop', async (e) => {
       const f = e.dataTransfer?.files?.[0];
       if(!f) return;
-      if(!/application\/pdf/.test(f.type) && !/\.pdf$/i.test(f.name)) {
-        alert('Please drop a PDF file.');
-        return;
-      }
+      if(!/application\/pdf/.test(f.type) && !/\.pdf$/i.test(f.name)) { alert('Please drop a PDF file.'); return; }
       await loadFile(f);
     });
 
@@ -190,10 +196,10 @@
       pdfBytesOriginal = new Uint8Array(await f.arrayBuffer());
       pdfDocJS = await pdfjsLib.getDocument({ data: pdfBytesOriginal.slice() }).promise;
       pageCount = pdfDocJS.numPages;
-      meta.textContent = `${fileName} • ${pageCount} pages • ${(f.size/1024/1024).toFixed(2)} MB`;
 
+      meta.textContent = `${fileName} • ${pageCount} pages • ${(f.size/1024/1024).toFixed(2)} MB`;
       compressBtn.disabled = false;
-      compressBtn.classList.add('primary-blue');      // CTA turns blue
+      compressBtn.classList.add('primary-blue'); // turn CTA blue like other tools
       clearBtn.disabled = false;
       statusEl.textContent = 'Ready to compress.';
     }
@@ -245,7 +251,7 @@
 
         page.cleanup();
         prog.value = i;
-        await new Promise(r => setTimeout(r, 0));
+        await new Promise(r => setTimeout(r, 0)); // let UI paint
       }
 
       statusEl.textContent = 'Saving PDF…';
