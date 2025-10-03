@@ -12,13 +12,14 @@
   <script defer src="/assets/seo.js"></script>
 </head>
 <body>
-  <!-- Top header + tools bar (unchanged) -->
+  <!-- Top header + tools bar -->
   <header class="site-header">
     <div class="container bar">
       <div class="brand">
-        <span class="logo"></span>
+        <span class="logo" aria-hidden="true"></span>
         <span>PDF & Image Tools</span>
       </div>
+
       <div class="container tool-tabs-wrap">
         <button class="tool-scroll tool-left" title="Scroll left" aria-label="Scroll tools left">‹</button>
         <nav class="tool-tabs" role="navigation" aria-label="Tools">
@@ -50,12 +51,12 @@
         <h2 class="title">1) Upload PDF</h2>
         <p class="small muted">Drag & Drop your file here or use the button below.</p>
 
-        <div id="drop" class="drop-flex-only mt-2">
+        <div id="drop" class="drop-flex-only mt-2" aria-label="Drag & drop area">
           <div class="drop-left">
             <div class="pill">All local · private</div>
-            <button id="browseBtn" class="btn primary-blue big mt-2">Browse PDF</button>
+            <button id="browseBtn" class="btn primary-blue big mt-2" aria-label="Browse for PDF">Browse PDF</button>
             <input id="file" type="file" accept="application/pdf" hidden />
-            <p class="small muted mt-2" id="meta">No file</p>
+            <p class="small muted mt-2" id="meta" aria-live="polite">No file</p>
           </div>
         </div>
       </div>
@@ -64,45 +65,46 @@
       <div class="box theme-center">
         <h2 class="title">2) Settings</h2>
 
-        <label class="inline mt-2">
+        <label class="inline mt-2" for="zoom">
           <span class="small subtle">Zoom</span>
         </label>
-        <input id="zoom" type="range" min="0.5" max="2.5" step="0.1" value="1" />
+        <input id="zoom" type="range" min="0.5" max="2.5" step="0.1" value="1" disabled />
 
-        <label class="inline mt-2" style="gap:8px">
-          <input id="applyAll" type="checkbox" />
+        <label class="inline mt-2" style="gap:8px" for="applyAll">
+          <input id="applyAll" type="checkbox" disabled />
           <span>Apply crop to all pages</span>
         </label>
 
         <div class="row center mt-2">
-          <button id="clearCrop" class="btn ghost" disabled>Clear selection</button>
-          <button id="applyCrop" class="btn" disabled>Apply crop</button>
+          <button id="clearCrop" class="btn ghost" disabled>Clear selection (Esc)</button>
+          <button id="applyCrop" class="btn" disabled>Preview crop</button>
         </div>
 
         <div class="mt-3">
           <div class="small subtle">Pages</div>
-          <div id="thumbs" class="thumbs small">Upload a PDF to see pages…</div>
+          <div id="thumbs" class="thumbs small" aria-live="polite">Upload a PDF to see pages…</div>
         </div>
       </div>
 
       <!-- Box 3: Crop -->
       <div class="box action-box theme-center">
         <h2 class="title">3) Crop</h2>
-        <div class="stage-wrap mt-2">
+
+        <div class="stage-wrap mt-2" id="stageWrap" tabindex="0" aria-label="Page preview">
           <canvas id="stage"></canvas>
-          <div class="overlay-crop">
+          <div class="overlay-crop" aria-hidden="true">
             <div class="rect" id="rect"></div>
           </div>
         </div>
 
-        <progress id="prog" max="100" value="0" style="display:none"></progress>
+        <progress id="prog" max="100" value="0" style="display:none" aria-live="polite"></progress>
 
         <div class="row center mt-2">
           <button id="downloadBtn" class="btn primary-blue" disabled>Crop & Download</button>
         </div>
 
         <p class="small muted mt-2">
-          Tip: Drag on the page to draw a crop box. Re-draw to replace it.
+          Tip: Drag on the page to draw a crop box. Re-draw to replace it. Use Esc to clear.
         </p>
       </div>
     </section>
@@ -124,19 +126,20 @@
   <!-- App JS -->
   <script>
     // Elements
-    const fileInput = document.getElementById('file');
-    const browseBtn = document.getElementById('browseBtn');
-    const drop = document.getElementById('drop');
-    const stage = document.getElementById('stage');
+    const fileInput   = document.getElementById('file');
+    const browseBtn   = document.getElementById('browseBtn');
+    const drop        = document.getElementById('drop');
+    const stage       = document.getElementById('stage');
+    const stageWrap   = document.getElementById('stageWrap');
     const overlayRect = document.getElementById('rect');
-    const thumbsEl = document.getElementById('thumbs');
-    const metaEl = document.getElementById('meta');
-    const zoomEl = document.getElementById('zoom');
-    const applyAllEl = document.getElementById('applyAll');
-    const clearBtn = document.getElementById('clearCrop');
-    const applyBtn = document.getElementById('applyCrop');
+    const thumbsEl    = document.getElementById('thumbs');
+    const metaEl      = document.getElementById('meta');
+    const zoomEl      = document.getElementById('zoom');
+    const applyAllEl  = document.getElementById('applyAll');
+    const clearBtn    = document.getElementById('clearCrop');
+    const applyBtn    = document.getElementById('applyCrop');
     const downloadBtn = document.getElementById('downloadBtn');
-    const prog = document.getElementById('prog');
+    const prog        = document.getElementById('prog');
 
     // State
     let pdfDoc_js = null;
@@ -149,14 +152,21 @@
 
     function fmt(n){ return new Intl.NumberFormat().format(n); }
 
+    // Enable/disable controls based on load
+    function enableControls(on){
+      zoomEl.disabled = !on;
+      applyAllEl.disabled = !on;
+      downloadBtn.disabled = !on;
+    }
+
     // Browse button
     browseBtn.addEventListener('click', () => fileInput.click());
 
     // Drag & drop (visual)
-    ;['dragenter','dragover'].forEach(evt=>{
+    ['dragenter','dragover'].forEach(evt=>{
       drop.addEventListener(evt, (e)=>{ e.preventDefault(); drop.classList.add('is-dragover'); });
     });
-    ;['dragleave','drop'].forEach(evt=>{
+    ['dragleave','drop'].forEach(evt=>{
       drop.addEventListener(evt, (e)=>{ e.preventDefault(); drop.classList.remove('is-dragover'); });
     });
     drop.addEventListener('drop', (e)=>{
@@ -175,6 +185,9 @@
 
     async function handleFile(file){
       try{
+        enableControls(false);
+        clearSelectionUI();
+
         const raw = new Uint8Array(await file.arrayBuffer());
         const bytesForPdfJs  = raw.slice(); // copy for PDF.js (avoid detached buffer)
         const bytesForPdfLib = raw;         // original for pdf-lib
@@ -187,7 +200,7 @@
 
         await rebuildThumbs();
         await setPage(1);
-        downloadBtn.disabled = false;
+        enableControls(true);
       }catch(err){
         alert('PDF load failed: ' + (err?.message || err));
         console.error(err);
@@ -199,48 +212,60 @@
       Array.from(thumbsEl.children).forEach((el, idx) => {
         el.classList.toggle('active', idx === n - 1);
       });
+
       const page = await pdfDoc_js.getPage(n);
-      const scale = parseFloat(zoomEl.value);
+      const scale = parseFloat(zoomEl.value || '1');
       currentViewport = page.getViewport({ scale });
-      stage.width = Math.ceil(currentViewport.width);
-      stage.height = Math.ceil(currentViewport.height);
+
+      // Canvas sizing
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      stage.width  = Math.ceil(currentViewport.width  * dpr);
+      stage.height = Math.ceil(currentViewport.height * dpr);
+      stage.style.width  = Math.ceil(currentViewport.width) + 'px';
+      stage.style.height = Math.ceil(currentViewport.height) + 'px';
+
       const ctx = stage.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0,0,stage.width,stage.height);
+
       await page.render({ canvasContext: ctx, viewport: currentViewport }).promise;
-      selection = null;
-      overlayRect.style.display = 'none';
-      clearBtn.disabled = true;
-      applyBtn.disabled = true;
+      clearSelectionUI();
       page.cleanup();
     }
 
     zoomEl.addEventListener('input', ()=> setPage(currentPage));
 
     // Draw selection
-    const stageWrap = stage.parentElement;
+    function getLocalXY(evt){
+      const rect = stage.getBoundingClientRect();
+      return { x: Math.max(0, Math.min(rect.width,  evt.clientX - rect.left)),
+               y: Math.max(0, Math.min(rect.height, evt.clientY - rect.top)) };
+    }
+
     stageWrap.addEventListener('mousedown', (e)=>{
       if(!currentViewport) return;
-      const rect = stage.getBoundingClientRect();
-      dragStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      const start = getLocalXY(e);
+      dragStart = start;
       overlayRect.style.display = 'block';
-      overlayRect.style.left = dragStart.x + 'px';
-      overlayRect.style.top = dragStart.y + 'px';
-      overlayRect.style.width = 0;
+      overlayRect.style.left   = start.x + 'px';
+      overlayRect.style.top    = start.y + 'px';
+      overlayRect.style.width  = 0;
       overlayRect.style.height = 0;
     });
+
     window.addEventListener('mousemove', (e)=>{
       if(!dragStart) return;
-      const rect = stage.getBoundingClientRect();
-      const x = e.clientX - rect.left, y = e.clientY - rect.top;
-      const left = Math.max(0, Math.min(x, dragStart.x));
-      const top  = Math.max(0, Math.min(y, dragStart.y));
-      const w = Math.min(stage.width, Math.max(x, dragStart.x)) - left;
-      const h = Math.min(stage.height, Math.max(y, dragStart.y)) - top;
+      const pos = getLocalXY(e);
+      const left = Math.min(pos.x, dragStart.x);
+      const top  = Math.min(pos.y, dragStart.y);
+      const w = Math.abs(pos.x - dragStart.x);
+      const h = Math.abs(pos.y - dragStart.y);
       overlayRect.style.left = left + 'px';
-      overlayRect.style.top = top + 'px';
-      overlayRect.style.width = w + 'px';
+      overlayRect.style.top  = top  + 'px';
+      overlayRect.style.width  = w + 'px';
       overlayRect.style.height = h + 'px';
     });
+
     window.addEventListener('mouseup', ()=>{
       if(!dragStart) return;
       const r = overlayRect.getBoundingClientRect();
@@ -248,25 +273,35 @@
       selection = { x: r.left - s.left, y: r.top - s.top, w: r.width, h: r.height };
       dragStart = null;
       clearBtn.disabled = !selection;
-      applyBtn.disabled = !selection;
+      applyBtn.disabled = !selection || selection.w < 2 || selection.h < 2;
     });
 
-    clearBtn.addEventListener('click', ()=>{
+    // Keyboard: Esc clears
+    window.addEventListener('keydown', (e)=>{
+      if(e.key === 'Escape') {
+        clearSelectionUI();
+      }
+    });
+
+    function clearSelectionUI(){
       selection = null;
       overlayRect.style.display = 'none';
       clearBtn.disabled = true;
       applyBtn.disabled = true;
-    });
+    }
+
+    clearBtn.addEventListener('click', clearSelectionUI);
 
     async function rebuildThumbs(){
       thumbsEl.innerHTML = '';
       for (let i = 1; i <= pageCount; i++) {
         const page = await pdfDoc_js.getPage(i);
-        const viewport = page.getViewport({ scale: 0.2 });
+        const viewport = page.getViewport({ scale: 0.22 });
         const c = document.createElement('canvas');
         const ctx = c.getContext('2d');
         c.width = viewport.width; c.height = viewport.height;
         await page.render({ canvasContext: ctx, viewport }).promise;
+
         const div = document.createElement('div');
         div.className = 'thumb';
         if (i === currentPage) div.classList.add('active');
@@ -287,10 +322,17 @@
     }
 
     async function applyCropToPages(scope){
+      // Map selection (canvas pixels) -> PDF points
       const page = pdfLibDoc.getPage(currentPage-1);
       const { width: pdfW, height: pdfH } = page.getSize();
-      const scaleX = pdfW / stage.width;
-      const scaleY = pdfH / stage.height;
+
+      // Because we rendered with DPR scaling, use the CSS size (stage.style)
+      const cssW = parseFloat(stage.style.width);
+      const cssH = parseFloat(stage.style.height);
+
+      const scaleX = pdfW / cssW;
+      const scaleY = pdfH / cssH;
+
       const cropX = selection.x * scaleX;
       const cropW = selection.w * scaleX;
       const cropY = (pdfH - (selection.y + selection.h) * scaleY);
@@ -320,10 +362,7 @@
       await reloadFromPdfLib();
       prog.value = 90;
       await setPage(currentPage);
-      selection = null;
-      overlayRect.style.display = 'none';
-      clearBtn.disabled = true;
-      applyBtn.disabled = true;
+      clearSelectionUI();
       prog.value = 100; setTimeout(()=> prog.style.display='none', 300);
     });
 
