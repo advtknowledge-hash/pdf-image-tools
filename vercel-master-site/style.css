@@ -574,3 +574,9 @@ select::-ms-expand{ display:none; }
 .thumb:hover{ transform: translateY(-1px); box-shadow: var(--shadow-md); }
 .thumb.active{ border-color: var(--brand-1); box-shadow: 0 0 0 3px rgba(124,58,237,.18); }
 .thumb canvas{ width:100%; height:auto; display:block; border-radius:6px; }
+
+/* Match PDF→Images spacing for Compress PDF */
+.wrap {
+  max-width: 1200px;   /* keep it wide but not full screen */
+  margin: 0 auto;
+}
