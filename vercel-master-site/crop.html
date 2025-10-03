@@ -24,26 +24,30 @@
     .thumbs.small .thumb{ border:1px solid var(--border); border-radius:10px; padding:6px; box-shadow:var(--shadow-sm); cursor:pointer; background:var(--surface-1);}
     .thumbs.small .thumb.active{ outline:2px solid var(--brand-1); }
 
-    /* Center: preview stage fits width & height; frame shows page boundary */
-    .stage-wrap{ position:relative; display:block; margin:8px auto 0; max-width:100%; }
-    /* Hide canvas until first render completes */
-    .stage-wrap canvas{ display:none; max-width:100%; height:auto; border-radius:12px; background:var(--surface-2); }
-    .stage-wrap.ready canvas{ display:block; }
-    /* Page boundary frame */
-    .stage-wrap.ready{
-      border:2px solid rgba(0,0,0,0.08);
-      border-radius:12px;
-      box-shadow:var(--shadow-sm);
-      background:var(--surface-1);
-      padding:0; /* so overlay & canvas align with the border */
-    }
-    .overlay-crop{ position:absolute; inset:0; pointer-events:none; border-radius:12px; }
-    .overlay-crop .rect{
-      position:absolute; border:2px dashed rgba(124,58,237,.9);
-      background: rgba(124,58,237,.08);
-      border-radius:10px; display:none;
-      box-shadow: 0 0 0 2px rgba(255,255,255,.35) inset;
-    }
+/* Center: preview stage fits width & height; frame shows page boundary */
+.stage-wrap{ position:relative; display:block; margin:8px auto 0; max-width:100%; }
+
+/* Hide canvas until first render completes */
+.stage-wrap canvas{
+  display:none;
+  max-width:100%;
+  height:auto;
+  border-radius:12px;
+  background:var(--surface-2);
+  /* 👇 Put the frame on the canvas so it follows every page */
+  outline:2px solid rgba(0,0,0,0.10);
+  box-shadow:var(--shadow-sm);
+}
+.stage-wrap.ready canvas{ display:block; }
+
+.overlay-crop{ position:absolute; inset:0; pointer-events:none; border-radius:12px; }
+.overlay-crop .rect{
+  position:absolute; border:2px dashed rgba(124,58,237,.9);
+  background: rgba(124,58,237,.08);
+  border-radius:10px; display:none;
+  box-shadow: 0 0 0 2px rgba(255,255,255,.35) inset;
+}
+
 
     /* Right: keep action button visible */
     .sticky-cta{ position:sticky; bottom:8px; padding-top:8px; background:linear-gradient(to top, rgba(0,0,0,0.03), transparent); }
