@@ -15,7 +15,7 @@
     /* 3-column layout tuned for Crop (safe: scoped to .crop-wrap) */
     .crop-wrap .panel .grid-crop {
       display:grid;
-      grid-template-columns: 320px 1fr 320px; /* Left (upload+pages) | Center (canvas) | Right (settings+cta) */
+      grid-template-columns: 320px 1fr 320px; /* Left | Center | Right */
       gap:20px;
       align-items:start;
     }
@@ -26,7 +26,9 @@
 
     /* Center: preview stage fits width */
     .stage-wrap{ position:relative; display:block; margin:8px auto 0; max-width:100%; }
-    .stage-wrap canvas{ display:block; max-width:100%; height:auto; border-radius:12px; box-shadow:var(--shadow-sm); background:var(--surface-2); }
+    /* Hide canvas until first render completes */
+    .stage-wrap canvas{ display:none; max-width:100%; height:auto; border-radius:12px; box-shadow:var(--shadow-sm); background:var(--surface-2); }
+    .stage-wrap.ready canvas{ display:block; }
     .overlay-crop{ position:absolute; inset:0; pointer-events:none; }
     .overlay-crop .rect{
       position:absolute; border:2px dashed rgba(124,58,237,.9);
@@ -41,7 +43,7 @@
     /* inline checkbox tidy */
     .panel .inline input[type="checkbox"]{ margin:0; }
 
-    /* Responsive: collapse to one column on narrow screens */
+    /* Responsive */
     @media (max-width: 1024px){
       .crop-wrap .panel .grid-crop{ grid-template-columns: 1fr; }
       .thumbs.small{ flex-direction:row; flex-wrap:wrap; max-height:none; }
@@ -108,7 +110,7 @@
           <div id="status" class="small">Idle…</div>
 
           <div class="stage-wrap mt-2" id="stageWrap" tabindex="0" aria-label="Page preview">
-            <canvas id="stage"></canvas>
+            <canvas id="stage" width="0" height="0"></canvas>
             <div class="overlay-crop" aria-hidden="true">
               <div class="rect" id="rect"></div>
             </div>
@@ -237,6 +239,7 @@
       pdfDocJS = null; pdfLibDoc = null;
       pageCount = 0; currentPage = 1; currentViewport = null;
       stage.width = stage.height = 0;
+      stageWrap.classList.remove('ready');   // hide canvas again
       thumbsEl.innerHTML = 'Upload a PDF to see pages…';
       metaEl.textContent = 'No file';
       enableControls(false);
@@ -294,11 +297,10 @@
       }
     }
 
-    // Compute scale to fit center column width
+    // Fit page to center column width
     function computeFitScale(page){
       const v1 = page.getViewport({ scale: 1 });
       const centerWidth = stageWrap.clientWidth || stageWrap.getBoundingClientRect().width || 800;
-      // small padding
       const target = Math.max(200, centerWidth * 0.98);
       return target / v1.width;
     }
@@ -329,6 +331,7 @@
       catch (e){ if (e?.name !== 'RenderingCancelledException') throw e; }
       finally { pageRenderTask = null; }
 
+      stageWrap.classList.add('ready');      // show canvas now
       page.cleanup();
 
       // fresh selection
