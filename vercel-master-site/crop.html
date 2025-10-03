@@ -6,30 +6,23 @@
   <title>Crop PDF — Local & Private</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/style.css" />
-  <style>
-  /* Crop page only */
-  main.crop-page { 
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 16px;
-  }
-  main.crop-page .grid-3{
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    align-items: start;
-  }
-  main.crop-page .box{ height: 100%; }
-
-  @media (max-width: 1024px){
-    main.crop-page .grid-3{ grid-template-columns: 1fr; }
-  }
-</style>
   <meta name="color-scheme" content="light dark" />
   <script defer src="/site.js"></script>
   <script defer src="/assets/seo.js"></script>
+
+  <!-- Crop page ONLY layout fix (won’t affect other tools) -->
+  <style>
+    body.page-crop main .grid-3{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr); /* equal columns like Compress */
+      gap:20px;                               /* same visual spacing */
+      align-items:start;
+    }
+    /* keep cards stretching nicely */
+    body.page-crop .box{ height:auto; }
+  </style>
 </head>
-<body>
+<body class="page-crop">
   <!-- Header + tool tabs (same as other tools) -->
   <header class="site-header">
     <div class="container bar">
@@ -57,10 +50,10 @@
     </div>
   </header>
 
-  <main class="container crop-page">
-    <!-- === 3-BOX LAYOUT (exact same grid classes as Compress PDF) === -->
+  <main class="container">
+    <!-- 3-BOX LAYOUT -->
     <section class="grid-3">
-      <!-- Box A: Upload -->
+      <!-- Upload -->
       <div class="box upload-box theme-center" id="uploadBox">
         <h2 class="title">Upload PDF</h2>
         <p class="small muted">Drag & drop PDF here</p>
@@ -78,7 +71,7 @@
         </div>
       </div>
 
-      <!-- Box B: Settings -->
+      <!-- Settings -->
       <div class="box theme-center">
         <h2 class="title">Settings</h2>
 
@@ -110,7 +103,7 @@
         </div>
       </div>
 
-      <!-- Box C: Crop / Action -->
+      <!-- Crop / Action -->
       <div class="box action-box theme-center">
         <h2 class="title">Crop</h2>
 
@@ -134,13 +127,13 @@
       </div>
     </section>
 
-    <!-- === Title & subtitle go BELOW boxes (like Compress PDF) === -->
+    <!-- Title + Subtitle BELOW boxes -->
     <section class="after-grid">
       <h1 class="page-title">Crop PDF</h1>
       <p class="sub">3 steps: Upload • Set options • Crop &amp; Download. All processing stays on your device.</p>
     </section>
 
-    <!-- How it works (same block style as Compress PDF) -->
+    <!-- How it works -->
     <section class="after-grid">
       <h2 class="page-title">How it works</h2>
       <div class="card">
@@ -196,9 +189,7 @@
     let fileName = 'cropped.pdf';
 
     function fmt(n){ return new Intl.NumberFormat().format(n); }
-
     function setStatus(t){ statusEl.textContent = t; }
-
     function enableControls(on){
       zoomEl.disabled = !on;
       applyAllEl.disabled = !on;
@@ -206,7 +197,7 @@
       clearBtnTop.disabled = !on;
     }
 
-    // Upload UI (same behavior pattern as Compress)
+    // Upload UI
     browseBtn.addEventListener('click', () => fileInput.click());
 
     clearBtnTop.addEventListener('click', ()=>{
