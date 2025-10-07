@@ -4,96 +4,122 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Crop PDF — Client-side</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="stylesheet" href="/style.css" />
-  <script defer src="/site.js"></script>
-  <script defer src="/assets/seo.js"></script>
   <meta name="color-scheme" content="light dark" />
-
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23595cff'/><text x='16' y='21' font-family='Arial' font-size='14' text-anchor='middle' fill='white'>PDF</text></svg>">
   <style>
-    .crop-wrap .panel .grid-crop {
-      display: grid;
-      grid-template-columns: 320px 1fr 320px;
-      gap: 20px;
-      align-items: start;
+    :root{
+      --bg:#f6f8fb; --card:#fff; --text:#1f2937; --muted:#6b7280;
+      --brand:#6d5cff; --brand-2:#8b7dff; --border:#e5e7eb;
+      --shadow:0 8px 20px rgba(0,0,0,.06); --shadow-sm:0 2px 8px rgba(0,0,0,.05);
     }
-
-    /* ✅ Fix: uploaded filename text wrapping */
-    .file-info {
-      display: inline-block;
-      max-width: 250px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      vertical-align: middle;
-    }
-
-    .file-info:hover {
-      white-space: normal;
-      word-break: break-all;
-    }
-
-    .thumbs.small {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 10px;
-      max-height: 60vh;
-      overflow: auto;
-      padding-right: 4px;
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font:16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background:var(--bg); color:var(--text);}
+    header{position:sticky;top:0;background:linear-gradient(180deg,#f8faff,#eef2ff);padding:14px 16px;z-index:10;border-bottom:1px solid var(--border)}
+    h1{margin:0;font-weight:800;font-size:18px;letter-spacing:.2px}
+    nav.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .tab{padding:10px 14px;background:#fff;border:1px solid var(--border);border-radius:12px;text-decoration:none;color:#111;box-shadow:var(--shadow-sm)}
+    .tab.active{background:var(--brand);color:#fff;border-color:transparent}
+    .crop-wrap{padding:18px;max-width:1280px;margin:0 auto}
+    .grid-crop{display:grid;grid-template-columns:320px 1fr 320px;gap:20px;align-items:start}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:var(--shadow)}
+    .box h2{margin:0 0 8px 0}
+    button{cursor:pointer;border:0;border-radius:12px;padding:10px 14px;background:#111;color:#fff}
+    button.secondary{background:#eef1f7;color:#111;border:1px solid var(--border)}
+    button.primary{background:linear-gradient(135deg,var(--brand),var(--brand-2))}
+    button.block{width:100%}
+    label{display:flex;gap:8px;align-items:center;margin:10px 0}
+    details{margin-top:8px}
+    summary{cursor:pointer}
+    .muted{color:var(--muted);font-size:12px}
+    .thumbs{display:flex;flex-direction:column;gap:10px;margin-top:12px;max-height:60vh;overflow:auto;padding-right:4px}
+    .thumb{border:1px solid var(--border);border-radius:10px;padding:6px;box-shadow:var(--shadow-sm);cursor:pointer;background:#fff}
+    .thumb canvas{display:block;width:100%}
+    /* stage */
+    .stage-wrap{position:relative;border:1px solid var(--border);border-radius:12px;overflow:auto;min-height:260px;background:#fff;box-shadow:var(--shadow);padding:16px}
+    .stage-wrap canvas{display:block;margin:0 auto}
+    /* selection overlay */
+    .overlay{position:absolute;left:16px;top:16px;right:16px;bottom:16px;pointer-events:none}
+    .sel{position:absolute;border:2px dashed #111;background:rgba(59,130,246,.1);box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)}
+    .handle{position:absolute;width:10px;height:10px;background:#111;border-radius:50%;transform:translate(-50%,-50%)}
+    .handle.nw{left:0;top:0}.handle.ne{left:100%;top:0}.handle.sw{left:0;top:100%}.handle.se{left:100%;top:100%}
+    /* filename ellipsis */
+    .file-line{display:flex;gap:8px;align-items:center;margin-top:10px}
+    .file-info{display:inline-block;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;border:1px dashed var(--border);padding:6px 8px;border-radius:10px;background:#fafafa}
+    .file-info:hover{white-space:normal;word-break:break-all;max-width:100%}
+    /* info section */
+    .info{max-width:1280px;margin:16px auto 56px;padding:0 18px}
+    .info .card{padding:16px}
+    @media (max-width: 1100px){
+      .grid-crop{grid-template-columns:1fr}
+      .stage-wrap{min-height:220px}
     }
   </style>
 </head>
-
 <body>
   <header>
     <h1>PDF & Image Tools</h1>
     <nav class="tabs">
-      <a href="/merge" class="tab">Merge PDF</a>
-      <a href="/delete" class="tab">Delete pages</a>
-      <a href="/rotate" class="tab">Rotate PDF</a>
-      <a href="/reorder" class="tab">Reorder PDF</a>
-      <a href="/crop" class="tab active">Crop PDF</a>
-      <a href="/compress" class="tab">Compress PDF</a>
-      <a href="/pdf-to-images" class="tab">PDF → Images</a>
-      <a href="/image-to-pdf" class="tab">Image → PDF</a>
-      <a href="/jpg-to-png" class="tab">JPG → PNG</a>
-      <a href="/png-to-jpg" class="tab">PNG → JPG</a>
+      <a class="tab" href="#">Merge PDF</a>
+      <a class="tab" href="#">Delete pages</a>
+      <a class="tab" href="#">Rotate PDF</a>
+      <a class="tab" href="#">Reorder PDF</a>
+      <a class="tab active" href="#">Crop PDF</a>
+      <a class="tab" href="#">Compress PDF</a>
+      <a class="tab" href="#">PDF → Images</a>
+      <a class="tab" href="#">Image → PDF</a>
+      <a class="tab" href="#">JPG → PNG</a>
+      <a class="tab" href="#">PNG → JPG</a>
     </nav>
   </header>
 
   <main class="crop-wrap">
-    <section class="panel card box">
-      <h2>Upload PDF</h2>
-      <p>Drag & drop PDF here</p>
-      <button id="browseBtn">Browse PDF</button>
-      <button id="clearBtn" class="secondary">Clear</button>
-      <p id="fileInfo" class="file-info">No file</p>
-      <p style="font-size: 12px; margin-top: 6px;">Everything runs in your browser (no uploads).</p>
-      <div id="thumbs" class="thumbs small"></div>
-    </section>
+    <div class="grid-crop">
+      <!-- Upload -->
+      <section class="panel card box" aria-label="Upload PDF">
+        <h2>Upload PDF</h2>
+        <p class="muted">Drag & drop PDF here</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button id="browseBtn">Browse PDF</button>
+          <button id="clearBtn" class="secondary">Clear</button>
+        </div>
+        <div class="file-line">
+          <span class="muted">File:</span>
+          <span id="fileInfo" class="file-info" title="No file">No file</span>
+        </div>
+        <p class="muted" style="margin-top:8px">Everything runs in your browser (no uploads).</p>
+        <div id="thumbs" class="thumbs"></div>
+      </section>
 
-    <section class="panel card box action-box theme-center" aria-label="Crop">
-      <h2 class="title">Crop</h2>
-      <div class="stage-wrap mt-2" id="stageWrap" tabindex="0" aria-label="Page preview"></div>
-    </section>
+      <!-- Center -->
+      <section class="panel card box action-box theme-center" aria-label="Crop">
+        <h2 class="title" style="text-align:center;margin-bottom:12px">Crop</h2>
+        <div class="stage-wrap" id="stageWrap" tabindex="0" aria-label="Page preview">
+          <div class="overlay" id="overlay" aria-hidden="true"></div>
+        </div>
+      </section>
 
-    <section class="panel card box">
-      <h2>Settings</h2>
-      <label>
-        <input type="checkbox" id="applyAll" checked />
-        Apply crop to all pages
-      </label>
+      <!-- Settings -->
+      <section class="panel card box" aria-label="Settings">
+        <h2>Settings</h2>
+        <label title="Ticked by default">
+          <input type="checkbox" id="applyAll" checked>
+          Apply crop to all pages
+        </label>
 
-      <details>
-        <summary>Advanced</summary>
-        <button id="clearSel">Clear selection (Esc)</button>
-        <button id="previewBtn">Preview crop</button>
-        <button id="applyBtn" class="primary">Crop & Download</button>
-      </details>
+        <details open>
+          <summary>Advanced</summary>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+            <button id="clearSel" class="secondary">Clear selection (Esc)</button>
+            <button id="previewBtn" class="secondary">Preview crop</button>
+            <button id="downloadBtn" class="primary">Crop & Download</button>
+          </div>
+        </details>
 
-      <p style="font-size: 12px; margin-top: 6px;">Output name: <span id="outName">cropped.pdf</span></p>
-    </section>
+        <p class="muted" style="margin-top:8px">Output name: <span id="outName">cropped.pdf</span></p>
+      </section>
+    </div>
   </main>
 
   <section class="info">
@@ -102,85 +128,214 @@
     <div class="card">
       <h4>How it works</h4>
       <ul>
-        <li>Pages render with <strong>PDF.js</strong>, and output is rebuilt with <strong>pdf-lib</strong>.</li>
-        <li>We apply Media/Crop/Trim/Bleed/Art boxes safely.</li>
+        <li>Pages render with <b>PDF.js</b>, and output is rebuilt with <b>pdf-lib</b>.</li>
+        <li>We set Media/Crop/Trim/Bleed/Art boxes to your selection.</li>
         <li>Privacy: No server uploads.</li>
       </ul>
     </div>
   </section>
 
+  <!-- libs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 
   <script>
+    // Elements
     const browseBtn = document.getElementById('browseBtn');
     const clearBtn = document.getElementById('clearBtn');
     const fileInfo = document.getElementById('fileInfo');
     const applyAllEl = document.getElementById('applyAll');
     const clearSelBtn = document.getElementById('clearSel');
     const previewBtn = document.getElementById('previewBtn');
-    const applyBtn = document.getElementById('applyBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
     const stageWrap = document.getElementById('stageWrap');
+    const overlay = document.getElementById('overlay');
     const thumbs = document.getElementById('thumbs');
+    const outName = document.getElementById('outName');
 
-    let pdfDocJS = null, currentPage = 1, pageCount = 0;
+    // State
+    let fileBytes = null;
+    let pdfDocJS = null;
+    let currentPage = 1;
+    let pageCount = 0;
+    let pageViewport = null;
+    let canvas = null;
+    let sel = null; // {x,y,w,h} in canvas coords
 
-    // ✅ Load PDF
-    browseBtn.onclick = async () => {
+    // Utility
+    function createCanvas(w,h){ const c=document.createElement('canvas'); c.width=w; c.height=h; return c; }
+    function clamp(n,min,max){ return Math.max(min,Math.min(max,n)); }
+
+    // File browse
+    browseBtn.addEventListener('click', ()=>{
       const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'application/pdf';
-      input.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        fileInfo.textContent = file.name;
-        fileInfo.title = file.name;
-        const bytes = await file.arrayBuffer();
-        pdfDocJS = await pdfjsLib.getDocument({ data: bytes }).promise;
+      input.type='file'; input.accept='application/pdf';
+      input.onchange = async (e)=>{
+        const file = e.target.files[0]; if(!file) return;
+        fileInfo.textContent = file.name; fileInfo.title = file.name;
+        outName.textContent = (file.name.replace(/\.pdf$/i,'') || 'cropped') + '.pdf';
+        fileBytes = await file.arrayBuffer();
+        pdfDocJS = await pdfjsLib.getDocument({data:fileBytes}).promise;
         pageCount = pdfDocJS.numPages;
-        renderThumbs();
-        renderPage(1);
+        await renderThumbs();
+        await renderPage(1);
       };
       input.click();
-    };
+    });
 
-    // ✅ Clear file
-    clearBtn.onclick = () => {
-      pdfDocJS = null;
-      fileInfo.textContent = 'No file';
-      fileInfo.title = '';
-      stageWrap.innerHTML = '';
-      thumbs.innerHTML = '';
-    };
+    clearBtn.addEventListener('click', ()=>{
+      pdfDocJS = null; fileBytes=null; currentPage=1; pageCount=0; sel=null;
+      thumbs.innerHTML=''; stageWrap.querySelectorAll('canvas').forEach(n=>n.remove());
+      overlay.innerHTML=''; fileInfo.textContent='No file'; fileInfo.title='No file';
+      outName.textContent='cropped.pdf';
+    });
 
-    async function renderThumbs() {
-      thumbs.innerHTML = '';
-      for (let i = 1; i <= pageCount; i++) {
-        const thumb = document.createElement('div');
-        thumb.className = 'thumb';
-        thumb.textContent = 'Page ' + i;
-        thumb.onclick = () => renderPage(i);
-        thumbs.appendChild(thumb);
+    // Render thumbnails
+    async function renderThumbs(){
+      thumbs.innerHTML='';
+      for(let i=1;i<=pageCount;i++){
+        const page = await pdfDocJS.getPage(i);
+        const v = page.getViewport({scale:0.18});
+        const c = createCanvas(Math.ceil(v.width), Math.ceil(v.height));
+        await page.render({canvasContext:c.getContext('2d'), viewport:v}).promise;
+        const div = document.createElement('div'); div.className='thumb';
+        div.appendChild(c);
+        div.addEventListener('click', ()=> renderPage(i));
+        thumbs.appendChild(div);
+        page.cleanup && page.cleanup();
       }
     }
 
-    async function renderPage(num) {
-      const page = await pdfDocJS.getPage(num);
-      const viewport = page.getViewport({ scale: 0.8 });
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      await page.render({ canvasContext: ctx, viewport }).promise;
-      stageWrap.innerHTML = '';
-      stageWrap.appendChild(canvas);
+    // Render selected page
+    async function renderPage(num){
       currentPage = num;
+      const page = await pdfDocJS.getPage(num);
+      pageViewport = page.getViewport({scale:1.3}); // nice readable scale
+      canvas = createCanvas(Math.ceil(pageViewport.width), Math.ceil(pageViewport.height));
+      const ctx = canvas.getContext('2d');
+      await page.render({canvasContext:ctx, viewport:pageViewport}).promise;
+      stageWrap.querySelectorAll('canvas').forEach(n=>n.remove());
+      stageWrap.appendChild(canvas);
+      overlay.style.left = '16px'; overlay.style.top = '16px';
+      overlay.style.right = '16px'; overlay.style.bottom = '16px';
+      overlay.innerHTML=''; // reset selection
+      sel = null;
+      bindSelection(canvas);
+      page.cleanup && page.cleanup();
     }
 
-    // Dummy crop & download
-    applyBtn.onclick = () => alert('Crop applied and downloaded (demo).');
-    previewBtn.onclick = () => alert('Preview updated (demo).');
-    clearSelBtn.onclick = () => alert('Selection cleared.');
+    // Selection logic: draw new selection by drag; simple handles for resizing bottom-right
+    function bindSelection(cnv){
+      let dragging=false, resizing=false, startX=0,startY=0;
+      const rect = ()=>{
+        if(!sel) return null;
+        const d = document.querySelector('.sel') || (()=>{ const d=document.createElement('div'); d.className='sel'; overlay.appendChild(d); return d;})();
+        d.style.left = (16 + sel.x*1) + 'px';
+        d.style.top = (16 + sel.y*1) + 'px';
+        d.style.width = sel.w + 'px';
+        d.style.height = sel.h + 'px';
+        if(!d.querySelector('.handle.se')){
+          const se = document.createElement('div'); se.className='handle se'; d.appendChild(se);
+        }
+        return d;
+      };
+
+      cnv.addEventListener('mousedown', e=>{
+        const b = cnv.getBoundingClientRect();
+        const x = e.clientX - b.left, y = e.clientY - b.top;
+        // if inside handle (bottom-right), start resizing
+        if(sel){
+          const hx = sel.x + sel.w, hy = sel.y + sel.h;
+          if(Math.hypot(x-hx,y-hy) < 14){ resizing=true; startX=x; startY=y; return; }
+        }
+        dragging=true; startX=x; startY=y; sel={x: x, y: y, w: 0, h: 0};
+        rect();
+      });
+      window.addEventListener('mousemove', e=>{
+        if(!dragging && !resizing) return;
+        const b = cnv.getBoundingClientRect();
+        const x = clamp(e.clientX - b.left, 0, cnv.width);
+        const y = clamp(e.clientY - b.top, 0, cnv.height);
+        if(dragging){
+          sel.w = Math.abs(x - startX);
+          sel.h = Math.abs(y - startY);
+          sel.x = Math.min(x, startX);
+          sel.y = Math.min(y, startY);
+        }else if(resizing){
+          sel.w = clamp(x - sel.x, 1, cnv.width - sel.x);
+          sel.h = clamp(y - sel.y, 1, cnv.height - sel.y);
+        }
+        rect();
+      });
+      window.addEventListener('mouseup', ()=>{ dragging=false; resizing=false; });
+      window.addEventListener('keydown', (e)=>{
+        if(e.key==='Escape'){ clearSelectionUI(); }
+      });
+    }
+
+    function clearSelectionUI(){
+      sel=null; overlay.innerHTML='';
+    }
+    document.getElementById('clearSel').addEventListener('click', clearSelectionUI);
+
+    // Preview crop = render cropped area of current page onto canvas
+    previewBtn.addEventListener('click', async ()=>{
+      if(!sel || !canvas) return;
+      const tmp = createCanvas(sel.w, sel.h);
+      const tctx = tmp.getContext('2d');
+      tctx.drawImage(canvas, sel.x, sel.y, sel.w, sel.h, 0, 0, sel.w, sel.h);
+      // replace visible canvas with preview but keep selection so user can retry
+      stageWrap.replaceChild(tmp, canvas);
+      canvas = tmp;
+      // selection matches full canvas now
+      sel = {x:0,y:0,w:canvas.width,h:canvas.height};
+      // rebind selection to allow adjusting again
+      bindSelection(canvas);
+    });
+
+    // Download cropped PDF
+    downloadBtn.addEventListener('click', async ()=>{
+      if(!fileBytes || !pdfDocJS) return;
+      if(!sel){ alert('Draw a crop selection first.'); return; }
+
+      // Load via pdf-lib
+      const pdfDoc = await PDFLib.PDFDocument.load(fileBytes);
+      const pages = pdfDoc.getPages();
+
+      // Selection as percentages relative to current canvas
+      const px = sel.x / canvas.width;
+      const py = sel.y / canvas.height;
+      const pw = sel.w / canvas.width;
+      const ph = sel.h / canvas.height;
+
+      for(let i=0;i<pages.length;i++){
+        if(!applyAllEl.checked && (i+1)!==currentPage) continue;
+        const p = pages[i];
+        const W = p.getWidth();
+        const H = p.getHeight();
+        // Convert from canvas top-left to PDF bottom-left
+        const cropLeft = px * W;
+        const cropBottom = (1 - (py + ph)) * H;
+        const cropWidth = Math.max(1, pw * W);
+        const cropHeight = Math.max(1, ph * H);
+
+        // Apply all boxes for compatibility
+        p.setCropBox(cropLeft, cropBottom, cropWidth, cropHeight);
+        p.setMediaBox(cropLeft, cropBottom, cropWidth, cropHeight);
+        p.setBleedBox(cropLeft, cropBottom, cropWidth, cropHeight);
+        p.setTrimBox(cropLeft, cropBottom, cropWidth, cropHeight);
+        p.setArtBox(cropLeft, cropBottom, cropWidth, cropHeight);
+      }
+
+      const bytes = await pdfDoc.save({ updateFieldAppearances:false });
+      const blob = new Blob([bytes], {type:'application/pdf'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = outName.textContent || 'cropped.pdf';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
   </script>
 </body>
 </html>
