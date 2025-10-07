@@ -80,10 +80,7 @@
         <!-- CENTER -->
         <section class="panel card box action-box theme-center" aria-label="Crop">
           <h2 class="title">Crop</h2>
-          <progress id="prog" max="100" value="0" class="w-100"></progress>
-          <div id="status" class="small">Idle…</div>
-
-          <div class="stage-wrap mt-2" id="stageWrap" tabindex="0" aria-label="Page preview">
+<div class="stage-wrap mt-2" id="stageWrap" tabindex="0" aria-label="Page preview">
             <canvas id="stage" width="0" height="0"></canvas>
             <div class="overlay-crop" aria-hidden="true">
               <div class="rect" id="rect">
@@ -173,7 +170,7 @@
     let outFileName='cropped.pdf';
 
     function fmt(n){return new Intl.NumberFormat().format(n);}
-    function setStatus(t){statusEl.textContent=t;}
+    function setStatus(t){ if (statusEl) statusEl.textContent = t; }
     function enableControls(on){applyAllEl.disabled=!on;downloadBtn.disabled=!on;clearBtnTop.disabled=!on;downloadBtn.classList.toggle('primary-blue',!!on);}
     function cancelActiveRender(){if(pageRenderTask?.cancel){try{pageRenderTask.cancel()}catch{} } pageRenderTask=null;}
 
@@ -187,7 +184,7 @@
     function resetDocState(){
       cancelActiveRender(); fileInput.value=''; pdfDocJS=null; pdfLibDoc=null; pageCount=0; currentPage=1; currentViewport=null;
       stage.width=stage.height=0; stageWrap.classList.remove('ready'); thumbsEl.innerHTML='Upload a PDF to see pages…'; metaEl.textContent='No file';
-      enableControls(false); setStatus('Idle…'); selection=null; overlayRect.style.display='none'; outFileName='cropped.pdf'; outNameEl.textContent=outFileName; prog.value=0;
+      enableControls(false); setStatus('Idle…'); selection=null; overlayRect.style.display='none'; outFileName='cropped.pdf'; outNameEl.textContent=outFileName; if (prog) prog.value=0;
     }
 
     async function handleFile(file){
@@ -358,13 +355,13 @@
 
     applyBtn.addEventListener('click',async ()=>{
       if(!selection) return;
-      prog.style.display='block'; prog.value=5; setStatus('Applying crop…');
-      await applyCropToPages(applyAllEl.checked?'all':'current'); prog.value=60;
+      if (prog) prog.style.display='block'; if (prog) prog.value=5; setStatus('Applying crop…');
+      await applyCropToPages(applyAllEl.checked?'all':'current'); if (prog) prog.value=60;
       const bytes=await pdfLibDoc.save({updateFieldAppearances:false});
       const bytesForJS=(bytes.slice)?bytes.slice(0):new Uint8Array(bytes);
       pdfDocJS=await pdfjsLib.getDocument({data:bytesForJS}).promise; pageCount=pdfDocJS.numPages;
-      await rebuildThumbs(); prog.value=90; await setPage(currentPage);
-      clearSelectionUI(); setStatus('Preview updated'); prog.value=100; setTimeout(()=>prog.style.display='none',250);
+      await rebuildThumbs(); if (prog) prog.value=90; await setPage(currentPage);
+      clearSelectionUI(); setStatus('Preview updated'); if (prog) prog.value=100; if (prog) setTimeout(()=>prog.style.display='none',250);
     });
 
     downloadBtn.addEventListener('click',async ()=>{
