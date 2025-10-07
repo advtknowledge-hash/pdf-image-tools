@@ -23,6 +23,7 @@
     .stage-wrap.ready canvas{display:block}
 
     .overlay-crop{position:absolute;inset:0;pointer-events:none;border-radius:12px}
+    /* rect must receive events to move/resize */
     .overlay-crop .rect{position:absolute;border:2px dashed rgba(124,58,237,.9);background:rgba(124,58,237,.08);
       border-radius:10px;display:none;box-shadow:0 0 0 2px rgba(255,255,255,.35) inset;cursor:move;pointer-events:auto}
     .overlay-crop .handle{position:absolute;width:12px;height:12px;background:#fff;border:2px solid #7c3aed;border-radius:50%;
@@ -104,7 +105,8 @@
           <h2 class="title">Settings</h2>
           <div class="row" style="gap:8px;justify-content:flex-start">
             <label class="inline" for="applyAll" style="margin:6px 0">
-              <input id="applyAll" type="checkbox" checked />
+              <!-- DEFAULT CHECKED (requested) -->
+              <input id="applyAll" type="checkbox" checked disabled />
               <span>Apply crop to all pages</span>
             </label>
           </div>
@@ -171,9 +173,6 @@
     let lastPos=null;              // last cursor pos for move/resize
     let outFileName='cropped.pdf';
 
-    // default ON
-    applyAllEl.checked = true;
-
     function fmt(n){return new Intl.NumberFormat().format(n);}
     function setStatus(t){statusEl.textContent=t;}
     function enableControls(on){applyAllEl.disabled=!on;downloadBtn.disabled=!on;clearBtnTop.disabled=!on;downloadBtn.classList.toggle('primary-blue',!!on);}
@@ -190,7 +189,8 @@
       cancelActiveRender(); fileInput.value=''; pdfDocJS=null; pdfLibDoc=null; pageCount=0; currentPage=1; currentViewport=null;
       stage.width=stage.height=0; stageWrap.classList.remove('ready'); thumbsEl.innerHTML='Upload a PDF to see pages…'; metaEl.textContent='No file';
       enableControls(false); setStatus('Idle…'); selection=null; overlayRect.style.display='none'; outFileName='cropped.pdf'; outNameEl.textContent=outFileName; prog.value=0;
-      applyAllEl.checked = true; // keep default ON
+      // keep default checked
+      applyAllEl.checked = true;
     }
 
     async function handleFile(file){
@@ -288,14 +288,16 @@
 
     // move by dragging the rect itself
     overlayRect.addEventListener('mousedown',e=>{
-      if(!selection) return; e.preventDefault(); e.stopPropagation();
+      if(!selection) return;
+      e.preventDefault(); e.stopPropagation();
       dragMode='move'; lastPos=getLocalXY(e);
     });
 
     // resize via handles (each handle stops bubbling)
     overlayRect.querySelectorAll('.handle').forEach(h=>{
       h.addEventListener('mousedown',e=>{
-        if(!selection) return; e.preventDefault(); e.stopPropagation();
+        if(!selection) return;
+        e.preventDefault(); e.stopPropagation();
         dragMode='resize'; activeHandle=h.dataset.h; lastPos=getLocalXY(e);
       });
     });
@@ -325,7 +327,8 @@
         if(['ne','e','se'].includes(activeHandle)) x2=clamp(pt.x,x1+1,maxW);
         if(['nw','n','ne'].includes(activeHandle)) y1=clamp(pt.y,0,y2-1);
         if(['sw','s','se'].includes(activeHandle)) y2=clamp(pt.y,y1+1,maxH);
-        selection=normalizeSel({x:x1,y:y1,w:x2-x1,h:y2-y1}); lastPos=pt; updateRectUI(); return;
+        selection=normalizeSel({x:x1,y:y1,w:x2-x1,h:y2-y1});
+        lastPos=pt; updateRectUI(); return;
       }
     });
 
@@ -337,7 +340,7 @@
     function clearSelectionUI(){selection=null; overlayRect.style.display='none'; clearBtn.disabled=true; applyBtn.disabled=true;}
     clearBtn.addEventListener('click', clearSelectionUI);
 
-    // Apply crop (current/all) — takes a selection snapshot
+    // Apply crop (current/all) — now takes a snapshot selection
     async function applyCropToPages(scope, sel){
       const page=pdfLibDoc.getPage(currentPage-1); const {width:pdfW,height:pdfH}=page.getSize();
       const cssW=parseFloat(stage.style.width), cssH=parseFloat(stage.style.height);
@@ -356,11 +359,11 @@
       if(scope==='all'){ pdfLibDoc.getPages().forEach(applyTo); } else { applyTo(page); }
     }
 
-    // Preview crop — clear UI immediately, then apply to working copy
+    // Preview crop — clear selection immediately after clicking
     applyBtn.addEventListener('click',async ()=>{
       if(!selection) return;
-      const sel={...selection};         // snapshot
-      clearSelectionUI();               // instant visual clear
+      const sel = { ...selection };   // snapshot
+      clearSelectionUI();             // instant clear (requested)
 
       prog.style.display='block'; prog.value=5; setStatus('Applying crop…');
       await applyCropToPages(applyAllEl.checked?'all':'current', sel); prog.value=60;
