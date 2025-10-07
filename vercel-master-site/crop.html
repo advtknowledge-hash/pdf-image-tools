@@ -9,7 +9,6 @@
   <script defer src="/site.js"></script>
   <script defer src="/assets/seo.js"></script>
   <meta name="color-scheme" content="light dark" />
-
   <style>
     .crop-wrap .panel .grid-crop{display:grid;grid-template-columns:320px 1fr 320px;gap:20px;align-items:start}
     .thumbs.small{display:flex;flex-direction:column;gap:10px;margin-top:10px;max-height:60vh;overflow:auto;padding-right:4px}
@@ -225,7 +224,6 @@
         originalBytes = new Uint8Array(await file.arrayBuffer());
         previewBytes = null; showingPreview = false;
 
-        // Load once, then pass the doc down (prevents race with null bytes)
         const doc = await pdfjsLib.getDocument({ data: originalBytes }).promise;
         pdfDocJS = doc;
         pageCount = pdfDocJS.numPages;
@@ -316,17 +314,22 @@
       overlayRect.querySelectorAll('.handle').forEach(h=>{const [hx,hy]=pos[h.dataset.h]; h.style.left=(hx-6)+'px'; h.style.top=(hy-6)+'px';});
     }
     function updateRectUI(){
-      if(!selection){overlayRect.style.display='none';return;}
+      if(!selection){overlayRect.style.display='none';clearBtn.disabled=true;applyBtn.disabled=true;return;}
       const s=selection; overlayRect.style.display='block';
       overlayRect.style.left=s.x+'px'; overlayRect.style.top=s.y+'px'; overlayRect.style.width=s.w+'px'; overlayRect.style.height=s.h+'px';
-      placeHandles(s); clearBtn.disabled=false; applyBtn.disabled=false;
+      placeHandles(s);
+      const ok = s.w>=2 && s.h>=2;
+      clearBtn.disabled=!ok; applyBtn.disabled=!ok;
     }
 
-    stageWrap.addEventListener('mousedown',e=>{
+    // Start draw on stage OR canvas (some browsers send the down to canvas)
+    function startDraw(e){
       if(!currentViewport) return;
       const pt=getLocalXY(e);
       dragMode='draw'; dragStart=pt; selection={x:pt.x,y:pt.y,w:0,h:0}; updateRectUI();
-    });
+    }
+    stageWrap.addEventListener('mousedown',startDraw);
+    stage.addEventListener('mousedown',startDraw); // <— extra listener so drawing always works
 
     overlayRect.addEventListener('mousedown',e=>{
       if(!selection) return; e.preventDefault(); e.stopPropagation();
@@ -366,8 +369,7 @@
       }
     });
 
-    window.addEventListener('mouseup',()=>{ if(!dragMode) return; dragMode=null; activeHandle=null; dragStart=null;
-      const ok=selection && selection.w>=2 && selection.h>=2; clearBtn.disabled=!ok; applyBtn.disabled=!ok; });
+    window.addEventListener('mouseup',()=>{ if(!dragMode) return; dragMode=null; activeHandle=null; dragStart=null; updateRectUI(); });
     window.addEventListener('keydown',e=>{ if(e.key==='Escape') clearSelectionUI(); });
     function clearSelectionUI(){ selection=null; overlayRect.style.display='none'; clearBtn.disabled=true; applyBtn.disabled=true; }
     clearBtn.addEventListener('click', clearSelectionUI);
@@ -398,19 +400,27 @@
     }
 
     applyBtn.addEventListener('click', async ()=>{
-      if(!selection) return;
-      const sel={...selection};
-      prog.style.display='block'; prog.value=5; setStatus('Building preview…');
+      try{
+        if(!originalBytes){ alert('Please upload a PDF first.'); return; }
+        if(!selection || selection.w<2 || selection.h<2){ setStatus('Draw a crop box first.'); return; }
 
-      previewBytes = await buildCroppedBytes(sel, applyAllEl.checked ? 'all' : 'current');
-      prog.value=60;
-      showingPreview = true; backBtn.classList.add('show');
+        const sel={...selection};
+        prog.style.display='block'; prog.value=5; setStatus('Building preview…');
 
-      await rebuildThumbs(); prog.value=90;
-      await setPage(currentPage);
-      setStatus('Preview ready');
-      prog.value=100; setTimeout(()=>prog.style.display='none',200);
-      // selection stays for retry
+        previewBytes = await buildCroppedBytes(sel, applyAllEl.checked ? 'all' : 'current');
+        prog.value=60;
+        showingPreview = true; backBtn.classList.add('show');
+
+        await rebuildThumbs(); prog.value=90;
+        await setPage(currentPage);
+        setStatus('Preview ready');
+        prog.value=100; setTimeout(()=>prog.style.display='none',200);
+      }catch(err){
+        console.error(err);
+        alert('Preview failed: ' + (err?.message || err));
+        setStatus('Preview failed');
+        prog.style.display='none';
+      }
     });
 
     backBtn.addEventListener('click', async ()=>{
