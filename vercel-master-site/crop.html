@@ -11,32 +11,24 @@
   <meta name="color-scheme" content="light dark" />
 
   <style>
-    /* keep existing look; only scoped essentials */
     .crop-wrap .panel .grid-crop{display:grid;grid-template-columns:320px 1fr 320px;gap:20px;align-items:start}
     .thumbs.small{display:flex;flex-direction:column;gap:10px;margin-top:10px;max-height:60vh;overflow:auto;padding-right:4px}
     .thumbs.small .thumb{border:1px solid var(--border);border-radius:10px;padding:6px;box-shadow:var(--shadow-sm);cursor:pointer;background:var(--surface-1)}
     .thumbs.small .thumb.active{outline:2px solid var(--brand-1)}
-
     .stage-wrap{position:relative;display:block;margin:8px auto 0;max-width:100%}
     .stage-wrap canvas{display:none;max-width:100%;height:auto;border-radius:12px;background:var(--surface-2);outline:2px solid rgba(0,0,0,.10);box-shadow:var(--shadow-sm)}
     .stage-wrap.ready canvas{display:block}
-
     .overlay-crop{position:absolute;inset:0;pointer-events:none;border-radius:12px}
-    .overlay-crop .rect{position:absolute;border:2px dashed rgba(124,58,237,.9);background:rgba(124,58,237,.08);
-      border-radius:10px;display:none;box-shadow:0 0 0 2px rgba(255,255,255,.35) inset;cursor:move;pointer-events:auto}
-    .overlay-crop .handle{position:absolute;width:12px;height:12px;background:#fff;border:2px solid #7c3aed;border-radius:50%;
-      box-shadow:0 1px 2px rgba(0,0,0,.2);pointer-events:auto}
+    .overlay-crop .rect{position:absolute;border:2px dashed rgba(124,58,237,.9);background:rgba(124,58,237,.08);border-radius:10px;display:none;box-shadow:0 0 0 2px rgba(255,255,255,.35) inset;cursor:move;pointer-events:auto}
+    .overlay-crop .handle{position:absolute;width:12px;height:12px;background:#fff;border:2px solid #7c3aed;border-radius:50%;box-shadow:0 1px 2px rgba(0,0,0,.2);pointer-events:auto}
     .overlay-crop .handle.nw,.overlay-crop .handle.se{cursor:nwse-resize}
     .overlay-crop .handle.ne,.overlay-crop .handle.sw{cursor:nesw-resize}
     .overlay-crop .handle.n,.overlay-crop .handle.s{cursor:ns-resize}
     .overlay-crop .handle.w,.overlay-crop .handle.e{cursor:ew-resize}
-
     .sticky-cta{position:sticky;bottom:8px;padding-top:8px;background:linear-gradient(to top, rgba(0,0,0,.03), transparent)}
     .panel .inline input[type="checkbox"]{margin:0}
-
     .back-link{display:none;margin-left:8px}
     .back-link.show{display:inline-flex}
-
     @media (max-width:1024px){
       .crop-wrap .panel .grid-crop{grid-template-columns:1fr}
       .thumbs.small{flex-direction:row;flex-wrap:wrap;max-height:none}
@@ -185,7 +177,7 @@
     }
     function cancelActiveRender(){if(pageRenderTask?.cancel){try{pageRenderTask.cancel()}catch{}} pageRenderTask=null;}
 
-    // -------- bytes/doc helpers (fix "No PDF header") --------
+    // -------- bytes/doc helpers --------
     function getActiveBytes(){
       return (showingPreview && previewBytes && previewBytes.length)
         ? previewBytes
@@ -218,10 +210,8 @@
       selection=null; overlayRect.style.display='none';
       outFileName='cropped.pdf'; outNameEl.textContent=outFileName;
       prog.value=0;
-      // clear buffers & preview state
       originalBytes=null; previewBytes=null; showingPreview=false; backBtn.classList.remove('show');
-      // default ON
-      applyAllEl.checked = true;
+      applyAllEl.checked = true; // default ON
     }
 
     async function handleFile(file){
@@ -235,13 +225,14 @@
         originalBytes = new Uint8Array(await file.arrayBuffer());
         previewBytes = null; showingPreview = false;
 
+        // Load once, then pass the doc down (prevents race with null bytes)
         const doc = await pdfjsLib.getDocument({ data: originalBytes }).promise;
         pdfDocJS = doc;
         pageCount = pdfDocJS.numPages;
         metaEl.textContent = `${file.name} • ${fmt(pageCount)} pages • ${(file.size/1024/1024).toFixed(2)} MB`;
 
-        await rebuildThumbs();
-        await setPage(1);
+        await rebuildThumbs(doc);
+        await setPage(1, doc);
         enableControls(true);
         setStatus('Ready.');
       }catch(err){
@@ -260,11 +251,12 @@
       return Math.min(targetW/v1.width, targetH/v1.height);
     }
 
-    async function setPage(n){
+    // Accept optional doc to avoid calling getActiveJsDoc during initial load
+    async function setPage(n, providedDoc=null){
       currentPage=n;
       Array.from(thumbsEl.children).forEach((el,i)=>el.classList.toggle('active', i===n-1));
 
-      const doc = await getActiveJsDoc();
+      const doc = providedDoc || await getActiveJsDoc();
       pdfDocJS = doc;
 
       const page = await pdfDocJS.getPage(n);
@@ -287,7 +279,6 @@
       try{await pageRenderTask.promise;}catch(e){if(e?.name!=='RenderingCancelledException')throw e;}finally{pageRenderTask=null;}
       stageWrap.classList.add('ready'); page.cleanup();
 
-      // keep selection for quick retry
       const ok=selection && selection.w>=2 && selection.h>=2;
       clearBtn.disabled=!ok; applyBtn.disabled=!ok;
 
@@ -295,8 +286,8 @@
     }
     window.addEventListener('resize',()=>{ if(getActiveBytes()) setPage(currentPage); });
 
-    async function rebuildThumbs(){
-      const doc = await getActiveJsDoc();
+    async function rebuildThumbs(providedDoc=null){
+      const doc = providedDoc || await getActiveJsDoc();
       const pages = doc.numPages;
       thumbsEl.innerHTML='';
       for(let i=1;i<=pages;i++){
@@ -419,7 +410,7 @@
       await setPage(currentPage);
       setStatus('Preview ready');
       prog.value=100; setTimeout(()=>prog.style.display='none',200);
-      // selection stays — adjust & preview again if needed
+      // selection stays for retry
     });
 
     backBtn.addEventListener('click', async ()=>{
