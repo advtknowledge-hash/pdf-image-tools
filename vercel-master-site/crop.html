@@ -11,7 +11,7 @@
   <meta name="color-scheme" content="light dark" />
 
   <style>
-    /* keep your existing look; only scoped essentials below */
+    /* keep existing look; only scoped essentials */
     .crop-wrap .panel .grid-crop{display:grid;grid-template-columns:320px 1fr 320px;gap:20px;align-items:start}
     .thumbs.small{display:flex;flex-direction:column;gap:10px;margin-top:10px;max-height:60vh;overflow:auto;padding-right:4px}
     .thumbs.small .thumb{border:1px solid var(--border);border-radius:10px;padding:6px;box-shadow:var(--shadow-sm);cursor:pointer;background:var(--surface-1)}
@@ -34,10 +34,9 @@
     .sticky-cta{position:sticky;bottom:8px;padding-top:8px;background:linear-gradient(to top, rgba(0,0,0,.03), transparent)}
     .panel .inline input[type="checkbox"]{margin:0}
 
-    /* a tiny helper for the back-to-original link */
     .back-link{display:none;margin-left:8px}
     .back-link.show{display:inline-flex}
-    
+
     @media (max-width:1024px){
       .crop-wrap .panel .grid-crop{grid-template-columns:1fr}
       .thumbs.small{flex-direction:row;flex-wrap:wrap;max-height:none}
@@ -104,7 +103,7 @@
           <div class="row center mt-2">
             <button id="clearCrop" class="btn ghost" disabled>Clear selection (Esc)</button>
             <button id="applyCrop" class="btn" disabled>Preview crop</button>
-            <button id="backOriginal" class="btn subtle back-link" title="Back to original preview">Back to original</button>
+            <button id="backOriginal" class="btn subtle back-link" title="Back to original">Back to original</button>
           </div>
         </section>
 
@@ -113,7 +112,6 @@
           <h2 class="title">Settings</h2>
           <div class="row" style="gap:8px;justify-content:flex-start">
             <label class="inline" for="applyAll" style="margin:6px 0">
-              <!-- DEFAULT CHECKED + enabled after load -->
               <input id="applyAll" type="checkbox" checked />
               <span>Apply crop to all pages</span>
             </label>
@@ -124,7 +122,7 @@
             <div class="small muted mt-1">
               • Drag to draw a crop box. Drag inside to move; use handles to resize.<br>
               • Press <kbd>Esc</kbd> to clear.<br>
-              • “Preview crop” shows a temporary preview (original stays safe). Use “Back to original” to revert the view.
+              • “Preview crop” is non-destructive; use “Back to original” to revert the view.
             </div>
           </details>
 
@@ -167,27 +165,39 @@
     const prog=$('#prog'), statusEl=$('#status'), outNameEl=$('#outName');
 
     // State
-    let pdfDocJS=null, pdfLibDoc=null, pageCount=0, currentPage=1, currentViewport=null;
+    let pdfDocJS=null, pageCount=0, currentPage=1, currentViewport=null;
     let pageRenderTask=null;
-    let selection=null;            // {x,y,w,h} in CSS px
-    let dragMode=null;             // 'draw'|'move'|'resize'
-    let activeHandle=null, dragStart=null, lastPos=null;
+    let selection=null, dragMode=null, activeHandle=null, dragStart=null, lastPos=null;
     let outFileName='cropped.pdf';
 
-    // Preview model
-    let originalBytes=null;        // pristine input
-    let showingPreview=false;      // are we currently showing cropped preview (temp)?
-    let previewBytes=null;         // last preview doc bytes (for quick re-show)
+    // Non-destructive preview buffers
+    let originalBytes=null;
+    let previewBytes=null;
+    let showingPreview=false;
 
     function fmt(n){return new Intl.NumberFormat().format(n);}
     function setStatus(t){statusEl.textContent=t;}
     function enableControls(on){
-      applyAllEl.disabled=!on; downloadBtn.disabled=!on; clearBtnTop.disabled=!on;
+      applyAllEl.disabled=!on;
+      downloadBtn.disabled=!on;
+      clearBtnTop.disabled=!on;
       downloadBtn.classList.toggle('primary-blue', !!on);
     }
-    function cancelActiveRender(){ if(pageRenderTask?.cancel){try{pageRenderTask.cancel()}catch{} } pageRenderTask=null; }
+    function cancelActiveRender(){if(pageRenderTask?.cancel){try{pageRenderTask.cancel()}catch{}} pageRenderTask=null;}
 
-    // Upload
+    // -------- bytes/doc helpers (fix "No PDF header") --------
+    function getActiveBytes(){
+      return (showingPreview && previewBytes && previewBytes.length)
+        ? previewBytes
+        : (originalBytes && originalBytes.length ? originalBytes : null);
+    }
+    async function getActiveJsDoc(){
+      const data = getActiveBytes();
+      if(!data) throw new Error('No PDF loaded');
+      return await pdfjsLib.getDocument({ data }).promise;
+    }
+
+    // Upload / reset
     fileInput.addEventListener('change',async e=>{const f=e.target.files?.[0];if(f)await handleFile(f);});
     clearBtnTop.addEventListener('click', resetDocState);
     ['dragenter','dragover'].forEach(ev=>dropzone.addEventListener(ev,e=>{e.preventDefault();dropzone.classList.add('dropping');}));
@@ -201,20 +211,17 @@
     function resetDocState(){
       cancelActiveRender();
       fileInput.value='';
-      pdfDocJS=null; pdfLibDoc=null;
-      pageCount=0; currentPage=1; currentViewport=null;
-      stage.width=stage.height=0;
-      stageWrap.classList.remove('ready');
-      thumbsEl.innerHTML='Upload a PDF to see pages…';
-      metaEl.textContent='No file';
-      enableControls(false);
-      setStatus('Idle…');
+      pdfDocJS=null; pageCount=0; currentPage=1; currentViewport=null;
+      stage.width=stage.height=0; stageWrap.classList.remove('ready');
+      thumbsEl.innerHTML='Upload a PDF to see pages…'; metaEl.textContent='No file';
+      enableControls(false); setStatus('Idle…');
       selection=null; overlayRect.style.display='none';
       outFileName='cropped.pdf'; outNameEl.textContent=outFileName;
       prog.value=0;
-      originalBytes=null; showingPreview=false; previewBytes=null;
-      backBtn.classList.remove('show');
-      applyAllEl.checked = true; // default ON
+      // clear buffers & preview state
+      originalBytes=null; previewBytes=null; showingPreview=false; backBtn.classList.remove('show');
+      // default ON
+      applyAllEl.checked = true;
     }
 
     async function handleFile(file){
@@ -225,12 +232,11 @@
         outFileName=(file.name||'cropped.pdf').replace(/\.pdf$/i,'')+'.cropped.pdf';
         outNameEl.textContent=outFileName;
 
-        originalBytes = new Uint8Array(await file.arrayBuffer()); // keep pristine
-        const raw = originalBytes.slice(0);
+        originalBytes = new Uint8Array(await file.arrayBuffer());
+        previewBytes = null; showingPreview = false;
 
-        pdfDocJS  = await pdfjsLib.getDocument({ data: raw }).promise;
-        pdfLibDoc = await PDFLib.PDFDocument.load(raw);
-
+        const doc = await pdfjsLib.getDocument({ data: originalBytes }).promise;
+        pdfDocJS = doc;
         pageCount = pdfDocJS.numPages;
         metaEl.textContent = `${file.name} • ${fmt(pageCount)} pages • ${(file.size/1024/1024).toFixed(2)} MB`;
 
@@ -245,7 +251,7 @@
       }
     }
 
-    // Fit helpers
+    // Fit
     function computeFitScale(page){
       const v1=page.getViewport({scale:1});
       const centerWidth=stageWrap.clientWidth||stageWrap.getBoundingClientRect().width||800;
@@ -256,14 +262,9 @@
 
     async function setPage(n){
       currentPage=n;
-      Array.from(thumbsEl.children).forEach((el,i)=>el.classList.toggle('active',i===n-1));
+      Array.from(thumbsEl.children).forEach((el,i)=>el.classList.toggle('active', i===n-1));
 
-      // select source bytes based on whether preview is showing
-      const srcJS = showingPreview && previewBytes
-        ? { data: previewBytes.slice(0) }
-        : { data: (originalBytes ? originalBytes.slice(0) : null) };
-
-      const doc = await pdfjsLib.getDocument(srcJS).promise;
+      const doc = await getActiveJsDoc();
       pdfDocJS = doc;
 
       const page = await pdfDocJS.getPage(n);
@@ -277,28 +278,27 @@
       stage.style.width=Math.ceil(currentViewport.width)+'px';
       stage.style.height=Math.ceil(currentViewport.height)+'px';
 
-      const ctx=stage.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,stage.width,stage.height);
-      cancelActiveRender(); pageRenderTask=page.render({canvasContext:ctx,viewport:currentViewport});
+      const ctx=stage.getContext('2d');
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      ctx.clearRect(0,0,stage.width,stage.height);
+
+      cancelActiveRender();
+      pageRenderTask=page.render({canvasContext:ctx,viewport:currentViewport});
       try{await pageRenderTask.promise;}catch(e){if(e?.name!=='RenderingCancelledException')throw e;}finally{pageRenderTask=null;}
       stageWrap.classList.add('ready'); page.cleanup();
 
-      // do NOT clear selection (requested)
-      clearBtn.disabled = !(selection && selection.w>=2 && selection.h>=2);
-      applyBtn.disabled = !(selection && selection.w>=2 && selection.h>=2);
+      // keep selection for quick retry
+      const ok=selection && selection.w>=2 && selection.h>=2;
+      clearBtn.disabled=!ok; applyBtn.disabled=!ok;
 
       stageWrap.scrollIntoView({block:'center', inline:'nearest'});
     }
-    window.addEventListener('resize',()=>{ if(pdfDocJS) setPage(currentPage); });
+    window.addEventListener('resize',()=>{ if(getActiveBytes()) setPage(currentPage); });
 
     async function rebuildThumbs(){
-      const srcJS = showingPreview && previewBytes
-        ? { data: previewBytes.slice(0) }
-        : { data: (originalBytes ? originalBytes.slice(0) : null) };
-
-      const doc = await pdfjsLib.getDocument(srcJS).promise;
-      const pages = await doc.numPages;
+      const doc = await getActiveJsDoc();
+      const pages = doc.numPages;
       thumbsEl.innerHTML='';
-
       for(let i=1;i<=pages;i++){
         const p=await doc.getPage(i); const v=p.getViewport({scale:.22});
         const c=document.createElement('canvas'); const ctx=c.getContext('2d'); c.width=v.width; c.height=v.height;
@@ -308,7 +308,7 @@
       }
     }
 
-    // ===== Crop interactions (draw/move/resize) =====
+    // -------- draw/move/resize crop --------
     const HANDLE_HIT=10;
     function getLocalXY(evt){const r=stage.getBoundingClientRect();return{ x:Math.max(0,Math.min(r.width,evt.clientX-r.left)), y:Math.max(0,Math.min(r.height,evt.clientY-r.top)) };}
     function normalizeSel(sel){
@@ -330,27 +330,23 @@
       overlayRect.style.left=s.x+'px'; overlayRect.style.top=s.y+'px'; overlayRect.style.width=s.w+'px'; overlayRect.style.height=s.h+'px';
       placeHandles(s); clearBtn.disabled=false; applyBtn.disabled=false;
     }
-    function pointInSel(pt,sel){return sel && pt.x>=sel.x && pt.x<=sel.x+sel.w && pt.y>=sel.y && pt.y<=sel.y+sel.h;}
 
     stageWrap.addEventListener('mousedown',e=>{
       if(!currentViewport) return;
       const pt=getLocalXY(e);
-      // if clicking inside selection/handles, rect listeners handle it
       dragMode='draw'; dragStart=pt; selection={x:pt.x,y:pt.y,w:0,h:0}; updateRectUI();
     });
 
     overlayRect.addEventListener('mousedown',e=>{
       if(!selection) return; e.preventDefault(); e.stopPropagation();
-      // decide move/resize by proximity to handles
       const pt=getLocalXY(e);
       const centers={ nw:[selection.x,selection.y], ne:[selection.x+selection.w,selection.y],
         sw:[selection.x,selection.y+selection.h], se:[selection.x+selection.w,selection.y+selection.h],
         n:[selection.x+selection.w/2,selection.y], s:[selection.x+selection.w/2,selection.y+selection.h],
         w:[selection.x,selection.y+selection.h/2], e:[selection.x+selection.w,selection.y+selection.h/2] };
-      let found=null;
-      for(const k in centers){const [hx,hy]=centers[k]; if(Math.abs(pt.x-hx)<=HANDLE_HIT&&Math.abs(pt.y-hy)<=HANDLE_HIT){found=k;break;}}
+      let found=null; for(const k in centers){const [hx,hy]=centers[k]; if(Math.abs(pt.x-hx)<=HANDLE_HIT&&Math.abs(pt.y-hy)<=HANDLE_HIT){found=k;break;}}
       if(found){ dragMode='resize'; activeHandle=found; lastPos=pt; return; }
-      if(pointInSel(pt,selection)){ dragMode='move'; lastPos=pt; }
+      dragMode='move'; lastPos=pt;
     });
 
     window.addEventListener('mousemove',e=>{
@@ -362,14 +358,12 @@
         selection.w=pt.x-dragStart.x; selection.h=pt.y-dragStart.y;
         selection=normalizeSel(selection); updateRectUI(); return;
       }
-
       if(dragMode==='move'){
         const dx=pt.x-lastPos.x, dy=pt.y-lastPos.y;
         let nx=Math.max(0,Math.min(selection.x+dx,maxW-selection.w));
         let ny=Math.max(0,Math.min(selection.y+dy,maxH-selection.h));
         selection={x:nx,y:ny,w:selection.w,h:selection.h}; lastPos=pt; updateRectUI(); return;
       }
-
       if(dragMode==='resize'){
         let x1=selection.x, y1=selection.y, x2=selection.x+selection.w, y2=selection.y+selection.h;
         const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
@@ -383,18 +377,14 @@
 
     window.addEventListener('mouseup',()=>{ if(!dragMode) return; dragMode=null; activeHandle=null; dragStart=null;
       const ok=selection && selection.w>=2 && selection.h>=2; clearBtn.disabled=!ok; applyBtn.disabled=!ok; });
-
     window.addEventListener('keydown',e=>{ if(e.key==='Escape') clearSelectionUI(); });
     function clearSelectionUI(){ selection=null; overlayRect.style.display='none'; clearBtn.disabled=true; applyBtn.disabled=true; }
     clearBtn.addEventListener('click', clearSelectionUI);
 
-    // ===== Non-destructive preview =====
-    async function buildCroppedPreviewBytes(sel, scope){
-      // work from ORIGINAL bytes every time (non-destructive)
+    // -------- non-destructive preview + final download --------
+    async function buildCroppedBytes(sel, scope){
       const work = await PDFLib.PDFDocument.load(originalBytes.slice(0));
       const pages = work.getPages();
-
-      // for mapping CSS px -> PDF points we need current page size
       const refPage = pages[currentPage-1];
       const { width: pdfW, height: pdfH } = refPage.getSize();
       const cssW = parseFloat(stage.style.width), cssH = parseFloat(stage.style.height);
@@ -418,44 +408,35 @@
 
     applyBtn.addEventListener('click', async ()=>{
       if(!selection) return;
-      const sel = { ...selection };
+      const sel={...selection};
       prog.style.display='block'; prog.value=5; setStatus('Building preview…');
 
-      previewBytes = await buildCroppedPreviewBytes(sel, applyAllEl.checked ? 'all' : 'current');
+      previewBytes = await buildCroppedBytes(sel, applyAllEl.checked ? 'all' : 'current');
       prog.value=60;
+      showingPreview = true; backBtn.classList.add('show');
 
-      // switch view to preview (temp)
-      showingPreview = true;
-      backBtn.classList.add('show');
-
-      await rebuildThumbs();
-      prog.value=90;
+      await rebuildThumbs(); prog.value=90;
       await setPage(currentPage);
       setStatus('Preview ready');
       prog.value=100; setTimeout(()=>prog.style.display='none',200);
-      // NOTE: selection stays as-is (no clear) so you can adjust & preview again
+      // selection stays — adjust & preview again if needed
     });
 
     backBtn.addEventListener('click', async ()=>{
       if(!originalBytes) return;
-      showingPreview = false;
-      backBtn.classList.remove('show');
-      await rebuildThumbs();
-      await setPage(currentPage);
+      showingPreview=false; backBtn.classList.remove('show');
+      await rebuildThumbs(); await setPage(currentPage);
       setStatus('Back to original');
     });
 
-    // ===== Download (final, destructive on a fresh copy) =====
     downloadBtn.addEventListener('click', async ()=>{
       if(!originalBytes){ return; }
       if(!selection){ alert('Draw a crop box first.'); return; }
 
       setStatus('Preparing download…'); prog.style.display='block'; prog.value=10;
-
-      // build final from ORIGINAL (non-destructive to UI state), apply to all/current
-      const finalBytes = await buildCroppedPreviewBytes(selection, applyAllEl.checked ? 'all' : 'current');
-
+      const finalBytes = await buildCroppedBytes(selection, applyAllEl.checked ? 'all' : 'current');
       prog.value=70;
+
       const blob=new Blob([finalBytes],{type:'application/pdf'});
       const url=URL.createObjectURL(blob);
       const a=document.createElement('a'); a.href=url; a.download=outFileName||'cropped.pdf'; a.click();
