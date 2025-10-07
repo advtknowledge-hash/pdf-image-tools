@@ -161,26 +161,23 @@
     let selection=null, dragMode=null, activeHandle=null, dragStart=null, lastPos=null;
     let outFileName='cropped.pdf';
 
-    // Non-destructive preview buffers
-    let originalBytes=null;
-    let previewBytes=null;
+    // Master bytes (never given to pdf.js); preview bytes for temporary view
+    let originalBytes=null;   // master copy kept safe for pdf-lib work
+    let previewBytes=null;    // from last non-destructive preview
     let showingPreview=false;
 
     function fmt(n){return new Intl.NumberFormat().format(n);}
     function setStatus(t){statusEl.textContent=t;}
     function enableControls(on){
-      applyAllEl.disabled=!on;
-      downloadBtn.disabled=!on;
-      clearBtnTop.disabled=!on;
+      applyAllEl.disabled=!on; downloadBtn.disabled=!on; clearBtnTop.disabled=!on;
       downloadBtn.classList.toggle('primary-blue', !!on);
     }
-    function cancelActiveRender(){if(pageRenderTask?.cancel){try{pageRenderTask.cancel()}catch{}} pageRenderTask=null;}
+    function cancelActiveRender(){ if(pageRenderTask?.cancel){ try{pageRenderTask.cancel()}catch{} } pageRenderTask=null; }
 
-    // -------- bytes/doc helpers --------
+    // ---- Always give pdf.js a fresh copy to avoid DETACHED buffer ----
     function getActiveBytes(){
-      return (showingPreview && previewBytes && previewBytes.length)
-        ? previewBytes
-        : (originalBytes && originalBytes.length ? originalBytes : null);
+      if(showingPreview && previewBytes && previewBytes.length) return previewBytes;   // ok to reuse
+      return originalBytes ? originalBytes.slice() : null; // fresh copy for pdf.js worker
     }
     async function getActiveJsDoc(){
       const data = getActiveBytes();
@@ -221,10 +218,12 @@
         outFileName=(file.name||'cropped.pdf').replace(/\.pdf$/i,'')+'.cropped.pdf';
         outNameEl.textContent=outFileName;
 
+        // keep a master copy; never give this specific buffer to pdf.js
         originalBytes = new Uint8Array(await file.arrayBuffer());
         previewBytes = null; showingPreview = false;
 
-        const doc = await pdfjsLib.getDocument({ data: originalBytes }).promise;
+        // pdf.js gets a fresh copy so it can detach safely
+        const doc = await pdfjsLib.getDocument({ data: originalBytes.slice() }).promise;
         pdfDocJS = doc;
         pageCount = pdfDocJS.numPages;
         metaEl.textContent = `${file.name} • ${fmt(pageCount)} pages • ${(file.size/1024/1024).toFixed(2)} MB`;
@@ -249,7 +248,7 @@
       return Math.min(targetW/v1.width, targetH/v1.height);
     }
 
-    // Accept optional doc to avoid calling getActiveJsDoc during initial load
+    // Accept optional doc to avoid extra calls during initial load
     async function setPage(n, providedDoc=null){
       currentPage=n;
       Array.from(thumbsEl.children).forEach((el,i)=>el.classList.toggle('active', i===n-1));
@@ -321,15 +320,13 @@
       const ok = s.w>=2 && s.h>=2;
       clearBtn.disabled=!ok; applyBtn.disabled=!ok;
     }
-
-    // Start draw on stage OR canvas (some browsers send the down to canvas)
     function startDraw(e){
       if(!currentViewport) return;
       const pt=getLocalXY(e);
       dragMode='draw'; dragStart=pt; selection={x:pt.x,y:pt.y,w:0,h:0}; updateRectUI();
     }
     stageWrap.addEventListener('mousedown',startDraw);
-    stage.addEventListener('mousedown',startDraw); // <— extra listener so drawing always works
+    stage.addEventListener('mousedown',startDraw);
 
     overlayRect.addEventListener('mousedown',e=>{
       if(!selection) return; e.preventDefault(); e.stopPropagation();
@@ -376,7 +373,8 @@
 
     // -------- non-destructive preview + final download --------
     async function buildCroppedBytes(sel, scope){
-      const work = await PDFLib.PDFDocument.load(originalBytes.slice(0));
+      // Build from the master copy (untouched by pdf.js)
+      const work = await PDFLib.PDFDocument.load(originalBytes.slice());
       const pages = work.getPages();
       const refPage = pages[currentPage-1];
       const { width: pdfW, height: pdfH } = refPage.getSize();
