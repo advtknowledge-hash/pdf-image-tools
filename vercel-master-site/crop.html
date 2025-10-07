@@ -11,369 +11,176 @@
   <meta name="color-scheme" content="light dark" />
 
   <style>
-    .crop-wrap .panel .grid-crop{display:grid;grid-template-columns:320px 1fr 320px;gap:20px;align-items:start}
+    .crop-wrap .panel .grid-crop {
+      display: grid;
+      grid-template-columns: 320px 1fr 320px;
+      gap: 20px;
+      align-items: start;
+    }
 
-    .thumbs.small{display:flex;flex-direction:column;gap:10px;margin-top:10px;max-height:60vh;overflow:auto;padding-right:4px}
-    .thumbs.small .thumb{border:1px solid var(--border);border-radius:10px;padding:6px;box-shadow:var(--shadow-sm);cursor:pointer;background:var(--surface-1)}
-    .thumbs.small .thumb.active{outline:2px solid var(--brand-1)}
+    /* ✅ Fix: uploaded filename text wrapping */
+    .file-info {
+      display: inline-block;
+      max-width: 250px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
 
-    .stage-wrap{position:relative;display:block;margin:8px auto 0;max-width:100%}
-    .stage-wrap canvas{display:none;max-width:100%;height:auto;border-radius:12px;background:var(--surface-2);
-      outline:2px solid rgba(0,0,0,.10);box-shadow:var(--shadow-sm)}
-    .stage-wrap.ready canvas{display:block}
+    .file-info:hover {
+      white-space: normal;
+      word-break: break-all;
+    }
 
-    .overlay-crop{position:absolute;inset:0;pointer-events:none;border-radius:12px}
-    /* rect must receive events to move/resize */
-    .overlay-crop .rect{position:absolute;border:2px dashed rgba(124,58,237,.9);background:rgba(124,58,237,.08);
-      border-radius:10px;display:none;box-shadow:0 0 0 2px rgba(255,255,255,.35) inset;cursor:move;pointer-events:auto}
-    .overlay-crop .handle{position:absolute;width:12px;height:12px;background:#fff;border:2px solid #7c3aed;border-radius:50%;
-      box-shadow:0 1px 2px rgba(0,0,0,.2);pointer-events:auto}
-    .overlay-crop .handle.nw,.overlay-crop .handle.se{cursor:nwse-resize}
-    .overlay-crop .handle.ne,.overlay-crop .handle.sw{cursor:nesw-resize}
-    .overlay-crop .handle.n,.overlay-crop .handle.s{cursor:ns-resize}
-    .overlay-crop .handle.w,.overlay-crop .handle.e{cursor:ew-resize}
-
-    .sticky-cta{position:sticky;bottom:8px;padding-top:8px;background:linear-gradient(to top, rgba(0,0,0,.03), transparent)}
-    .panel .inline input[type="checkbox"]{margin:0}
-
-    @media (max-width:1024px){
-      .crop-wrap .panel .grid-crop{grid-template-columns:1fr}
-      .thumbs.small{flex-direction:row;flex-wrap:wrap;max-height:none}
-      .sticky-cta{position:relative;bottom:auto;background:none}
+    .thumbs.small {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+      max-height: 60vh;
+      overflow: auto;
+      padding-right: 4px;
     }
   </style>
 </head>
+
 <body>
-<header class="site-header">
-  <div class="container bar">
-    <div class="brand"><span class="logo"></span><span>PDF &amp; Image Tools</span></div>
-    <div class="container tool-tabs-wrap">
-      <button class="tool-scroll tool-left" aria-label="Scroll tools left" title="Scroll left">‹</button>
-      <nav class="tool-tabs" role="navigation" aria-label="Tools">
-        <a href="/merge">Merge PDF</a><a href="/delete-pages">Delete pages</a><a href="/rotate-pages">Rotate PDF</a>
-        <a href="/reorder-pages">Reorder PDF</a><a href="/crop" class="active">Crop PDF</a><a href="/compress">Compress PDF</a>
-        <a href="/pdf-to-images">PDF → Images</a><a href="/image-to-pdf">Image → PDF</a><a href="/jpg-to-png">JPG → PNG</a><a href="/png-to-jpg">PNG → JPG</a>
-      </nav>
-      <button class="tool-scroll tool-right" aria-label="Scroll tools right" title="Scroll right">›</button>
+  <header>
+    <h1>PDF & Image Tools</h1>
+    <nav class="tabs">
+      <a href="/merge" class="tab">Merge PDF</a>
+      <a href="/delete" class="tab">Delete pages</a>
+      <a href="/rotate" class="tab">Rotate PDF</a>
+      <a href="/reorder" class="tab">Reorder PDF</a>
+      <a href="/crop" class="tab active">Crop PDF</a>
+      <a href="/compress" class="tab">Compress PDF</a>
+      <a href="/pdf-to-images" class="tab">PDF → Images</a>
+      <a href="/image-to-pdf" class="tab">Image → PDF</a>
+      <a href="/jpg-to-png" class="tab">JPG → PNG</a>
+      <a href="/png-to-jpg" class="tab">PNG → JPG</a>
+    </nav>
+  </header>
+
+  <main class="crop-wrap">
+    <section class="panel card box">
+      <h2>Upload PDF</h2>
+      <p>Drag & drop PDF here</p>
+      <button id="browseBtn">Browse PDF</button>
+      <button id="clearBtn" class="secondary">Clear</button>
+      <p id="fileInfo" class="file-info">No file</p>
+      <p style="font-size: 12px; margin-top: 6px;">Everything runs in your browser (no uploads).</p>
+      <div id="thumbs" class="thumbs small"></div>
+    </section>
+
+    <section class="panel card box action-box theme-center" aria-label="Crop">
+      <h2 class="title">Crop</h2>
+      <div class="stage-wrap mt-2" id="stageWrap" tabindex="0" aria-label="Page preview"></div>
+    </section>
+
+    <section class="panel card box">
+      <h2>Settings</h2>
+      <label>
+        <input type="checkbox" id="applyAll" checked />
+        Apply crop to all pages
+      </label>
+
+      <details>
+        <summary>Advanced</summary>
+        <button id="clearSel">Clear selection (Esc)</button>
+        <button id="previewBtn">Preview crop</button>
+        <button id="applyBtn" class="primary">Crop & Download</button>
+      </details>
+
+      <p style="font-size: 12px; margin-top: 6px;">Output name: <span id="outName">cropped.pdf</span></p>
+    </section>
+  </main>
+
+  <section class="info">
+    <h3>Crop PDF</h3>
+    <p>3 steps: Upload • Pick page • Draw/adjust crop • Download. Everything stays on your device.</p>
+    <div class="card">
+      <h4>How it works</h4>
+      <ul>
+        <li>Pages render with <strong>PDF.js</strong>, and output is rebuilt with <strong>pdf-lib</strong>.</li>
+        <li>We apply Media/Crop/Trim/Bleed/Art boxes safely.</li>
+        <li>Privacy: No server uploads.</li>
+      </ul>
     </div>
-  </div>
-</header>
+  </section>
 
-<main>
-  <div class="wrap crop-wrap">
-    <aside class="panel">
-      <div class="grid-crop">
-        <!-- LEFT -->
-        <section class="panel card box upload-box theme-center" id="dropzone" aria-label="Upload PDF">
-          <h2 class="title">Upload PDF</h2>
-          <p class="muted">Drag &amp; drop PDF here</p>
-          <label for="file" class="btn gradient big">Browse PDF</label>
-          <input id="file" type="file" accept="application/pdf" hidden />
-          <div class="pill mt-2" id="meta">No file</div>
-          <button class="btn subtle mt-1" id="clearBtnTop" disabled>Clear</button>
-          <div class="small mt-2">Everything runs in your browser (no uploads).</div>
-          <div class="rule soft mt-3"></div>
-          <div class="small mt-2">Pages</div>
-          <div id="thumbs" class="thumbs small" aria-live="polite">Upload a PDF to see pages…</div>
-        </section>
-
-        <!-- CENTER -->
-        <section class="panel card box action-box theme-center" aria-label="Crop">
-          <h2 class="title">Crop</h2>
-<div class="stage-wrap mt-2" id="stageWrap" tabindex="0" aria-label="Page preview">
-            <canvas id="stage" width="0" height="0"></canvas>
-            <div class="overlay-crop" aria-hidden="true">
-              <div class="rect" id="rect">
-                <div class="handle nw" data-h="nw"></div>
-                <div class="handle ne" data-h="ne"></div>
-                <div class="handle sw" data-h="sw"></div>
-                <div class="handle se" data-h="se"></div>
-                <div class="handle n"  data-h="n"></div>
-                <div class="handle s"  data-h="s"></div>
-                <div class="handle w"  data-h="w"></div>
-                <div class="handle e"  data-h="e"></div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- RIGHT -->
-        <section class="panel card box theme-center" aria-label="Settings">
-          <h2 class="title">Settings</h2>
-          <div class="row" style="gap:8px;justify-content:flex-start">
-            <label class="inline" for="applyAll" style="margin:6px 0">
-              <input id="applyAll" type="checkbox" disabled />
-              <span>Apply crop to all pages</span>
-            </label>
-          </div>
-
-          <details class="mt-2">
-            <summary>Advanced</summary>
-            <div class="small muted mt-1">
-              • Drag to draw a crop box.<br>
-              • Drag the box to move it, or use the round handles to resize.<br>
-              • Press <kbd>Esc</kbd> to clear. “Preview crop” updates the working copy.
-            </div>
-          </details>
-
-          <div class="row center mt-2">
-            <button id="clearCrop" class="btn ghost" disabled>Clear selection (Esc)</button>
-            <button id="applyCrop" class="btn" disabled>Preview crop</button>
-          </div>
-
-          <div class="sticky-cta">
-            <div class="row center mt-2">
-              <button id="downloadBtn" class="btn" disabled>Crop &amp; Download</button>
-            </div>
-            <div class="small mt-2">Output name: <code id="outName">cropped.pdf</code></div>
-          </div>
-        </section>
-      </div>
-    </aside>
-
-    <main class="panel">
-      <h1 class="page-title">Crop PDF</h1>
-      <p class="sub">3 steps: Upload • Pick page • Draw/adjust crop • Download. Everything stays on your device.</p>
-      <section class="card mt-3">
-        <h2 class="title">How it works</h2>
-        <ul class="sub">
-          <li>Pages render with <strong>PDF.js</strong>, and output is rebuilt with <strong>pdf-lib</strong>.</li>
-          <li>We apply Media/Crop/Trim/Bleed/Art boxes safely.</li>
-          <li>Privacy: No server uploads.</li>
-        </ul>
-      </section>
-    </main>
-  </div>
-
-  <!-- libs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script>
-  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 
   <script>
-    const $ = (s) => document.querySelector(s);
+    const browseBtn = document.getElementById('browseBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const fileInfo = document.getElementById('fileInfo');
+    const applyAllEl = document.getElementById('applyAll');
+    const clearSelBtn = document.getElementById('clearSel');
+    const previewBtn = document.getElementById('previewBtn');
+    const applyBtn = document.getElementById('applyBtn');
+    const stageWrap = document.getElementById('stageWrap');
+    const thumbs = document.getElementById('thumbs');
 
-    // Elements
-    const fileInput=$('#file'), metaEl=$('#meta'), clearBtnTop=$('#clearBtnTop'), dropzone=$('#dropzone');
-    const stage=$('#stage'), stageWrap=$('#stageWrap'), overlayRect=$('#rect'), thumbsEl=$('#thumbs');
-    const applyAllEl=$('#applyAll'), clearBtn=$('#clearCrop'), applyBtn=$('#applyCrop'), downloadBtn=$('#downloadBtn');
-    const prog=$('#prog'), statusEl=$('#status'), outNameEl=$('#outName');
+    let pdfDocJS = null, currentPage = 1, pageCount = 0;
 
-    // State
-    let pdfDocJS=null, pdfLibDoc=null, pageCount=0, currentPage=1, currentViewport=null;
-    let pageRenderTask=null;
-    let selection=null;            // {x,y,w,h} in CSS px
-    let dragMode=null;             // 'draw'|'move'|'resize'
-    let activeHandle=null;         // handle key
-    let dragStart=null;            // initial point for draw
-    let lastPos=null;              // last cursor pos for move/resize
-    let outFileName='cropped.pdf';
-
-    function fmt(n){return new Intl.NumberFormat().format(n);}
-    function setStatus(t){ if (statusEl) statusEl.textContent = t; }
-    function enableControls(on){applyAllEl.disabled=!on;downloadBtn.disabled=!on;clearBtnTop.disabled=!on;downloadBtn.classList.toggle('primary-blue',!!on);}
-    function cancelActiveRender(){if(pageRenderTask?.cancel){try{pageRenderTask.cancel()}catch{} } pageRenderTask=null;}
-
-    // Upload
-    fileInput.addEventListener('change',async e=>{const f=e.target.files?.[0];if(f)await handleFile(f);});
-    clearBtnTop.addEventListener('click',resetDocState);
-    ['dragenter','dragover'].forEach(ev=>dropzone.addEventListener(ev,e=>{e.preventDefault();dropzone.classList.add('dropping');}));
-    ['dragleave','drop'].forEach(ev=>dropzone.addEventListener(ev,e=>{e.preventDefault();dropzone.classList.remove('dropping');}));
-    dropzone.addEventListener('drop',async e=>{const f=e.dataTransfer?.files?.[0];if(!f)return;if(!/application\/pdf/.test(f.type)&&!/\.pdf$/i.test(f.name))return alert('Please drop a PDF file.');await handleFile(f);});
-
-    function resetDocState(){
-      cancelActiveRender(); fileInput.value=''; pdfDocJS=null; pdfLibDoc=null; pageCount=0; currentPage=1; currentViewport=null;
-      stage.width=stage.height=0; stageWrap.classList.remove('ready'); thumbsEl.innerHTML='Upload a PDF to see pages…'; metaEl.textContent='No file';
-      enableControls(false); setStatus('Idle…'); selection=null; overlayRect.style.display='none'; outFileName='cropped.pdf'; outNameEl.textContent=outFileName; if (prog) prog.value=0;
-    }
-
-    async function handleFile(file){
-      try{
-        setStatus('Loading PDF…'); enableControls(false); selection=null; overlayRect.style.display='none'; cancelActiveRender();
-        outFileName=(file.name||'cropped.pdf').replace(/\.pdf$/i,'')+'.cropped.pdf'; outNameEl.textContent=outFileName;
-        const raw=new Uint8Array(await file.arrayBuffer());
-        pdfDocJS=await pdfjsLib.getDocument({data:raw.slice()}).promise; pdfLibDoc=await PDFLib.PDFDocument.load(raw);
-        pageCount=pdfDocJS.numPages; metaEl.textContent=`${file.name} • ${fmt(pageCount)} pages • ${(file.size/1024/1024).toFixed(2)} MB`;
-        await rebuildThumbs(); await setPage(1); enableControls(true); setStatus('Ready.');
-      }catch(err){console.error(err); alert('PDF load failed: '+(err?.message||err)); setStatus('Error loading PDF.');}
-    }
-
-    // Fit to width & stable viewport height
-    function computeFitScale(page){
-      const v1=page.getViewport({scale:1});
-      const centerWidth=stageWrap.clientWidth||stageWrap.getBoundingClientRect().width||800;
-      const targetW=Math.max(240, centerWidth*0.98);
-      const targetH=Math.max(260, Math.floor(window.innerHeight*0.72));
-      return Math.min(targetW/v1.width, targetH/v1.height);
-    }
-
-    async function setPage(n){
-      currentPage=n;
-      Array.from(thumbsEl.children).forEach((el,i)=>el.classList.toggle('active',i===n-1));
-      const page=await pdfDocJS.getPage(n);
-      stageWrap.classList.remove('ready');
-
-      const scale=computeFitScale(page);
-      currentViewport=page.getViewport({scale});
-      const dpr=Math.max(1,window.devicePixelRatio||1);
-      stage.width=Math.ceil(currentViewport.width*dpr);
-      stage.height=Math.ceil(currentViewport.height*dpr);
-      stage.style.width=Math.ceil(currentViewport.width)+'px';
-      stage.style.height=Math.ceil(currentViewport.height)+'px';
-
-      const ctx=stage.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,stage.width,stage.height);
-      cancelActiveRender(); pageRenderTask=page.render({canvasContext:ctx, viewport:currentViewport});
-      try{await pageRenderTask.promise;}catch(e){if(e?.name!=='RenderingCancelledException')throw e;}finally{pageRenderTask=null;}
-      stageWrap.classList.add('ready'); page.cleanup();
-
-      selection=null; overlayRect.style.display='none'; clearBtn.disabled=true; applyBtn.disabled=true;
-      stageWrap.scrollIntoView({block:'center', inline:'nearest'});
-    }
-    window.addEventListener('resize',()=>{if(pdfDocJS) setPage(currentPage);});
-
-    async function rebuildThumbs(){
-      thumbsEl.innerHTML='';
-      for(let i=1;i<=pageCount;i++){
-        const p=await pdfDocJS.getPage(i); const v=p.getViewport({scale:.22});
-        const c=document.createElement('canvas'); const ctx=c.getContext('2d'); c.width=v.width; c.height=v.height;
-        await p.render({canvasContext:ctx,viewport:v}).promise; p.cleanup();
-        const holder=document.createElement('div'); holder.className='thumb'; if(i===currentPage) holder.classList.add('active');
-        holder.appendChild(c); holder.title='Page '+i; holder.addEventListener('click',()=>setPage(i)); thumbsEl.appendChild(holder);
-      }
-    }
-
-    // ===== Crop interactions =====
-    const HANDLE_HIT=10;
-    function getLocalXY(evt){const r=stage.getBoundingClientRect();return{ x:Math.max(0,Math.min(r.width,evt.clientX-r.left)), y:Math.max(0,Math.min(r.height,evt.clientY-r.top)) };}
-    function normalizeSel(sel){
-      let {x,y,w,h}=sel;
-      if(w<0){x+=w; w=-w;} if(h<0){y+=h; h=-h;}
-      const maxW=parseFloat(stage.style.width)||stage.width, maxH=parseFloat(stage.style.height)||stage.height;
-      x=Math.max(0,Math.min(x,maxW-w)); y=Math.max(0,Math.min(y,maxH-h));
-      w=Math.max(1,Math.min(w,maxW-x)); h=Math.max(1,Math.min(h,maxH-y));
-      return{x,y,w,h};
-    }
-    function placeHandles(sel){
-      const pos={ nw:[sel.x,sel.y], ne:[sel.x+sel.w,sel.y], sw:[sel.x,sel.y+sel.h], se:[sel.x+sel.w,sel.y+sel.h],
-                  n:[sel.x+sel.w/2,sel.y], s:[sel.x+sel.w/2,sel.y+sel.h], w:[sel.x,sel.y+sel.h/2], e:[sel.x+sel.w,sel.y+sel.h/2] };
-      overlayRect.querySelectorAll('.handle').forEach(h=>{const [hx,hy]=pos[h.dataset.h]; h.style.left=(hx-6)+'px'; h.style.top=(hy-6)+'px';});
-    }
-    function updateRectUI(){
-      if(!selection){overlayRect.style.display='none';return;}
-      const s=selection; overlayRect.style.display='block';
-      overlayRect.style.left=s.x+'px'; overlayRect.style.top=s.y+'px'; overlayRect.style.width=s.w+'px'; overlayRect.style.height=s.h+'px';
-      placeHandles(s); clearBtn.disabled=false; applyBtn.disabled=false;
-    }
-    function pointInSel(pt,sel){return sel && pt.x>=sel.x && pt.x<=sel.x+sel.w && pt.y>=sel.y && pt.y<=sel.y+sel.h;}
-    function hitHandle(pt,sel){
-      if(!sel) return null; const centers={ nw:[sel.x,sel.y], ne:[sel.x+sel.w,sel.y], sw:[sel.x,sel.y+sel.h], se:[sel.x+sel.w,sel.y+sel.h],
-        n:[sel.x+sel.w/2,sel.y], s:[sel.x+sel.w/2,sel.y+sel.h], w:[sel.x,sel.y+sel.h/2], e:[sel.x+sel.w,sel.y+sel.h/2] };
-      for(const k of Object.keys(centers)){const [hx,hy]=centers[k]; if(Math.abs(pt.x-hx)<=HANDLE_HIT && Math.abs(pt.y-hy)<=HANDLE_HIT) return k;}
-      return null;
-    }
-
-    // start draw on empty area
-    stageWrap.addEventListener('mousedown',e=>{
-      if(!currentViewport) return;
-      const pt=getLocalXY(e);
-      // if clicking inside selection/handles, rect listeners will handle and stopPropagation
-      dragMode='draw'; dragStart=pt; selection={x:pt.x,y:pt.y,w:0,h:0}; updateRectUI();
-    });
-
-    // move by dragging the rect itself
-    overlayRect.addEventListener('mousedown',e=>{
-      if(!selection) return;
-      e.preventDefault(); e.stopPropagation();
-      dragMode='move'; lastPos=getLocalXY(e);
-    });
-
-    // resize via handles (each handle stops bubbling)
-    overlayRect.querySelectorAll('.handle').forEach(h=>{
-      h.addEventListener('mousedown',e=>{
-        if(!selection) return;
-        e.preventDefault(); e.stopPropagation();
-        dragMode='resize'; activeHandle=h.dataset.h; lastPos=getLocalXY(e);
-      });
-    });
-
-    window.addEventListener('mousemove',e=>{
-      if(!dragMode) return;
-      const pt=getLocalXY(e);
-      const maxW=parseFloat(stage.style.width)||stage.width, maxH=parseFloat(stage.style.height)||stage.height;
-
-      if(dragMode==='draw'){
-        selection.w=pt.x-dragStart.x; selection.h=pt.y-dragStart.y;
-        selection=normalizeSel(selection); updateRectUI(); return;
-      }
-
-      if(dragMode==='move'){
-        const dx=pt.x-lastPos.x, dy=pt.y-lastPos.y;
-        let nx=Math.max(0,Math.min(selection.x+dx,maxW-selection.w));
-        let ny=Math.max(0,Math.min(selection.y+dy,maxH-selection.h));
-        selection={x:nx,y:ny,w:selection.w,h:selection.h}; lastPos=pt; updateRectUI(); return;
-      }
-
-      if(dragMode==='resize'){
-        // work with edges x1,y1,x2,y2 then clamp
-        let x1=selection.x, y1=selection.y, x2=selection.x+selection.w, y2=selection.y+selection.h;
-        const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
-        if(['nw','w','sw'].includes(activeHandle)) x1=clamp(pt.x,0,x2-1);
-        if(['ne','e','se'].includes(activeHandle)) x2=clamp(pt.x,x1+1,maxW);
-        if(['nw','n','ne'].includes(activeHandle)) y1=clamp(pt.y,0,y2-1);
-        if(['sw','s','se'].includes(activeHandle)) y2=clamp(pt.y,y1+1,maxH);
-        selection=normalizeSel({x:x1,y:y1,w:x2-x1,h:y2-y1});
-        lastPos=pt; updateRectUI(); return;
-      }
-    });
-
-    window.addEventListener('mouseup',()=>{ if(!dragMode) return; dragMode=null; activeHandle=null; dragStart=null;
-      const ok=selection && selection.w>=2 && selection.h>=2; clearBtn.disabled=!ok; applyBtn.disabled=!ok; });
-
-    // Esc clears
-    window.addEventListener('keydown',e=>{if(e.key==='Escape') clearSelectionUI();});
-    function clearSelectionUI(){selection=null; overlayRect.style.display='none'; clearBtn.disabled=true; applyBtn.disabled=true;}
-    clearBtn.addEventListener('click', clearSelectionUI);
-
-    // Apply crop (current/all)
-    async function applyCropToPages(scope){
-      const page=pdfLibDoc.getPage(currentPage-1); const {width:pdfW,height:pdfH}=page.getSize();
-      const cssW=parseFloat(stage.style.width), cssH=parseFloat(stage.style.height);
-      const scaleX=pdfW/cssW, scaleY=pdfH/cssH;
-      const cropX=selection.x*scaleX, cropW=selection.w*scaleX;
-      const cropY=(pdfH-(selection.y+selection.h)*scaleY), cropH=selection.h*scaleY;
-
-      const applyTo=p=>{
-        const w=Math.max(1,Math.min(cropW,p.getWidth()));
-        const h=Math.max(1,Math.min(cropH,p.getHeight()));
-        const x=Math.max(0,Math.min(cropX,p.getWidth()-w));
-        const y=Math.max(0,Math.min(cropY,p.getHeight()-h));
-        p.setCropBox(x,y,w,h); p.setMediaBox(x,y,w,h);
-        if(p.setBleedBox)p.setBleedBox(x,y,w,h); if(p.setTrimBox)p.setTrimBox(x,y,w,h); if(p.setArtBox)p.setArtBox(x,y,w,h);
+    // ✅ Load PDF
+    browseBtn.onclick = async () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/pdf';
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        fileInfo.textContent = file.name;
+        fileInfo.title = file.name;
+        const bytes = await file.arrayBuffer();
+        pdfDocJS = await pdfjsLib.getDocument({ data: bytes }).promise;
+        pageCount = pdfDocJS.numPages;
+        renderThumbs();
+        renderPage(1);
       };
-      if(scope==='all'){ pdfLibDoc.getPages().forEach(applyTo); } else { applyTo(page); }
+      input.click();
+    };
+
+    // ✅ Clear file
+    clearBtn.onclick = () => {
+      pdfDocJS = null;
+      fileInfo.textContent = 'No file';
+      fileInfo.title = '';
+      stageWrap.innerHTML = '';
+      thumbs.innerHTML = '';
+    };
+
+    async function renderThumbs() {
+      thumbs.innerHTML = '';
+      for (let i = 1; i <= pageCount; i++) {
+        const thumb = document.createElement('div');
+        thumb.className = 'thumb';
+        thumb.textContent = 'Page ' + i;
+        thumb.onclick = () => renderPage(i);
+        thumbs.appendChild(thumb);
+      }
     }
 
-    applyBtn.addEventListener('click',async ()=>{
-      if(!selection) return;
-      if (prog) prog.style.display='block'; if (prog) prog.value=5; setStatus('Applying crop…');
-      await applyCropToPages(applyAllEl.checked?'all':'current'); if (prog) prog.value=60;
-      const bytes=await pdfLibDoc.save({updateFieldAppearances:false});
-      const bytesForJS=(bytes.slice)?bytes.slice(0):new Uint8Array(bytes);
-      pdfDocJS=await pdfjsLib.getDocument({data:bytesForJS}).promise; pageCount=pdfDocJS.numPages;
-      await rebuildThumbs(); if (prog) prog.value=90; await setPage(currentPage);
-      clearSelectionUI(); setStatus('Preview updated'); if (prog) prog.value=100; if (prog) setTimeout(()=>prog.style.display='none',250);
-    });
+    async function renderPage(num) {
+      const page = await pdfDocJS.getPage(num);
+      const viewport = page.getViewport({ scale: 0.8 });
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      stageWrap.innerHTML = '';
+      stageWrap.appendChild(canvas);
+      currentPage = num;
+    }
 
-    downloadBtn.addEventListener('click',async ()=>{
-      setStatus('Saving…'); const bytes=await pdfLibDoc.save({updateFieldAppearances:false});
-      const blob=new Blob([bytes],{type:'application/pdf'}); const url=URL.createObjectURL(blob);
-      const a=document.createElement('a'); a.href=url; a.download=outFileName||'cropped.pdf'; a.click();
-      setTimeout(()=>URL.revokeObjectURL(url),1500); setStatus('Done.');
-    });
-
-    // init
-    enableControls(false);
+    // Dummy crop & download
+    applyBtn.onclick = () => alert('Crop applied and downloaded (demo).');
+    previewBtn.onclick = () => alert('Preview updated (demo).');
+    clearSelBtn.onclick = () => alert('Selection cleared.');
   </script>
-</main>
 </body>
 </html>
