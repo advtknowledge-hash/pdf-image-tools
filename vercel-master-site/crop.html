@@ -29,20 +29,13 @@
     .back-link{display:none}
     .back-link.show{display:inline-flex}
     .settings-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    /* keep long filename inside pill */
+    .upload-box #meta{display:block;box-sizing:border-box;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     @media (max-width:1024px){
       .crop-wrap .panel .grid-crop{grid-template-columns:1fr}
       .thumbs.small{flex-direction:row;flex-wrap:wrap;max-height:none}
       .sticky-cta{position:relative;bottom:auto;background:none}
     }
-    /* keep long file names inside the pill on the Upload PDF card */
-.upload-box #meta{
-  display:block;
-  box-sizing:border-box;
-  max-width:100%;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;     /* no wrapping, show … */
-}
   </style>
 </head>
 <body>
@@ -114,8 +107,9 @@
             <summary>Advanced</summary>
             <div class="small muted mt-1">
               • Drag to draw a crop box. Drag inside to move; use handles to resize.<br>
-              • Press <kbd>Esc</kbd> to clear.<br>
-              • “Preview crop” is non-destructive; use “Back to original” to revert the view.
+              • Shift while resizing = keep aspect ratio.<br>
+              • Arrows to nudge (1px), Shift+Arrows = 10px, Ctrl+Arrows = resize.<br>
+              • Press <kbd>Esc</kbd> to clear. Preview is non-destructive; use “Back to original”.
             </div>
           </details>
 
@@ -167,11 +161,16 @@
     let pdfDocJS=null, pageCount=0, currentPage=1, currentViewport=null;
     let pageRenderTask=null;
     let selection=null, dragMode=null, activeHandle=null, dragStart=null, lastPos=null;
-    let outFileName='cropped.pdf';
+    let lockRatio=null; // for Shift-resize
+    let outFileNameBase='cropped'; // used for smart naming
 
     let originalBytes=null;  // master copy (never given to pdf.js)
     let previewBytes=null;   // temporary preview
     let showingPreview=false;
+
+    // remember crop per page (percent-based)
+    const savedPctByPage = new Map(); // page -> {x,y,w,h} pct
+    let lastTemplatePct = null;       // {w,h} pct (size remembered when switching pages)
 
     function fmt(n){return new Intl.NumberFormat().format(n);}
     function setStatus(t){statusEl.textContent=t;}
@@ -207,14 +206,23 @@
       fileInput.value='';
       pdfDocJS=null; pageCount=0; currentPage=1; currentViewport=null;
       stage.width=stage.height=0; stageWrap.classList.remove('ready');
-      thumbsEl.innerHTML='Upload a PDF to see pages…'; metaEl.textContent='No file';
-      metaEl.title = '';
+      thumbsEl.innerHTML='Upload a PDF to see pages…'; metaEl.textContent='No file'; metaEl.title='';
       enableControls(false); setStatus('Idle…');
       selection=null; overlayRect.style.display='none';
-      outFileName='cropped.pdf'; outNameEl.textContent=outFileName;
+      outNameEl.textContent='cropped.pdf'; outFileNameBase='cropped';
       prog.value=0;
       originalBytes=null; previewBytes=null; showingPreview=false; backBtn.classList.remove('show');
       applyAllEl.checked=true;
+      savedPctByPage.clear(); lastTemplatePct=null;
+    }
+
+    function updateOutName(){
+      if(!outFileNameBase){ outNameEl.textContent='cropped.pdf'; return; }
+      if(applyAllEl.checked){
+        outNameEl.textContent = `${outFileNameBase}.cropped.pdf`;
+      }else{
+        outNameEl.textContent = `${outFileNameBase}-p${currentPage}.cropped.pdf`;
+      }
     }
 
     async function handleFile(file){
@@ -222,8 +230,9 @@
         setStatus('Loading PDF…'); enableControls(false);
         selection=null; overlayRect.style.display='none'; cancelActiveRender();
 
-        outFileName=(file.name||'cropped.pdf').replace(/\.pdf$/i,'')+'.cropped.pdf';
-        outNameEl.textContent=outFileName;
+        const cleanBase=(file.name||'document.pdf').replace(/\.pdf$/i,'');
+        outFileNameBase=cleanBase;
+        metaEl.textContent = `${file.name} • loading…`; metaEl.title=metaEl.textContent;
 
         originalBytes = new Uint8Array(await file.arrayBuffer());
         previewBytes = null; showingPreview=false;
@@ -232,9 +241,11 @@
         pdfDocJS=doc; pageCount=pdfDocJS.numPages;
         metaEl.textContent = `${file.name} • ${fmt(pageCount)} pages • ${(file.size/1024/1024).toFixed(2)} MB`;
         metaEl.title = metaEl.textContent;
+
         await rebuildThumbs(doc);
         await setPage(1, doc);
         enableControls(true);
+        updateOutName();
         setStatus('Ready.');
       }catch(err){ console.error(err); alert('PDF load failed: '+(err?.message||err)); setStatus('Error loading PDF.'); }
     }
@@ -273,10 +284,24 @@
       try{await pageRenderTask.promise;}catch(e){if(e?.name!=='RenderingCancelledException')throw e;}finally{pageRenderTask=null;}
       stageWrap.classList.add('ready'); page.cleanup();
 
+      // restore saved selection for this page or reuse template size
+      const cssW=parseFloat(stage.style.width)||stage.width, cssH=parseFloat(stage.style.height)||stage.height;
+      const savedPct=savedPctByPage.get(currentPage);
+      if(savedPct){
+        selection = pctToSel(savedPct, cssW, cssH);
+      }else if(lastTemplatePct){
+        const w=lastTemplatePct.w*cssW, h=lastTemplatePct.h*cssH;
+        selection = { x: Math.max(0,(cssW-w)/2), y: Math.max(0,(cssH-h)/2), w, h };
+      }else{
+        selection=null;
+      }
+      updateRectUI();
+
       const ok=selection && selection.w>=2 && selection.h>=2;
       clearBtn.disabled=!ok; applyBtn.disabled=!ok;
 
       stageWrap.scrollIntoView({block:'center', inline:'nearest'});
+      updateOutName();
     }
     window.addEventListener('resize',()=>{ if(getActiveBytes()) setPage(currentPage); });
 
@@ -304,11 +329,9 @@
       return{x,y,w,h};
     }
     function placeHandles(sel){
-      // positions are relative to the RECT itself (0..w / 0..h)
-      const pos={
-        nw:[0,0], ne:[sel.w,0], sw:[0,sel.h], se:[sel.w,sel.h],
-        n:[sel.w/2,0], s:[sel.w/2,sel.h], w:[0,sel.h/2], e:[sel.w,sel.h/2]
-      };
+      // handle positions relative to rect
+      const pos={ nw:[0,0], ne:[sel.w,0], sw:[0,sel.h], se:[sel.w,sel.h],
+        n:[sel.w/2,0], s:[sel.w/2,sel.h], w:[0,sel.h/2], e:[sel.w,sel.h/2] };
       overlayRect.querySelectorAll('.handle').forEach(h=>{
         const [hx,hy]=pos[h.dataset.h]; h.style.left=(hx-6)+'px'; h.style.top=(hy-6)+'px';
       });
@@ -316,7 +339,7 @@
     function updateRectUI(){
       if(!selection){overlayRect.style.display='none';clearBtn.disabled=true;applyBtn.disabled=true;return;}
       const s=selection;
-      const offX = stage.offsetLeft || 0;   // canvas offset inside stageWrap
+      const offX = stage.offsetLeft || 0;
       const offY = stage.offsetTop  || 0;
       overlayRect.style.display='block';
       overlayRect.style.left  = (offX + s.x)+'px';
@@ -326,11 +349,20 @@
       placeHandles(s);
       const ok = s.w>=2 && s.h>=2; clearBtn.disabled=!ok; applyBtn.disabled=!ok;
     }
+    function selToPct(sel, cssW, cssH){ return { x:sel.x/cssW, y:sel.y/cssH, w:sel.w/cssW, h:sel.h/cssH }; }
+    function pctToSel(p, cssW, cssH){ return { x:p.x*cssW, y:p.y*cssH, w:p.w*cssW, h:p.h*cssH }; }
+    function persistSelection(){
+      if(!selection) return;
+      const cssW=parseFloat(stage.style.width)||stage.width, cssH=parseFloat(stage.style.height)||stage.height;
+      const pct = selToPct(selection, cssW, cssH);
+      savedPctByPage.set(currentPage, pct);
+      lastTemplatePct = { w:pct.w, h:pct.h }; // remember size template across pages
+    }
 
     function startDraw(e){
       if(!currentViewport) return;
       const pt=getLocalXY(e);
-      dragMode='draw'; dragStart=pt; selection={x:pt.x,y:pt.y,w:0,h:0}; updateRectUI();
+      dragMode='draw'; dragStart=pt; selection={x:pt.x,y:pt.y,w:0,h:0}; lockRatio=null; updateRectUI();
     }
     stageWrap.addEventListener('mousedown',startDraw);
     stage.addEventListener('mousedown',startDraw);
@@ -345,8 +377,8 @@
         w:[selection.x,selection.y+selection.h/2], e:[selection.x+selection.w,selection.y+selection.h/2]
       };
       let found=null; for(const k in centers){const [hx,hy]=centers[k]; if(Math.abs(pt.x-hx)<=HANDLE_HIT&&Math.abs(pt.y-hy)<=HANDLE_HIT){found=k;break;}}
-      if(found){ dragMode='resize'; activeHandle=found; lastPos=pt; return; }
-      dragMode='move'; lastPos=pt;
+      if(found){ dragMode='resize'; activeHandle=found; lastPos=pt; lockRatio=(e.shiftKey? (selection.w/selection.h||1):null); return; }
+      dragMode='move'; lastPos=pt; lockRatio=null;
     });
 
     window.addEventListener('mousemove',e=>{
@@ -371,14 +403,62 @@
         if(['ne','e','se'].includes(activeHandle)) x2=clamp(pt.x,x1+1,maxW);
         if(['nw','n','ne'].includes(activeHandle)) y1=clamp(pt.y,0,y2-1);
         if(['sw','s','se'].includes(activeHandle)) y2=clamp(pt.y,y1+1,maxH);
-        selection=normalizeSel({x:x1,y:y1,w:x2-x1,h:y2-y1});  /* <-- fixed colon */
-        lastPos=pt; updateRectUI(); return;
+
+        let next={x:x1,y:y1,w:x2-x1,h:y2-y1};
+        // Shift-resize keep ratio
+        const keepRatio = e.shiftKey || lockRatio;
+        const ratio = lockRatio || (selection.w/selection.h || 1);
+        if(keepRatio){
+          if(['n','s'].includes(activeHandle)){ next.w = next.h*ratio; if(activeHandle==='n') next.x=x2-next.w; }
+          else if(['e','w'].includes(activeHandle)){ next.h = next.w/ratio; if(activeHandle==='w') next.y=y2-next.h; }
+          else{ // corners
+            const w1=next.w, h1=w1/ratio;
+            const h2=next.h, w2=h2*ratio;
+            if(activeHandle==='nw'||activeHandle==='ne'){ // stick to top
+              if(h1<=next.h){ next.h=h1; if(activeHandle==='nw') next.y=y2-next.h; }
+              else { next.w=w2; if(activeHandle==='ne') next.x=x2-next.w; }
+            }else{ // sw / se
+              if(h1<=next.h){ next.h=h1; }
+              else { next.w=w2; }
+            }
+          }
+        }
+
+        selection=normalizeSel(next); lastPos=pt; updateRectUI(); return;
       }
     });
 
-    window.addEventListener('mouseup',()=>{ if(!dragMode) return; dragMode=null; activeHandle=null; dragStart=null; updateRectUI(); });
-    window.addEventListener('keydown',e=>{ if(e.key==='Escape') clearSelectionUI(); });
-    function clearSelectionUI(){ selection=null; overlayRect.style.display='none'; clearBtn.disabled=true; applyBtn.disabled=true; }
+    window.addEventListener('mouseup',()=>{ if(!dragMode) return; dragMode=null; activeHandle=null; dragStart=null; updateRectUI(); persistSelection(); });
+
+    window.addEventListener('keydown',e=>{
+      // esc clears
+      if(e.key==='Escape'){ e.preventDefault(); clearSelectionUI(); return; }
+      if(!selection) return;
+
+      // Arrow interactions
+      const moveStep = e.shiftKey ? 10 : 1;
+      const resizeStep = e.shiftKey ? 10 : 1;
+      const cssW=parseFloat(stage.style.width)||stage.width, cssH=parseFloat(stage.style.height)||stage.height;
+
+      let handled=false;
+      if(!e.ctrlKey){
+        // Move
+        if(e.key==='ArrowLeft'){ selection.x=Math.max(0, selection.x-moveStep); handled=true; }
+        if(e.key==='ArrowRight'){ selection.x=Math.min(cssW-selection.w, selection.x+moveStep); handled=true; }
+        if(e.key==='ArrowUp'){ selection.y=Math.max(0, selection.y-moveStep); handled=true; }
+        if(e.key==='ArrowDown'){ selection.y=Math.min(cssH-selection.h, selection.y+moveStep); handled=true; }
+      }else{
+        // Resize with Ctrl
+        if(e.key==='ArrowRight'){ selection.w=Math.min(cssW-selection.x, selection.w+resizeStep); handled=true; }
+        if(e.key==='ArrowLeft'){ selection.w=Math.max(1, selection.w-resizeStep); handled=true; }
+        if(e.key==='ArrowDown'){ selection.h=Math.min(cssH-selection.y, selection.h+resizeStep); handled=true; }
+        if(e.key==='ArrowUp'){ selection.h=Math.max(1, selection.h-resizeStep); handled=true; }
+      }
+      if(handled){ e.preventDefault(); selection=normalizeSel(selection); updateRectUI(); persistSelection(); }
+    });
+
+    function clearSelectionUI(){ selection=null; overlayRect.style.display='none'; clearBtn.disabled=true; applyBtn.disabled=true; savedPctByPage.delete(currentPage); }
+
     clearBtn.addEventListener('click', clearSelectionUI);
 
     // build bytes
@@ -440,11 +520,16 @@
       prog.value=70;
       const blob=new Blob([finalBytes],{type:'application/pdf'});
       const url=URL.createObjectURL(blob);
-      const a=document.createElement('a'); a.href=url; a.download=outFileName||'cropped.pdf'; a.click();
+      const a=document.createElement('a'); a.href=url;
+      // smart name
+      a.download = applyAllEl.checked ? `${outFileNameBase}.cropped.pdf` : `${outFileNameBase}-p${currentPage}.cropped.pdf`;
+      a.click();
       setTimeout(()=>URL.revokeObjectURL(url),1500);
       prog.value=100; setTimeout(()=>prog.style.display='none',200);
       setStatus('Done.');
     });
+
+    applyAllEl.addEventListener('change', updateOutName);
 
     // init
     resetDocState();
