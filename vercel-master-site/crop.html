@@ -361,7 +361,8 @@
         if(['ne','e','se'].includes(activeHandle)) x2=clamp(pt.x,x1+1,maxW);
         if(['nw','n','ne'].includes(activeHandle)) y1=clamp(pt.y,0,y2-1);
         if(['sw','s','se'].includes(activeHandle)) y2=clamp(pt.y,y1+1,maxH);
-        selection=normalizeSel({x:x1,y:y1,w:x2-x1,h=y2-y1}); lastPos=pt; updateRectUI(); return;
+        selection=normalizeSel({x:x1,y:y1,w:x2-x1,h:y2-y1});  /* <-- fixed colon */
+        lastPos=pt; updateRectUI(); return;
       }
     });
 
