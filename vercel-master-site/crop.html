@@ -28,6 +28,7 @@
     .panel .inline input[type="checkbox"]{margin:0}
     .back-link{display:none;margin-left:8px}
     .back-link.show{display:inline-flex}
+    .settings-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
     @media (max-width:1024px){
       .crop-wrap .panel .grid-crop{grid-template-columns:1fr}
       .thumbs.small{flex-direction:row;flex-wrap:wrap;max-height:none}
@@ -69,12 +70,11 @@
           <div id="thumbs" class="thumbs small" aria-live="polite">Upload a PDF to see pages…</div>
         </section>
 
-        <!-- CENTER -->
+        <!-- CENTER: canvas + status ONLY -->
         <section class="panel card box action-box theme-center" aria-label="Crop">
           <h2 class="title">Crop</h2>
           <progress id="prog" max="100" value="0" class="w-100"></progress>
           <div id="status" class="small">Idle…</div>
-
           <div class="stage-wrap mt-2" id="stageWrap" tabindex="0" aria-label="Page preview">
             <canvas id="stage" width="0" height="0"></canvas>
             <div class="overlay-crop" aria-hidden="true">
@@ -90,25 +90,18 @@
               </div>
             </div>
           </div>
-
-          <div class="row center mt-2">
-            <button id="clearCrop" class="btn ghost" disabled>Clear selection (Esc)</button>
-            <button id="applyCrop" class="btn" disabled>Preview crop</button>
-            <button id="backOriginal" class="btn subtle back-link" title="Back to original">Back to original</button>
-          </div>
         </section>
 
-        <!-- RIGHT -->
+        <!-- RIGHT: Settings + ACTION BUTTONS MOVED HERE -->
         <section class="panel card box theme-center" aria-label="Settings">
           <h2 class="title">Settings</h2>
-          <div class="row" style="gap:8px;justify-content:flex-start">
-            <label class="inline" for="applyAll" style="margin:6px 0">
-              <input id="applyAll" type="checkbox" checked />
-              <span>Apply crop to all pages</span>
-            </label>
-          </div>
 
-          <details class="mt-2">
+          <label class="inline" for="applyAll" style="margin:6px 0 10px">
+            <input id="applyAll" type="checkbox" checked />
+            <span>Apply crop to all pages</span>
+          </label>
+
+          <details class="mt-1">
             <summary>Advanced</summary>
             <div class="small muted mt-1">
               • Drag to draw a crop box. Drag inside to move; use handles to resize.<br>
@@ -116,6 +109,13 @@
               • “Preview crop” is non-destructive; use “Back to original” to revert the view.
             </div>
           </details>
+
+          <!-- actions moved from center -->
+          <div class="settings-actions">
+            <button id="clearCrop" class="btn ghost" disabled>Clear selection (Esc)</button>
+            <button id="applyCrop" class="btn" disabled>Preview crop</button>
+            <button id="backOriginal" class="btn subtle back-link" title="Back to original">Back to original</button>
+          </div>
 
           <div class="sticky-cta">
             <div class="row center mt-2">
@@ -161,9 +161,9 @@
     let selection=null, dragMode=null, activeHandle=null, dragStart=null, lastPos=null;
     let outFileName='cropped.pdf';
 
-    // Master bytes (never given to pdf.js); preview bytes for temporary view
-    let originalBytes=null;   // master copy kept safe for pdf-lib work
-    let previewBytes=null;    // from last non-destructive preview
+    // Master bytes (never passed directly to pdf.js)
+    let originalBytes=null;
+    let previewBytes=null;
     let showingPreview=false;
 
     function fmt(n){return new Intl.NumberFormat().format(n);}
@@ -174,9 +174,9 @@
     }
     function cancelActiveRender(){ if(pageRenderTask?.cancel){ try{pageRenderTask.cancel()}catch{} } pageRenderTask=null; }
 
-    // ---- Always give pdf.js a fresh copy to avoid DETACHED buffer ----
+    // ---- pdf.js always receives a fresh copy (avoid detached ArrayBuffer) ----
     function getActiveBytes(){
-      if(showingPreview && previewBytes && previewBytes.length) return previewBytes;   // ok to reuse
+      if(showingPreview && previewBytes && previewBytes.length) return previewBytes;   // preview bytes safe to reuse
       return originalBytes ? originalBytes.slice() : null; // fresh copy for pdf.js worker
     }
     async function getActiveJsDoc(){
@@ -218,11 +218,11 @@
         outFileName=(file.name||'cropped.pdf').replace(/\.pdf$/i,'')+'.cropped.pdf';
         outNameEl.textContent=outFileName;
 
-        // keep a master copy; never give this specific buffer to pdf.js
+        // keep master copy; never pass this buffer to pdf.js
         originalBytes = new Uint8Array(await file.arrayBuffer());
         previewBytes = null; showingPreview = false;
 
-        // pdf.js gets a fresh copy so it can detach safely
+        // pdf.js gets a fresh copy
         const doc = await pdfjsLib.getDocument({ data: originalBytes.slice() }).promise;
         pdfDocJS = doc;
         pageCount = pdfDocJS.numPages;
@@ -373,7 +373,7 @@
 
     // -------- non-destructive preview + final download --------
     async function buildCroppedBytes(sel, scope){
-      // Build from the master copy (untouched by pdf.js)
+      // build from master copy
       const work = await PDFLib.PDFDocument.load(originalBytes.slice());
       const pages = work.getPages();
       const refPage = pages[currentPage-1];
@@ -401,7 +401,6 @@
       try{
         if(!originalBytes){ alert('Please upload a PDF first.'); return; }
         if(!selection || selection.w<2 || selection.h<2){ setStatus('Draw a crop box first.'); return; }
-
         const sel={...selection};
         prog.style.display='block'; prog.value=5; setStatus('Building preview…');
 
