@@ -34,6 +34,15 @@
       .thumbs.small{flex-direction:row;flex-wrap:wrap;max-height:none}
       .sticky-cta{position:relative;bottom:auto;background:none}
     }
+    /* keep long file names inside the pill on the Upload PDF card */
+.upload-box #meta{
+  display:block;
+  box-sizing:border-box;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;     /* no wrapping, show … */
+}
   </style>
 </head>
 <body>
