@@ -162,15 +162,12 @@
     let pageRenderTask=null;
     let selection=null, dragMode=null, activeHandle=null, dragStart=null, lastPos=null;
     let lockRatio=null; // for Shift-resize
-    let outFileNameBase='cropped'; // used for smart naming
 
     let originalBytes=null;  // master copy (never given to pdf.js)
     let previewBytes=null;   // temporary preview
     let showingPreview=false;
 
-    // remember crop per page (percent-based)
-    const savedPctByPage = new Map(); // page -> {x,y,w,h} pct
-    let lastTemplatePct = null;       // {w,h} pct (size remembered when switching pages)
+    let outFileNameBase='cropped';
 
     function fmt(n){return new Intl.NumberFormat().format(n);}
     function setStatus(t){statusEl.textContent=t;}
@@ -180,7 +177,7 @@
     }
     function cancelActiveRender(){ if(pageRenderTask?.cancel){ try{pageRenderTask.cancel()}catch{} } pageRenderTask=null; }
 
-    // pdf.js gets a fresh copy to avoid detached buffer
+    // fresh bytes for pdf.js (avoid detached ArrayBuffer)
     function getActiveBytes(){
       if(showingPreview && previewBytes && previewBytes.length) return previewBytes;
       return originalBytes ? originalBytes.slice() : null;
@@ -213,7 +210,6 @@
       prog.value=0;
       originalBytes=null; previewBytes=null; showingPreview=false; backBtn.classList.remove('show');
       applyAllEl.checked=true;
-      savedPctByPage.clear(); lastTemplatePct=null;
     }
 
     function updateOutName(){
@@ -284,18 +280,8 @@
       try{await pageRenderTask.promise;}catch(e){if(e?.name!=='RenderingCancelledException')throw e;}finally{pageRenderTask=null;}
       stageWrap.classList.add('ready'); page.cleanup();
 
-      // restore saved selection for this page or reuse template size
-      const cssW=parseFloat(stage.style.width)||stage.width, cssH=parseFloat(stage.style.height)||stage.height;
-      const savedPct=savedPctByPage.get(currentPage);
-      if(savedPct){
-        selection = pctToSel(savedPct, cssW, cssH);
-      }else if(lastTemplatePct){
-        const w=lastTemplatePct.w*cssW, h=lastTemplatePct.h*cssH;
-        selection = { x: Math.max(0,(cssW-w)/2), y: Math.max(0,(cssH-h)/2), w, h };
-      }else{
-        selection=null;
-      }
-      updateRectUI();
+      // no remembering: always start clean on every page
+      selection=null; updateRectUI();
 
       const ok=selection && selection.w>=2 && selection.h>=2;
       clearBtn.disabled=!ok; applyBtn.disabled=!ok;
@@ -348,15 +334,6 @@
       overlayRect.style.height= s.h+'px';
       placeHandles(s);
       const ok = s.w>=2 && s.h>=2; clearBtn.disabled=!ok; applyBtn.disabled=!ok;
-    }
-    function selToPct(sel, cssW, cssH){ return { x:sel.x/cssW, y:sel.y/cssH, w:sel.w/cssW, h:sel.h/cssH }; }
-    function pctToSel(p, cssW, cssH){ return { x:p.x*cssW, y:p.y*cssH, w:p.w*cssW, h:p.h*cssH }; }
-    function persistSelection(){
-      if(!selection) return;
-      const cssW=parseFloat(stage.style.width)||stage.width, cssH=parseFloat(stage.style.height)||stage.height;
-      const pct = selToPct(selection, cssW, cssH);
-      savedPctByPage.set(currentPage, pct);
-      lastTemplatePct = { w:pct.w, h:pct.h }; // remember size template across pages
     }
 
     function startDraw(e){
@@ -428,7 +405,7 @@
       }
     });
 
-    window.addEventListener('mouseup',()=>{ if(!dragMode) return; dragMode=null; activeHandle=null; dragStart=null; updateRectUI(); persistSelection(); });
+    window.addEventListener('mouseup',()=>{ if(!dragMode) return; dragMode=null; activeHandle=null; dragStart=null; updateRectUI(); });
 
     window.addEventListener('keydown',e=>{
       // esc clears
@@ -454,10 +431,10 @@
         if(e.key==='ArrowDown'){ selection.h=Math.min(cssH-selection.y, selection.h+resizeStep); handled=true; }
         if(e.key==='ArrowUp'){ selection.h=Math.max(1, selection.h-resizeStep); handled=true; }
       }
-      if(handled){ e.preventDefault(); selection=normalizeSel(selection); updateRectUI(); persistSelection(); }
+      if(handled){ e.preventDefault(); selection=normalizeSel(selection); updateRectUI(); }
     });
 
-    function clearSelectionUI(){ selection=null; overlayRect.style.display='none'; clearBtn.disabled=true; applyBtn.disabled=true; savedPctByPage.delete(currentPage); }
+    function clearSelectionUI(){ selection=null; overlayRect.style.display='none'; clearBtn.disabled=true; applyBtn.disabled=true; }
 
     clearBtn.addEventListener('click', clearSelectionUI);
 
@@ -521,7 +498,6 @@
       const blob=new Blob([finalBytes],{type:'application/pdf'});
       const url=URL.createObjectURL(blob);
       const a=document.createElement('a'); a.href=url;
-      // smart name
       a.download = applyAllEl.checked ? `${outFileNameBase}.cropped.pdf` : `${outFileNameBase}-p${currentPage}.cropped.pdf`;
       a.click();
       setTimeout(()=>URL.revokeObjectURL(url),1500);
