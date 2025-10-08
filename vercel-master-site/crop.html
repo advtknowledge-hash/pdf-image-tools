@@ -29,7 +29,6 @@
     .back-link{display:none}
     .back-link.show{display:inline-flex}
     .settings-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-    /* keep long filename inside pill */
     .upload-box #meta{display:block;box-sizing:border-box;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     @media (max-width:1024px){
       .crop-wrap .panel .grid-crop{grid-template-columns:1fr}
@@ -161,17 +160,19 @@
     let pdfDocJS=null, pageCount=0, currentPage=1, currentViewport=null;
     let pageRenderTask=null;
     let selection=null, dragMode=null, activeHandle=null, dragStart=null, lastPos=null;
-    let lockRatio=null; // for Shift-resize
+    let lockRatio=null;
 
-    let originalBytes=null;  // master copy (never given to pdf.js)
-    let previewBytes=null;   // temporary preview
-    let showingPreview=false;
+    // original / preview bytes
+    let originalBytes=null;
+    let previewBytes=null;
+    // single source of truth for what UI should show (keeps canvas & thumbnails in sync)
+    let activeDoc = 'original'; // 'original' | 'preview'
 
     let outFileNameBase='cropped';
 
-    // remember crop per page (percent-based); template size for new pages
-    const savedPctByPage = new Map(); // page -> {x,y,w,h} pct
-    let lastTemplatePct = null;       // {w,h} pct — cleared after Preview
+    // remember per-page selection; clear cross-page template after Preview
+    const savedPctByPage = new Map();
+    let lastTemplatePct = null;
 
     function fmt(n){return new Intl.NumberFormat().format(n);}
     function setStatus(t){statusEl.textContent=t;}
@@ -181,13 +182,12 @@
     }
     function cancelActiveRender(){ if(pageRenderTask?.cancel){ try{pageRenderTask.cancel()}catch{} } pageRenderTask=null; }
 
-    // fresh bytes for pdf.js (avoid detached ArrayBuffer)
-    function getActiveBytes(){
-      if(showingPreview && previewBytes && previewBytes.length) return previewBytes;
-      return originalBytes ? originalBytes.slice() : null;
+    function bytesForActive(){
+      const src = (activeDoc==='preview' ? previewBytes : originalBytes);
+      return src ? src.slice() : null; // slice: give pdf.js a fresh copy
     }
     async function getActiveJsDoc(){
-      const data=getActiveBytes(); if(!data) throw new Error('No PDF loaded');
+      const data=bytesForActive(); if(!data) throw new Error('No PDF loaded');
       return await pdfjsLib.getDocument({data}).promise;
     }
 
@@ -212,9 +212,8 @@
       selection=null; overlayRect.style.display='none';
       outNameEl.textContent='cropped.pdf'; outFileNameBase='cropped';
       prog.value=0;
-      originalBytes=null; previewBytes=null; showingPreview=false; backBtn.classList.remove('show');
+      originalBytes=null; previewBytes=null; activeDoc='original'; backBtn.classList.remove('show');
       applyAllEl.checked=true;
-
       savedPctByPage.clear(); lastTemplatePct=null;
     }
 
@@ -237,7 +236,7 @@
         metaEl.textContent = `${file.name} • loading…`; metaEl.title=metaEl.textContent;
 
         originalBytes = new Uint8Array(await file.arrayBuffer());
-        previewBytes = null; showingPreview=false;
+        previewBytes = null; activeDoc='original';
 
         const doc = await pdfjsLib.getDocument({ data: originalBytes.slice() }).promise;
         pdfDocJS=doc; pageCount=pdfDocJS.numPages;
@@ -246,13 +245,10 @@
 
         await rebuildThumbs(doc);
         await setPage(1, doc);
-        enableControls(true);
-        updateOutName();
-        setStatus('Ready.');
+        enableControls(true); updateOutName(); setStatus('Ready.');
       }catch(err){ console.error(err); alert('PDF load failed: '+(err?.message||err)); setStatus('Error loading PDF.'); }
     }
 
-    // sizing
     function computeFitScale(page){
       const v1=page.getViewport({scale:1});
       const centerWidth=stageWrap.clientWidth||stageWrap.getBoundingClientRect().width||800;
@@ -286,16 +282,20 @@
       try{await pageRenderTask.promise;}catch(e){if(e?.name!=='RenderingCancelledException')throw e;}finally{pageRenderTask=null;}
       stageWrap.classList.add('ready'); page.cleanup();
 
-      // restore saved selection for this page OR reuse template size if available and no saved box
+      // restore saved selection OR reuse template; if activeDoc is preview, do not auto-draw selection
       const cssW=parseFloat(stage.style.width)||stage.width, cssH=parseFloat(stage.style.height)||stage.height;
-      const savedPct=savedPctByPage.get(currentPage);
-      if(savedPct){
-        selection = pctToSel(savedPct, cssW, cssH);
-      }else if(lastTemplatePct){
-        const w=lastTemplatePct.w*cssW, h=lastTemplatePct.h*cssH;
-        selection = { x: Math.max(0,(cssW-w)/2), y: Math.max(0,(cssH-h)/2), w, h };
+      if(activeDoc==='preview'){
+        selection=null; // preview shows cropped content; let user draw fresh if needed
       }else{
-        selection=null;
+        const savedPct=savedPctByPage.get(currentPage);
+        if(savedPct){
+          selection = pctToSel(savedPct, cssW, cssH);
+        }else if(lastTemplatePct){
+          const w=lastTemplatePct.w*cssW, h=lastTemplatePct.h*cssH;
+          selection = { x: Math.max(0,(cssW-w)/2), y: Math.max(0,(cssH-h)/2), w, h };
+        }else{
+          selection=null;
+        }
       }
       updateRectUI();
 
@@ -305,7 +305,7 @@
       stageWrap.scrollIntoView({block:'center', inline:'nearest'});
       updateOutName();
     }
-    window.addEventListener('resize',()=>{ if(getActiveBytes()) setPage(currentPage); });
+    window.addEventListener('resize',()=>{ if(bytesForActive()) setPage(currentPage); });
 
     async function rebuildThumbs(providedDoc=null){
       const doc=providedDoc||await getActiveJsDoc(); const pages=doc.numPages;
@@ -331,7 +331,6 @@
       return{x,y,w,h};
     }
     function placeHandles(sel){
-      // handle positions relative to rect
       const pos={ nw:[0,0], ne:[sel.w,0], sw:[0,sel.h], se:[sel.w,sel.h],
         n:[sel.w/2,0], s:[sel.w/2,sel.h], w:[0,sel.h/2], e:[sel.w,sel.h/2] };
       overlayRect.querySelectorAll('.handle').forEach(h=>{
@@ -354,11 +353,10 @@
     function selToPct(sel, cssW, cssH){ return { x:sel.x/cssW, y:sel.y/cssH, w:sel.w/cssW, h:sel.h/cssH }; }
     function pctToSel(p, cssW, cssH){ return { x:p.x*cssW, y:p.y*cssH, w:p.w*cssW, h:p.h*cssH }; }
     function persistSelection(){
-      if(!selection) return;
+      if(!selection || activeDoc==='preview') return; // in preview we don't persist selection
       const cssW=parseFloat(stage.style.width)||stage.width, cssH=parseFloat(stage.style.height)||stage.height;
       const pct = selToPct(selection, cssW, cssH);
       savedPctByPage.set(currentPage, pct);
-      // update template size (for pages that don't yet have a saved box)
       lastTemplatePct = { w:pct.w, h:pct.h };
     }
 
@@ -408,25 +406,23 @@
         if(['sw','s','se'].includes(activeHandle)) y2=clamp(pt.y,y1+1,maxH);
 
         let next={x:x1,y:y1,w:x2-x1,h:y2-y1};
-        // Shift-resize keep ratio
         const keepRatio = e.shiftKey || lockRatio;
         const ratio = lockRatio || (selection.w/selection.h || 1);
         if(keepRatio){
           if(['n','s'].includes(activeHandle)){ next.w = next.h*ratio; if(activeHandle==='n') next.x=x2-next.w; }
           else if(['e','w'].includes(activeHandle)){ next.h = next.w/ratio; if(activeHandle==='w') next.y=y2-next.h; }
-          else{ // corners
+          else{
             const w1=next.w, h1=w1/ratio;
             const h2=next.h, w2=h2*ratio;
-            if(activeHandle==='nw'||activeHandle==='ne'){ // stick to top
+            if(activeHandle==='nw'||activeHandle==='ne'){
               if(h1<=next.h){ next.h=h1; if(activeHandle==='nw') next.y=y2-next.h; }
               else { next.w=w2; if(activeHandle==='ne') next.x=x2-next.w; }
-            }else{ // sw / se
+            }else{
               if(h1<=next.h){ next.h=h1; }
               else { next.w=w2; }
             }
           }
         }
-
         selection=normalizeSel(next); lastPos=pt; updateRectUI(); return;
       }
     });
@@ -434,24 +430,18 @@
     window.addEventListener('mouseup',()=>{ if(!dragMode) return; dragMode=null; activeHandle=null; dragStart=null; updateRectUI(); persistSelection(); });
 
     window.addEventListener('keydown',e=>{
-      // esc clears
       if(e.key==='Escape'){ e.preventDefault(); clearSelectionUI(); return; }
       if(!selection) return;
-
-      // Arrow interactions
       const moveStep = e.shiftKey ? 10 : 1;
       const resizeStep = e.shiftKey ? 10 : 1;
       const cssW=parseFloat(stage.style.width)||stage.width, cssH=parseFloat(stage.style.height)||stage.height;
-
       let handled=false;
       if(!e.ctrlKey){
-        // Move
         if(e.key==='ArrowLeft'){ selection.x=Math.max(0, selection.x-moveStep); handled=true; }
         if(e.key==='ArrowRight'){ selection.x=Math.min(cssW-selection.w, selection.x+moveStep); handled=true; }
         if(e.key==='ArrowUp'){ selection.y=Math.max(0, selection.y-moveStep); handled=true; }
         if(e.key==='ArrowDown'){ selection.y=Math.min(cssH-selection.h, selection.y+moveStep); handled=true; }
       }else{
-        // Resize with Ctrl
         if(e.key==='ArrowRight'){ selection.w=Math.min(cssW-selection.x, selection.w+resizeStep); handled=true; }
         if(e.key==='ArrowLeft'){ selection.w=Math.max(1, selection.w-resizeStep); handled=true; }
         if(e.key==='ArrowDown'){ selection.h=Math.min(cssH-selection.y, selection.h+resizeStep); handled=true; }
@@ -468,7 +458,6 @@
 
     clearBtn.addEventListener('click', clearSelectionUI);
 
-    // build bytes
     async function buildCroppedBytes(sel, scope){
       const work = await PDFLib.PDFDocument.load(originalBytes.slice());
       const pages = work.getPages();
@@ -496,18 +485,22 @@
     // preview
     applyBtn.addEventListener('click', async ()=>{
       try{
+        if(activeDoc!=='original'){ alert('Already in preview. Use “Back to original” to reset.'); return; }
         if(!originalBytes){ alert('Please upload a PDF first.'); return; }
         if(!selection || selection.w<2 || selection.h<2){ setStatus('Draw a crop box first.'); return; }
         const sel={...selection};
         prog.style.display='block'; prog.value=5; setStatus('Building preview…');
 
         previewBytes = await buildCroppedBytes(sel, applyAllEl.checked ? 'all' : 'current');
-        prog.value=60; showingPreview=true; backBtn.classList.add('show');
+        prog.value=60;
 
-        // *** Preview pachi: template clear + current selection clear ***
-        lastTemplatePct = null;                 // clear cross-page size template
-        selection = null; overlayRect.style.display='none';
+        // switch global active doc -> preview (keeps canvas & thumbs in sync)
+        activeDoc='preview';
+        lastTemplatePct = null;         // clear cross-page template
+        selection = null;               // clear current overlay (fresh selection if needed)
+        overlayRect.style.display='none';
         clearBtn.disabled=true; applyBtn.disabled=true;
+        backBtn.classList.add('show');
 
         await rebuildThumbs(); prog.value=90;
         await setPage(currentPage);
@@ -518,7 +511,8 @@
 
     backBtn.addEventListener('click', async ()=>{
       if(!originalBytes) return;
-      showingPreview=false; backBtn.classList.remove('show');
+      activeDoc='original';
+      backBtn.classList.remove('show');
       await rebuildThumbs(); await setPage(currentPage);
       setStatus('Back to original');
     });
