@@ -208,6 +208,7 @@
       pdfDocJS=null; pageCount=0; currentPage=1; currentViewport=null;
       stage.width=stage.height=0; stageWrap.classList.remove('ready');
       thumbsEl.innerHTML='Upload a PDF to see pages…'; metaEl.textContent='No file';
+      metaEl.title = '';
       enableControls(false); setStatus('Idle…');
       selection=null; overlayRect.style.display='none';
       outFileName='cropped.pdf'; outNameEl.textContent=outFileName;
@@ -230,7 +231,7 @@
         const doc = await pdfjsLib.getDocument({ data: originalBytes.slice() }).promise;
         pdfDocJS=doc; pageCount=pdfDocJS.numPages;
         metaEl.textContent = `${file.name} • ${fmt(pageCount)} pages • ${(file.size/1024/1024).toFixed(2)} MB`;
-
+        metaEl.title = metaEl.textContent;
         await rebuildThumbs(doc);
         await setPage(1, doc);
         enableControls(true);
