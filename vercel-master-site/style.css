@@ -603,9 +603,9 @@ select::-ms-expand{ display:none; }
   clip:rect(0,0,0,0)!important; white-space:nowrap!important; border:0!important;
 }
 
-/* Center the privacy note under upload box for all tools */
-.box.upload-box .small {
+/* Upload box: center the privacy note under the buttons on every tool */
+.box.upload-box.theme-center .small{
+  display: inline-block;   /* so it can auto-center like the buttons */
+  margin: 8px auto 0;      /* put it in the middle */
   text-align: center;
-  display: block;
-  width: 100%;
 }
