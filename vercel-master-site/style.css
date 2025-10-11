@@ -676,3 +676,39 @@ body.merge-page .item .btn.ghost{padding:6px 10px;font-size:13px}
   color:#fff; font-weight:700;
   box-shadow:0 6px 18px rgba(108,99,255,.25);
 }
+
+/* ---- Merge PDF final visual alignment (match Compress) ---- */
+body.merge-page main.container {
+  max-width: 1000px;
+  margin: 28px auto 0 auto;     /* same top spacing as Compress */
+  text-align: left;
+}
+body.merge-page .page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+  text-align: left;
+}
+body.merge-page .sub {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+/* same "How it works" white card style as Compress */
+body.merge-page main.container .group {
+  background: #fff;
+  border: 1px solid var(--border-color,#dde3f1);
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+body.merge-page main.container .group h3 {
+  margin-top: 0;
+  font-weight: 700;
+}
+body.merge-page main.container .group ul {
+  margin: 8px 0 0 22px;
+}
