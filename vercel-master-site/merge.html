@@ -40,7 +40,7 @@
 <main>
   <div class="wrap">
 
-    <!-- ====== Controls panel (3 boxes) ====== -->
+    <!-- ===== Controls (3 boxes) ===== -->
     <aside class="panel">
       <div class="grid-3">
 
@@ -66,7 +66,7 @@
             <span class="small">Insert a blank page between files (optional)</span>
           </label>
 
-          <!-- === New file cards grid === -->
+          <!-- file cards grid -->
           <hr class="soft" />
           <h3 class="small" style="margin:0 0 8px 0">Files (drag to reorder)</h3>
           <div id="thumbGrid" class="thumb-grid" aria-live="polite"></div>
@@ -86,7 +86,7 @@
       </div>
     </aside>
 
-    <!-- ====== Info section ====== -->
+    <!-- ===== Info ===== -->
     <main class="panel">
       <h1 class="page-title">Merge PDF</h1>
       <p class="sub">Combine multiple PDFs and reorder before downloading. 100% offline.</p>
@@ -125,8 +125,6 @@
 
     let filesState = [];
 
-    const fmtSize = (b) => (b / 1048576).toFixed(2) + ' MB';
-
     function updateMeta(){
       if (!filesState.length){
         meta.textContent = 'No file';
@@ -164,24 +162,21 @@
         card.className = 'thumb';
         card.draggable = true;
         card.dataset.idx = idx;
+        card.title = f.name; // tooltip anywhere on card
 
         const badge = document.createElement('div');
         badge.className = 'badge';
         badge.textContent = idx + 1;
 
         const name = document.createElement('div');
-const name = document.createElement('div');
-name.className = 'tname';
-name.textContent = f.name;
-name.title = f.name;           // <-- tooltip on hover
-
-const info = document.createElement('div');
-info.className = 'tpages';
-
+        name.className = 'tname';
+        name.textContent = f.name;
+        name.title = f.name; // tooltip on name
 
         const info = document.createElement('div');
         info.className = 'tpages';
         info.textContent = f.error ? 'Unreadable' : (f.pages ? `${f.pages} pages` : 'Reading…');
+        info.title = info.textContent;
 
         const rm = document.createElement('button');
         rm.className = 'remove';
@@ -225,8 +220,7 @@ info.className = 'tpages';
       try {
         const arr = new Uint8Array(await file.arrayBuffer());
         const doc = await PDFLib.PDFDocument.load(arr,{ignoreEncryption:false});
-        const meta = { name:file.name, size:file.size, pages:doc.getPageCount(), bytes:arr };
-        filesState.push(meta);
+        filesState.push({ name:file.name, size:file.size, pages:doc.getPageCount(), bytes:arr });
       } catch {
         filesState.push({ name:file.name, size:file.size, pages:0, bytes:null, error:true });
       }
@@ -241,6 +235,7 @@ info.className = 'tpages';
 
     fileInput.addEventListener('change', e => addFiles(e.target.files));
 
+    // Only open file dialog when clicking on empty drop area (not inner buttons)
     drop.addEventListener('click', (e) => {
       if (e.target === drop) fileInput.click();
     });
@@ -249,7 +244,7 @@ info.className = 'tpages';
     drop.addEventListener('drop', e => addFiles(e.dataTransfer.files));
 
     clearBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
+      e.stopPropagation();                 // prevent reopening file dialog
       filesState = [];
       meta.textContent = 'No file';
       updateMeta();
