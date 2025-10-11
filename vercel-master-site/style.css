@@ -497,4 +497,26 @@ select::-ms-expand{ display:none; }
 .btn.primary-blue:hover { filter: brightness(0.98); }
 .btn.primary-blue:disabled { opacity: .55; filter: grayscale(25%); cursor: not-allowed; }
 
+/* ===== Merge: file cards in Settings (5 per row) ===== */
+.merge-page .thumb-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:10px; }
+.merge-page .thumb{
+  position:relative; border:1px solid var(--border-color,#dde3f1); border-radius:10px;
+  background:#fff; padding:10px; min-height:70px; display:flex; flex-direction:column;
+  justify-content:center; gap:6px; cursor:grab; user-select:none;
+}
+.merge-page .thumb.dragging{ opacity:.6; outline:2px dashed #a8b4ff; }
+.merge-page .thumb .badge{
+  position:absolute; top:6px; left:6px; font-size:11px; padding:2px 6px; border-radius:999px;
+  background:#eef2ff; color:#334;
+}
+.merge-page .thumb .tname{ font-weight:600; font-size:13px; line-height:1.2; word-break:break-word; }
+.merge-page .thumb .tpages{ font-size:12px; color:#556; }
+.merge-page .thumb .remove{
+  position:absolute; top:6px; right:6px; border:1px solid var(--border-color,#dde3f1);
+  border-radius:8px; background:#fff; padding:2px 6px; font-size:12px;
+}
+.merge-page #thumbEmpty{ margin-top:6px; }
+@media (max-width:1100px){ .merge-page .thumb-grid{ grid-template-columns:repeat(4,1fr);} }
+@media (max-width:900px){  .merge-page .thumb-grid{ grid-template-columns:repeat(3,1fr);} }
+@media (max-width:640px){  .merge-page .thumb-grid{ grid-template-columns:repeat(2,1fr);} }
 
