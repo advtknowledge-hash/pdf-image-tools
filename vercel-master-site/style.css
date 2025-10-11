@@ -609,3 +609,8 @@ select::-ms-expand{ display:none; }
   margin: 8px auto 0;      /* put it in the middle */
   text-align: center;
 }
+
+/* Uniform spacing between 3-box panel and Title/Subtitle section */
+.after-grid {
+  margin-top: 1.5rem !important; /* same for all tools */
+}
