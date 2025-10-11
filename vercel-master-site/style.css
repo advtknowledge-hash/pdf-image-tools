@@ -602,3 +602,10 @@ select::-ms-expand{ display:none; }
   padding:0!important; margin:-1px!important; overflow:hidden!important;
   clip:rect(0,0,0,0)!important; white-space:nowrap!important; border:0!important;
 }
+
+/* Center the privacy note under upload box for all tools */
+.box.upload-box .small {
+  text-align: center;
+  display: block;
+  width: 100%;
+}
