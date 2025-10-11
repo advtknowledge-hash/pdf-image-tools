@@ -1,223 +1,353 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1" name="viewport"/>
-<title>Merge PDF — Local &amp; Private</title>
-<link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
-<link href="/style.css" rel="stylesheet"/>
-<script defer="" src="/site.js"></script>
-<script defer src="/assets/seo.js"></script>
-<meta content="light dark" name="color-scheme"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Merge PDF — Local & Private</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="/style.css" />
+  <script defer src="/site.js"></script>
+  <script defer src="/assets/seo.js"></script>
+  <meta name="color-scheme" content="light dark" />
 </head>
-        
+
 <body>
-<header class="site-header">
-<div class="container bar">
-<div class="brand">
-<span class="logo"></span>
-<span>PDF &amp; Image Tools</span>
-</div>
-<div class="container tool-tabs-wrap">
-<button aria-label="Scroll tools left" class="tool-scroll tool-left" title="Scroll left">‹</button>
-<nav aria-label="Tools" class="tool-tabs" role="navigation">
-<!-- use the same links you already have; examples: -->
-<a data-tip="Combine multiple PDFs into one" href="/merge">Merge PDF</a>
-<a data-tip="Remove pages you don’t need" href="/delete-pages">Delete pages</a>
-<a data-tip="Rotate pages left/right" href="/rotate-pages">Rotate PDF</a>
-<a data-tip="Drag &amp; reorder pages" href="/reorder-pages">Reorder PDF</a>
-<a data-tip="Cut margins or select an area" href="/crop">Crop PDF</a>
-<a data-tip="Reduce PDF file size" href="/compress">Compress PDF</a>
-<a data-tip="Export pages as PNG/JPG" href="/pdf-to-images">PDF → Images</a>
-<a data-tip="Make a PDF from images" href="/image-to-pdf">Image → PDF</a>
-<a data-tip="Convert JPG to PNG" href="/jpg-to-png">JPG → PNG</a>
-<a data-tip="Convert PNG to JPG" href="/png-to-jpg">PNG → JPG</a>
-</nav>
-<button aria-label="Scroll tools right" class="tool-scroll tool-right" title="Scroll right">›</button>
-</div>
-</div></header>
-<div class="wrap">
-<aside class="panel">
-<div class="row" style="justify-content:space-between">
-<label class="btn primary" for="file">Add PDFs</label>
-<input accept="application/pdf" id="file" multiple="" type="file"/>
-<button class="btn" disabled="" id="mergeBtn">Merge &amp; Download</button>
-</div>
-<div class="pill" id="meta">0 files • 0 pages</div>
-<div class="drop" id="drop" tabindex="0">
-        Drag &amp; drop your PDFs here<br/>
-<span class="small">All processing happens locally in your browser.</span>
-</div>
-<div class="small" style="margin-top:8px">
-        Tip: You can reorder the files below (drag the handles) before merging.
+  <header class="site-header">
+    <div class="container bar">
+      <div class="brand">
+        <span class="logo"></span>
+        <span>PDF &amp; Image Tools</span>
       </div>
-<div class="list" id="list"></div>
-</aside>
-<main class="panel">
-<h1 class="page-title">Merge PDF</h1>
-<p class="sub">Combine multiple PDFs and reorder pages before downloading.</p>
-<h3 style="margin-top:0">How it works</h3>
-<ul>
-<li>Fully offline: uses <strong>pdf-lib</strong> in your browser.</li>
-<li>Add multiple PDFs → reorder → click <em>Merge &amp; Download</em>.</li>
-<li>No file size limit technically, but keep total under ~100–150 MB for smooth performance.</li>
-</ul>
-<div class="small">Privacy: no uploads. Everything stays on your device.</div>
-<footer>Powered by <a href="https://pdf-lib.js.org/" rel="noreferrer" target="_blank">pdf-lib</a>.</footer>
-</main>
-</div>
-<!-- pdf-lib -->
-<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-<script>
-  const fileInput = document.getElementById('file');
-  const drop = document.getElementById('drop');
-  const listEl = document.getElementById('list');
-  const metaEl = document.getElementById('meta');
-  const mergeBtn = document.getElementById('mergeBtn');
 
-  /** files state: [{name, size, pages, bytes:Uint8Array}] */
-  let filesState = [];
+      <div class="container tool-tabs-wrap">
+        <button class="tool-scroll tool-left" title="Scroll left" aria-label="Scroll tools left">‹</button>
+        <nav class="tool-tabs" role="navigation" aria-label="Tools">
+          <!-- keep your real routes; just ensure Merge is active -->
+          <a href="/merge" data-tip="Combine multiple PDFs into one" aria-current="page">Merge PDF</a>
+          <a href="/delete-pages" data-tip="Remove pages you don’t need">Delete pages</a>
+          <a href="/rotate-pages" data-tip="Rotate pages left/right">Rotate PDF</a>
+          <a href="/reorder-pages" data-tip="Drag &amp; reorder pages">Reorder PDF</a>
+          <a href="/crop" data-tip="Cut margins or select an area">Crop PDF</a>
+          <a href="/compress" data-tip="Reduce PDF file size">Compress PDF</a>
+          <a href="/pdf-to-images" data-tip="Export pages as PNG/JPG">PDF → Images</a>
+          <a href="/image-to-pdf" data-tip="Make a PDF from images">Image → PDF</a>
+          <a href="/jpg-to-png" data-tip="Convert JPG to PNG">JPG → PNG</a>
+          <a href="/png-to-jpg" data-tip="Convert PNG to JPG">PNG → JPG</a>
+        </nav>
+        <button class="tool-scroll tool-right" title="Scroll right" aria-label="Scroll tools right">›</button>
+      </div>
+    </div>
+  </header>
 
-  // Helpers
-  function fmtSize(bytes){ return (bytes/1024/1024).toFixed(2) + ' MB'; }
-  function updateMeta(){
-    const totalPages = filesState.reduce((s,f)=> s + (f.pages||0), 0);
-    metaEl.textContent = `${filesState.length} files • ${totalPages} pages`;
-    mergeBtn.disabled = filesState.length < 2;
-  }
+  <div class="wrap">
+    <!-- LEFT: Upload / Files box -->
+    <aside class="panel">
+      <div class="row" style="justify-content:space-between">
+        <label for="file" class="btn primary">Add PDFs</label>
+        <input id="file" type="file" accept="application/pdf" multiple hidden />
+        <div class="row" style="gap:8px">
+          <button id="clearBtn" class="btn ghost" disabled>Clear all</button>
+          <button id="mergeBtn" class="btn" disabled>Merge &amp; Download</button>
+        </div>
+      </div>
 
-  function renderList(){
-    listEl.innerHTML = '';
-    filesState.forEach((f, idx)=>{
-      const row = document.createElement('div');
-      row.className = 'item';
-      row.draggable = true;
-      row.dataset.idx = idx;
+      <div id="meta" class="pill">0 files • 0 pages</div>
 
-      const handle = document.createElement('div');
-      handle.className = 'handle';
-      handle.textContent = '↕';
+      <div id="drop" class="drop" tabindex="0" aria-label="Drop zone for PDFs">
+        Drag &amp; drop your PDFs here<br />
+        <span class="small">All processing happens locally in your browser.</span>
+      </div>
 
-      const mid = document.createElement('div');
-      mid.style.display = 'grid';
-      mid.style.gap = '4px';
+      <div class="small" style="margin-top:8px">
+        Tip: Reorder files below (drag the handles ↕ or use ↑/↓ keys) before merging.
+      </div>
 
-      const name = document.createElement('div');
-      name.className = 'name';
-      name.textContent = `${f.name} (${fmtSize(f.size)})`;
+      <div id="list" class="list" aria-live="polite"></div>
+    </aside>
 
-      const sub = document.createElement('div');
-      sub.className = 'small';
-      sub.textContent = f.pages ? `${f.pages} pages` : 'Reading…';
+    <!-- RIGHT: Title + settings/info box -->
+    <main class="panel">
+      <h1 class="page-title">Merge PDF</h1>
+      <p class="sub">Combine multiple PDFs and reorder before downloading. 100% offline.</p>
 
-      mid.appendChild(name);
-      mid.appendChild(sub);
+      <section class="group">
+        <h3 style="margin-top:0">Output</h3>
+        <div class="row" style="gap:12px; align-items:flex-end; flex-wrap:wrap">
+          <div class="field">
+            <label for="outName" class="small">File name</label>
+            <input id="outName" type="text" placeholder="merged.pdf" value="merged.pdf" />
+          </div>
+          <label class="check">
+            <input id="blankBetween" type="checkbox" />
+            <span>Insert a blank page between files (optional)</span>
+          </label>
+        </div>
+      </section>
 
-      const del = document.createElement('button');
-      del.className = 'btn ghost';
-      del.textContent = 'Remove';
-      del.addEventListener('click', ()=>{
-        filesState.splice(idx,1);
-        renderList(); updateMeta();
-      });
+      <h3>How it works</h3>
+      <ul>
+        <li>Runs entirely on your device using <strong>pdf-lib</strong> (no upload).</li>
+        <li>Add multiple PDFs → reorder → click <em>Merge &amp; Download</em>.</li>
+        <li>For smooth performance keep total size under ~100–150&nbsp;MB.</li>
+      </ul>
 
-      row.appendChild(handle);
-      row.appendChild(mid);
-      row.appendChild(del);
+      <div class="small">Privacy: nothing leaves your browser.</div>
+      <footer>Powered by <a href="https://pdf-lib.js.org/" target="_blank" rel="noreferrer">pdf-lib</a>.</footer>
+    </main>
+  </div>
 
-      // DnD reorder
-      row.addEventListener('dragstart', e=>{
-        row.classList.add('dragging');
-        e.dataTransfer.setData('text/plain', String(idx));
-      });
-      row.addEventListener('dragend', ()=> row.classList.remove('dragging'));
-      row.addEventListener('dragover', e=> e.preventDefault());
-      row.addEventListener('drop', e=>{
-        e.preventDefault();
-        const from = Number(e.dataTransfer.getData('text/plain'));
-        const to = idx;
-        if(isNaN(from)) return;
-        const [item] = filesState.splice(from,1);
-        filesState.splice(to,0,item);
-        renderList(); updateMeta();
-      });
+  <!-- pdf-lib -->
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
-      listEl.appendChild(row);
-    });
-  }
+  <script>
+    const fileInput   = document.getElementById('file');
+    const drop        = document.getElementById('drop');
+    const listEl      = document.getElementById('list');
+    const metaEl      = document.getElementById('meta');
+    const mergeBtn    = document.getElementById('mergeBtn');
+    const clearBtn    = document.getElementById('clearBtn');
+    const outNameEl   = document.getElementById('outName');
+    const blankChk    = document.getElementById('blankBetween');
 
-  async function readPdfMeta(f, idx){
-    try{
-      const arr = new Uint8Array(await f.arrayBuffer());
-      const doc = await PDFLib.PDFDocument.load(arr, { ignoreEncryption: false });
-      filesState[idx].pages = doc.getPageCount();
-      filesState[idx].bytes = arr;
-      renderList(); updateMeta();
-    }catch(err){
-      filesState[idx].error = true;
-      renderList(); updateMeta();
-      alert(`Failed to read "${f.name}": ${err.message}`);
+    /** state: [{ name, size, pages, bytes:Uint8Array|null, fileRef:File, error?:true }] */
+    let filesState = [];
+
+    // Helpers
+    const fmtSize = (bytes) => (bytes/1024/1024).toFixed(2) + ' MB';
+
+    function updateMeta(){
+      const totalPages = filesState.reduce((s,f)=> s + (f.pages||0), 0);
+      metaEl.textContent = `${filesState.length} files • ${totalPages} pages`;
+      const has2 = filesState.filter(f => !f.error).length >= 2;
+      mergeBtn.disabled = !has2;
+      clearBtn.disabled = filesState.length === 0;
     }
-  }
 
-  async function addFiles(fileList){
-    const arr = Array.from(fileList).filter(f=> f.type === 'application/pdf');
-    if(!arr.length) return;
-    const startLen = filesState.length;
-    arr.forEach(f=>{
-      filesState.push({ name: f.name, size: f.size, pages: 0, bytes: null, fileRef: f });
-    });
-    renderList(); updateMeta();
-    for(let i = startLen; i < filesState.length; i++){
-      await readPdfMeta(filesState[i].fileRef, i);
+    function sanitizeName(name){
+      let n = (name || 'merged.pdf').trim();
+      if(!n.toLowerCase().endsWith('.pdf')) n += '.pdf';
+      return n.replace(/[\\/:*?"<>|]/g,'-').slice(0,120);
     }
-  }
 
-  fileInput.addEventListener('change', e=> addFiles(e.target.files));
-  ;['dragenter','dragover'].forEach(ev=> drop.addEventListener(ev, e=>{
-    e.preventDefault(); drop.classList.add('drag');
-  }));
-  ;['dragleave','drop'].forEach(ev=> drop.addEventListener(ev, e=>{
-    e.preventDefault(); drop.classList.remove('drag');
-  }));
-  drop.addEventListener('drop', e=>{
-    const files = e.dataTransfer.files;
-    addFiles(files);
-  });
+    function renderList(){
+      listEl.innerHTML = '';
+      filesState.forEach((f, idx)=>{
+        const row = document.createElement('div');
+        row.className = 'item';
+        row.draggable = true;
+        row.dataset.idx = idx;
+        row.tabIndex = 0;
+        row.setAttribute('aria-label', `${f.name}, ${f.pages?f.pages+' pages':'Reading…'}`);
 
-  mergeBtn.addEventListener('click', async ()=>{
-    try{
-      mergeBtn.disabled = true;
-      mergeBtn.textContent = 'Merging…';
+        const handle = document.createElement('div');
+        handle.className = 'handle';
+        handle.textContent = '↕';
+        handle.title = 'Drag to reorder';
 
-      const out = await PDFLib.PDFDocument.create();
+        const mid = document.createElement('div');
+        mid.style.display = 'grid';
+        mid.style.gap = '4px';
 
-      for(const f of filesState){
-        if(!f.bytes) continue;
-        const src = await PDFLib.PDFDocument.load(f.bytes);
-        const pages = await out.copyPages(src, src.getPageIndices());
-        pages.forEach(p=> out.addPage(p));
+        const name = document.createElement('div');
+        name.className = 'name';
+        name.textContent = `${f.name} (${fmtSize(f.size)})`;
+
+        const sub = document.createElement('div');
+        sub.className = 'small';
+        sub.textContent = f.error ? 'Unreadable PDF' : (f.pages ? `${f.pages} pages` : 'Reading…');
+
+        mid.appendChild(name);
+        mid.appendChild(sub);
+
+        const right = document.createElement('div');
+        right.className = 'row';
+        right.style.gap = '8px';
+
+        const upBtn = document.createElement('button');
+        upBtn.className = 'btn ghost';
+        upBtn.title = 'Move up';
+        upBtn.textContent = '↑';
+        upBtn.addEventListener('click', ()=>{
+          if(idx<=0) return;
+          const [it] = filesState.splice(idx,1);
+          filesState.splice(idx-1,0,it);
+          renderList(); updateMeta();
+        });
+
+        const downBtn = document.createElement('button');
+        downBtn.className = 'btn ghost';
+        downBtn.title = 'Move down';
+        downBtn.textContent = '↓';
+        downBtn.addEventListener('click', ()=>{
+          if(idx>=filesState.length-1) return;
+          const [it] = filesState.splice(idx,1);
+          filesState.splice(idx+1,0,it);
+          renderList(); updateMeta();
+        });
+
+        const del = document.createElement('button');
+        del.className = 'btn ghost';
+        del.textContent = 'Remove';
+        del.addEventListener('click', ()=>{
+          filesState.splice(idx,1);
+          renderList(); updateMeta();
+        });
+
+        right.appendChild(upBtn);
+        right.appendChild(downBtn);
+        right.appendChild(del);
+
+        row.appendChild(handle);
+        row.appendChild(mid);
+        row.appendChild(right);
+
+        // DnD reorder
+        row.addEventListener('dragstart', e=>{
+          row.classList.add('dragging');
+          e.dataTransfer.setData('text/plain', String(idx));
+        });
+        row.addEventListener('dragend', ()=> row.classList.remove('dragging'));
+        row.addEventListener('dragover', e=> e.preventDefault());
+        row.addEventListener('drop', e=>{
+          e.preventDefault();
+          const from = Number(e.dataTransfer.getData('text/plain'));
+          const to = idx;
+          if(isNaN(from) || from===to) return;
+          const [item] = filesState.splice(from,1);
+          filesState.splice(to,0,item);
+          renderList(); updateMeta();
+        });
+
+        // Keyboard reorder (↑ / ↓)
+        row.addEventListener('keydown', (e)=>{
+          if(e.key==='ArrowUp'){
+            e.preventDefault();
+            upBtn.click();
+          }else if(e.key==='ArrowDown'){
+            e.preventDefault();
+            downBtn.click();
+          }
+        });
+
+        listEl.appendChild(row);
+      });
+    }
+
+    async function readPdfMeta(fileRef, idx){
+      try{
+        const arr = new Uint8Array(await fileRef.arrayBuffer());
+        let doc;
+        try{
+          // First try without password; if encrypted, pdf-lib throws
+          doc = await PDFLib.PDFDocument.load(arr, { ignoreEncryption: false });
+        }catch(err){
+          // Attempt password if needed
+          const msg = String(err?.message || err);
+          if(msg.toLowerCase().includes('encrypted') || msg.toLowerCase().includes('password')){
+            const pw = prompt(`"${fileRef.name}" is password-protected. Enter password to include it:`, '');
+            if(pw===null || pw==='') throw new Error('Skipped encrypted PDF');
+            doc = await PDFLib.PDFDocument.load(arr, { password: pw });
+          }else{
+            throw err;
+          }
+        }
+        filesState[idx].pages = doc.getPageCount();
+        filesState[idx].bytes = arr;
+      }catch(err){
+        filesState[idx].error = true;
+        filesState[idx].bytes = null;
+        alert(`Failed to read "${fileRef.name}": ${err.message || err}`);
+      }finally{
+        renderList(); updateMeta();
       }
-
-      const bytes = await out.save({ updateFieldAppearances: false });
-      const blob = new Blob([bytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'merged.pdf';
-      a.click();
-      setTimeout(()=> URL.revokeObjectURL(url), 1500);
-
-      mergeBtn.textContent = 'Merge & Download';
-      mergeBtn.disabled = filesState.length < 2;
-    }catch(err){
-      alert('Merge failed: ' + (err?.message || err));
-      console.error(err);
-      mergeBtn.textContent = 'Merge & Download';
-      mergeBtn.disabled = false;
     }
-  });
+
+    async function addFiles(fileList){
+      const arr = Array.from(fileList).filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+      if(!arr.length) return;
+      const startLen = filesState.length;
+
+      arr.forEach(f=>{
+        filesState.push({ name: f.name, size: f.size, pages: 0, bytes: null, fileRef: f });
+      });
+      renderList(); updateMeta();
+
+      for(let i = startLen; i < filesState.length; i++){
+        await readPdfMeta(filesState[i].fileRef, i);
+      }
+    }
+
+    // UI events
+    fileInput.addEventListener('change', e=> addFiles(e.target.files));
+
+    ['dragenter','dragover'].forEach(ev=> drop.addEventListener(ev, e=>{
+      e.preventDefault(); drop.classList.add('drag');
+    }));
+    ['dragleave','drop'].forEach(ev=> drop.addEventListener(ev, e=>{
+      e.preventDefault(); drop.classList.remove('drag');
+    }));
+    drop.addEventListener('drop', e=> addFiles(e.dataTransfer.files));
+
+    // Also allow click on drop zone to open file picker
+    drop.addEventListener('click', ()=> fileInput.click());
+    drop.addEventListener('keypress', (e)=>{ if(e.key==='Enter' || e.key===' ') fileInput.click(); });
+
+    clearBtn.addEventListener('click', ()=>{
+      filesState = [];
+      renderList(); updateMeta();
+    });
+
+    mergeBtn.addEventListener('click', async ()=>{
+      const valid = filesState.filter(f => f.bytes && !f.error);
+      if(valid.length < 2){ alert('Add at least two readable PDFs.'); return; }
+
+      try{
+        mergeBtn.disabled = true;
+        clearBtn.disabled = true;
+        mergeBtn.textContent = 'Merging…';
+
+        const out = await PDFLib.PDFDocument.create();
+        let lastPageSize = null; // track for optional blank pages
+
+        for(let i=0;i<valid.length;i++){
+          const f = valid[i];
+          const src = await PDFLib.PDFDocument.load(f.bytes, { ignoreEncryption:false }).catch(()=>null);
+          if(!src){ continue; }
+          const indices = src.getPageIndices();
+          const pages = await out.copyPages(src, indices);
+          pages.forEach(p=>{
+            out.addPage(p);
+            const { width, height } = p.getSize();
+            lastPageSize = [width, height];
+          });
+
+          // Optional: blank page between files (not after last)
+          if(blankChk.checked && i < valid.length - 1){
+            const [w,h] = lastPageSize || PDFLib.PageSizes.A4;
+            out.addPage(out.addPage().setSize(w,h)); // add blank
+          }
+        }
+
+        const bytes = await out.save({ updateFieldAppearances:false });
+        const blob = new Blob([bytes], { type:'application/pdf' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url;
+        a.download = sanitizeName(outNameEl.value);
+        a.click();
+        setTimeout(()=> URL.revokeObjectURL(url), 1500);
+      }catch(err){
+        alert('Merge failed: ' + (err?.message || err));
+        console.error(err);
+      }finally{
+        mergeBtn.textContent = 'Merge & Download';
+        mergeBtn.disabled = filesState.filter(f=>!f.error).length < 2;
+        clearBtn.disabled = filesState.length===0;
+      }
+    });
+
+    // Initial
+    updateMeta();
   </script>
 </body>
 </html>
