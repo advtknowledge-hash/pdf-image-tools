@@ -628,3 +628,43 @@ body.merge-page .drop .btn.primary:hover {
 body.merge-page .wrap.three {
   align-items: stretch;
 }
+
+/* === Merge PDF: mirror Compress layout === */
+body.merge-page .wrap.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;align-items:stretch}
+body.merge-page .panel{padding:22px;border-radius:16px;background:var(--card-bg,#fff);box-shadow:0 1px 3px rgba(0,0,0,.05)}
+body.merge-page .panel h2.box-title{font-size:1.25rem;font-weight:700;text-align:center;margin:0 0 10px}
+
+/* Upload card: same soft gradient + dashed border */
+body.merge-page .drop{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;text-align:center;min-height:132px;padding:24px 12px;
+  background:linear-gradient(180deg,#fdfdff 0%,#f6f9ff 100%);
+  border:2px dashed var(--border-color,#dde3f1);border-radius:12px;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.03)
+}
+body.merge-page .drop.drag{outline:3px solid var(--brand-100,#cfe7ff)}
+body.merge-page .drop .btn.primary{background:linear-gradient(90deg,#6c63ff,#4b9bff);color:#fff;font-weight:600;
+  font-size:15px;padding:10px 22px;border:none}
+body.merge-page .drop .btn.primary:hover{opacity:.9}
+
+/* "No file" pill + Clear on the same row (like Compress) */
+body.merge-page .actionbar{display:flex;align-items:center;gap:10px;margin-top:10px}
+body.merge-page .actionbar .spacer{flex:1}
+body.merge-page .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border-color,#dde3f1);
+  border-radius:999px;padding:6px 12px;font-size:12px;background:#f2f5ff;color:#334}
+body.merge-page .pill.muted{background:#eef1f7;color:#556}
+
+/* File list look */
+body.merge-page .list{display:grid;gap:8px;margin-top:10px}
+body.merge-page .item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;
+  border:1px solid var(--border-color,#dde3f1);border-radius:10px;background:#fff}
+body.merge-page .item .handle{cursor:grab;font-size:18px;opacity:.6;user-select:none}
+body.merge-page .item .name{font-weight:600}
+body.merge-page .item .btn.ghost{padding:6px 10px;font-size:13px}
+
+/* Tabs: ensure active tool highlight = gradient */
+.tool-tabs a[aria-current="page"]{
+  background:linear-gradient(90deg,#6c63ff,#4b9bff); color:#fff; font-weight:700;
+  box-shadow:0 6px 18px rgba(108,99,255,.25); transform:none;
+}
+@media (max-width:900px){ body.merge-page .wrap.three{grid-template-columns:1fr} }
