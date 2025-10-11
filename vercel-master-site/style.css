@@ -496,3 +496,39 @@ select::-ms-expand{ display:none; }
 }
 .btn.primary-blue:hover { filter: brightness(0.98); }
 .btn.primary-blue:disabled { opacity: .55; filter: grayscale(25%); cursor: not-allowed; }
+
+/* ==== Merge PDF (scoped so other tools stay unchanged) ==== */
+body.merge-page .panel { min-height: 260px; }
+
+/* Combined upload card (button + drag & drop) */
+body.merge-page .drop {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:10px; text-align:center; padding:28px 16px; min-height:130px;
+  border:2px dashed var(--border-color); border-radius:12px;
+  background: var(--card-soft, linear-gradient(180deg, #fafcff 0%, #f6f8ff 100%));
+}
+body.merge-page .drop.drag { outline: 3px solid var(--brand-100,#cfe7ff); }
+body.merge-page .drop .btn.primary { padding:12px 18px; font-size:16px; }
+
+/* Files list */
+body.merge-page .list { margin-top:12px; display:grid; gap:8px; }
+body.merge-page .item {
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:10px 12px; border:1px solid var(--border-color); border-radius:12px; background:#fff;
+}
+body.merge-page .item .handle {
+  width:28px; text-align:center; font-size:18px; line-height:1; cursor:grab;
+  user-select:none; opacity:0.7;
+}
+body.merge-page .item .name { font-weight:600; }
+body.merge-page .item .small { color: var(--muted,#546); }
+body.merge-page .item .btn.ghost { padding:6px 10px; }
+
+body.merge-page .actions { margin-top:10px; }
+
+/* Small pill (files • pages) */
+body.merge-page .pill {
+  display:inline-flex; align-items:center; gap:8px;
+  background: #f2f5ff; color:#334; border:1px solid var(--border-color);
+  border-radius:999px; padding:6px 10px; font-size:12px; margin:8px 0;
+}
