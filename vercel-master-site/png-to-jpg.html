@@ -94,8 +94,6 @@
             <button id="convertBtn" class="btn" disabled>Convert &amp; Download</button>
             <button id="cancelBtn" class="btn ghost" style="display:none">Cancel</button>
           </div>
-
-          <div class="small mt-2" id="outMeta">Output: <code>png-to-jpg.zip</code></div>
         </section>
       </div>
     </aside>
@@ -299,13 +297,11 @@
       if (files.length === 1 && singleBlob) {
         setStatus('Saving JPG…');
         downloadBlob(singleBlob, singleName);
-        outMeta.textContent = 'Output: ' + singleName;
-      } else {
+             } else {
         setStatus('Packaging ZIP…');
         const blob = await zip.generateAsync({ type: 'blob' });
         downloadBlob(blob, 'png-to-jpg.zip');
-        outMeta.textContent = 'Output: png-to-jpg.zip';
-      }
+             }
 
       setStatus('Done.');
       convertBtn.disabled = false;
