@@ -10,10 +10,20 @@
   <script defer src="/assets/seo.js"></script>
   <meta name="color-scheme" content="light dark" />
   <style>
-    .crop-wrap .panel .grid-crop{display:grid;grid-template-columns:320px 1fr 320px;gap:20px;align-items:start}
-    .thumbs.small{display:flex;flex-direction:column;gap:10px;margin-top:10px;max-height:60vh;overflow:auto;padding-right:4px}
+    /* ===== Layout tweaks for compact look (only this page) ===== */
+    .crop-wrap .panel .grid-crop{
+      display:grid;grid-template-columns:320px 1fr 320px;gap:20px;align-items:start
+    }
+    /* FIRST BOX: compact header row */
+    .upload-box{padding:16px}
+    .upload-box .btn-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px}
+    .upload-box .pill#meta{padding:8px 12px;line-height:1;white-space:nowrap}
+    .upload-box .muted{margin:6px 0 4px}
+    .thumbs.small{display:flex;flex-direction:column;gap:10px;max-height:58vh;overflow:auto;padding-right:4px}
     .thumbs.small .thumb{border:1px solid var(--border);border-radius:10px;padding:6px;box-shadow:var(--shadow-sm);cursor:pointer;background:var(--surface-1)}
     .thumbs.small .thumb.active{outline:2px solid var(--brand-1)}
+
+    /* MIDDLE STAGE */
     .stage-wrap{position:relative;display:block;margin:8px auto 0;max-width:100%}
     .stage-wrap canvas{display:none;max-width:100%;height:auto;border-radius:12px;background:var(--surface-2);outline:2px solid rgba(0,0,0,.10);box-shadow:var(--shadow-sm)}
     .stage-wrap.ready canvas{display:block}
@@ -24,16 +34,16 @@
     .overlay-crop .handle.ne,.overlay-crop .handle.sw{cursor:nesw-resize}
     .overlay-crop .handle.n,.overlay-crop .handle.s{cursor:ns-resize}
     .overlay-crop .handle.w,.overlay-crop .handle.e{cursor:ew-resize}
-    .sticky-cta{position:sticky;bottom:8px;padding-top:8px;background:linear-gradient(to top, rgba(0,0,0,.03), transparent)}
-    .panel .inline input[type="checkbox"]{margin:0}
-    .back-link{display:none}
-    .back-link.show{display:inline-flex}
-    .settings-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-    .upload-box #meta{display:block;box-sizing:border-box;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+    /* THIRD BOX: compact controls (like Compress panel height) */
+    .controls-box{padding:16px}
+    .controls-box .settings-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .controls-box details{margin-top:6px}
+    .controls-box .title{margin-bottom:6px}
+
     @media (max-width:1024px){
       .crop-wrap .panel .grid-crop{grid-template-columns:1fr}
       .thumbs.small{flex-direction:row;flex-wrap:wrap;max-height:none}
-      .sticky-cta{position:relative;bottom:auto;background:none}
     }
   </style>
 </head>
@@ -57,21 +67,27 @@
   <div class="wrap crop-wrap">
     <aside class="panel">
       <div class="grid-crop">
-        <!-- LEFT — Upload -->
+        <!-- ============ 1) Upload PDF (compact) ============ -->
         <section class="panel card box upload-box theme-center" id="dropzone" aria-label="Upload PDF">
           <h2 class="title">Upload PDF</h2>
           <p class="muted">Drag &amp; drop PDF here</p>
-          <label for="file" class="btn gradient big">Browse PDF</label>
-          <input id="file" type="file" accept="application/pdf" hidden />
-          <div class="pill mt-2" id="meta">No file</div>
-          <button class="btn subtle mt-1" id="clearBtnTop" disabled>Clear</button>
-          <div class="small mt-2">Everything runs in your browser (no uploads).</div>
-          <div class="rule soft mt-3"></div>
+
+          <div class="btn-row">
+            <label for="file" class="btn gradient">Browse PDF</label>
+            <div class="pill" id="meta">No file</div>
+            <button class="btn subtle" id="clearBtnTop" disabled>Clear</button>
+          </div>
+
+          <div class="small muted">Everything runs in your browser (no uploads).</div>
+          <div class="rule soft mt-2"></div>
+
           <!-- thumbnails (no label/placeholder) -->
           <div id="thumbs" class="thumbs small" aria-live="polite"></div>
+
+          <input id="file" type="file" accept="application/pdf" hidden />
         </section>
 
-        <!-- MIDDLE — (Canvas box; title “Settings”) -->
+        <!-- ============ 2) Settings (canvas stays same) ============ -->
         <section class="panel card box action-box theme-center" aria-label="Settings">
           <h2 class="title">Settings</h2>
           <progress id="prog" max="100" value="0" class="w-100"></progress>
@@ -93,16 +109,16 @@
           </div>
         </section>
 
-        <!-- RIGHT — (Controls box; title “Crop”) -->
-        <section class="panel card box theme-center" aria-label="Crop">
+        <!-- ============ 3) Crop (compact like Compress) ============ -->
+        <section class="panel card box theme-center controls-box" aria-label="Crop">
           <h2 class="title">Crop</h2>
 
-          <label class="inline" for="applyAll" style="margin:6px 0 10px">
+          <label class="inline" for="applyAll">
             <input id="applyAll" type="checkbox" checked />
             <span>Apply crop to all pages</span>
           </label>
 
-          <details class="mt-1">
+          <details>
             <summary>Advanced</summary>
             <div class="small muted mt-1">
               • Drag to draw a crop box. Drag inside to move; use handles to resize.<br>
@@ -116,18 +132,13 @@
             <button id="clearCrop" class="btn ghost" disabled>Clear selection (Esc)</button>
             <button id="applyCrop" class="btn" disabled>Preview crop</button>
             <button id="backOriginal" class="btn subtle back-link" title="Back to original">Back to original</button>
-          </div>
-
-          <div class="sticky-cta">
-            <div class="row center mt-2">
-              <button id="downloadBtn" class="btn" disabled>Crop &amp; Download</button>
-            </div>
+            <button id="downloadBtn" class="btn" disabled>Crop &amp; Download</button>
           </div>
         </section>
       </div>
     </aside>
 
-    <!-- Title + How it works -->
+    <!-- Title + How it works (unchanged) -->
     <main class="panel">
       <h1 class="page-title">Crop PDF</h1>
       <p class="sub">3 steps: Upload • Pick page • Draw/adjust crop • Preview &amp; Download. All processing stays on your device.</p>
@@ -207,7 +218,7 @@
       fileInput.value='';
       pdfDocJS=null; pageCount=0; currentPage=1; currentViewport=null;
       stage.width=stage.height=0; stageWrap.classList.remove('ready');
-      thumbsEl.innerHTML=''; // (cleared — no placeholder)
+      thumbsEl.innerHTML='';
       metaEl.textContent='No file'; metaEl.title='';
       enableControls(false); setStatus('Idle…');
       selection=null; overlayRect.style.display='none';
@@ -231,8 +242,8 @@
 
         const doc = await pdfjsLib.getDocument({ data: originalBytes.slice() }).promise;
         pdfDocJS=doc; pageCount=pdfDocJS.numPages;
-        metaEl.textContent = `${file.name} • ${fmt(pageCount)} pages • ${(file.size/1024/1024).toFixed(2)} MB`;
-        metaEl.title = metaEl.textContent;
+        metaEl.textContent = `${file.name} • ${pageCount} pages`; // short text to keep one row
+        metaEl.title = `${file.name} • ${pageCount} pages`;
 
         await rebuildThumbs(doc);
         await setPage(1, doc);
@@ -390,7 +401,7 @@
         const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
         if(['nw','w','sw'].includes(activeHandle)) x1=clamp(pt.x,0,x2-1);
         if(['ne','e','se'].includes(activeHandle)) x2=clamp(pt.x,x1+1,maxW);
-        if(['nw','n','ne'].includes(activeHandle)) y1=clamp(pt.y,0,y2-1)
+        if(['nw','n','ne'].includes(activeHandle)) y1=clamp(pt.y,0,y2-1);
         if(['sw','s','se'].includes(activeHandle)) y2=clamp(pt.y,y1+1,maxH);
 
         let next={x:x1,y:y1,w:x2-x1,h:y2-y1};
