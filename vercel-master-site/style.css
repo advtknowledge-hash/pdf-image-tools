@@ -586,3 +586,12 @@ select::-ms-expand{ display:none; }
   text-align:center;           /* center the text */
   margin-inline:auto;          /* avoid any residual left bias */
 }
+
+/* Slightly lower the filename block inside cards */
+.merge-page .thumb { 
+  padding-top: 26px;          /* was 22px — gives a bit more top air */
+}
+
+.merge-page .thumb .tname{
+  margin-top: 10px;           /* was ~6px — nudges text downward */
+}
