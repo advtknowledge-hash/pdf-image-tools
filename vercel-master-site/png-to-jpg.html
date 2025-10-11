@@ -39,23 +39,25 @@
 </header>
 
 <main>
-  <div class="wrap"><!-- SAME outer as Compress/PDF→Images -->
+  <div class="wrap">
 
-    <!-- ===== Controls panel (3 boxes inside one rounded panel) ===== -->
+    <!-- ===== 3-Box Panel ===== -->
     <aside class="panel">
       <div class="grid-3">
-<!-- LEFT: Upload / Drop -->
-<section class="panel card box upload-box theme-center" id="dropzone" aria-label="Upload PNG">
-  <h2 class="title">Upload PNG</h2>
-  <p class="muted">Drag &amp; drop PNG images here</p>
-  <label for="file" class="btn gradient big">Browse PNG</label>
-  <input id="file" type="file" accept="image/png" multiple hidden />
-  <div class="pill mt-2" id="meta">No file</div>
-  <button class="btn subtle mt-1" id="clearBtn" disabled>Clear</button>
-  <div class="small mt-2">Everything runs in your browser (no uploads).</div>
-</section>
 
-        <!-- MIDDLE: Settings -->
+        <!-- 1) Upload -->
+        <section class="panel card box upload-box theme-center" id="dropzone" aria-label="Upload PNG">
+          <h2 class="title">Upload PNG</h2>
+          <p class="muted">Drag &amp; drop PNG images here</p>
+          <label for="file" class="btn gradient big">Browse PNG</label>
+          <input id="file" type="file" accept="image/png" multiple hidden />
+          <div class="pill mt-2" id="meta">No file</div>
+          <button class="btn subtle mt-1" id="clearBtn" disabled>Clear</button>
+          <!-- Note: centered by your global CSS rule we added earlier -->
+          <div class="small mt-2">Everything runs in your browser (no uploads).</div>
+        </section>
+
+        <!-- 2) Settings -->
         <section class="panel card box settings-box theme-center" aria-label="Conversion Settings">
           <h2 class="title">Settings</h2>
 
@@ -78,10 +80,10 @@
             <div class="small mt-1">Tip: Use white for photos, or light gray (#f5f5f5) to reduce halos.</div>
           </details>
 
-          <div class="small mt-2">We convert each PNG to a JPG using the quality above. Transparency is flattened to the chosen color.</div>
+          <div class="small mt-2">We convert each PNG to JPG using the quality above. Transparency is flattened to the chosen color.</div>
         </section>
 
-        <!-- RIGHT: Run / Progress / Download -->
+        <!-- 3) Action / Download -->
         <section class="panel card box action-box theme-center" aria-label="Convert & Download">
           <h2 class="title">Download JPG</h2>
 
@@ -101,13 +103,13 @@
     <!-- ===== Title + How it works ===== -->
     <main class="panel after-grid">
       <h1 class="page-title">PNG → JPG</h1>
-      <p class="sub">Fast, offline conversion. Adjust quality, flatten transparency, and download as a ZIP.</p>
+      <p class="sub">Fast, offline conversion. Adjust quality, flatten transparency, and download as a ZIP or single JPG.</p>
 
       <section class="card mt-3">
         <h2 class="title">How it works</h2>
         <ul class="sub">
           <li>Drop PNGs or browse; we render them to a canvas and export as JPG.</li>
-          <li>Choose JPEG quality to balance file size and clarity.</li>
+          <li>Choose JPG quality to balance file size and clarity.</li>
           <li>Transparent areas get filled with your chosen background color.</li>
         </ul>
         <p class="sub mt-1">Privacy: No uploads. Everything stays on your device.</p>
@@ -143,7 +145,7 @@
     let files = [];
     let cancelFlag = false;
 
-    // UI helpers
+    // Helpers
     function updateMeta(){
       if(files.length === 0){
         meta.textContent = 'No file';
@@ -154,17 +156,15 @@
         meta.textContent = `${files.length} image${files.length>1?'s':''}`;
         clearBtn.disabled = false;
         convertBtn.disabled = false;
-        convertBtn.classList.add('primary-blue'); // CTA turns blue like other tools
+        convertBtn.classList.add('primary-blue');
       }
     }
-
     function setStatus(txt){ statusEl.textContent = txt; }
     function setProgress(done, total){
       if(total <= 0){ prog.max = 100; prog.value = 0; return; }
       prog.max = 100;
       prog.value = Math.round((done/total)*100);
     }
-
     function downloadBlob(blob, filename){
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -173,9 +173,7 @@
       a.click();
       setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
     }
-
     function hexToRGBA(hex){
-      // #rrggbb
       const m = /^#([0-9a-f]{6})$/i.exec(hex || '#ffffff');
       if(!m) return [255,255,255,255];
       const n = parseInt(m[1], 16);
@@ -188,13 +186,11 @@
       qLabel.textContent = `Quality: ${v} (higher = better & larger)`;
     });
 
-    // File selection
-    fileInput.addEventListener('change', async (e) => {
-      const list = Array.from(e.target.files || []);
-      addFiles(list);
+    // File select
+    fileInput.addEventListener('change', (e) => {
+      addFiles(Array.from(e.target.files || []));
       fileInput.value = '';
     });
-
     function addFiles(list){
       for(const f of list){
         if(!f) continue;
@@ -213,29 +209,31 @@
       setProgress(0,0);
     });
 
-    // Drag & drop (mirror compress.html drop UX)
+    // Drag & drop
     ['dragenter','dragover'].forEach(ev =>
       dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('dropping'); })
     );
     ['dragleave','drop'].forEach(ev =>
       dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dropping'); })
     );
-    dropzone.addEventListener('drop', async (e) => {
-      const list = Array.from(e.dataTransfer?.files || []);
-      addFiles(list);
+    dropzone.addEventListener('drop', (e) => {
+      addFiles(Array.from(e.dataTransfer?.files || []));
     });
 
     // Convert
-    convertBtn.addEventListener('click', () => runConvert().catch(err => {
-      alert('Conversion failed: ' + (err?.message || err));
-      setStatus('Error.');
-      convertBtn.disabled = false;
-    }));
-
+    convertBtn.addEventListener('click', () =>
+      runConvert().catch(err => {
+        alert('Conversion failed: ' + (err?.message || err));
+        setStatus('Error.');
+        convertBtn.disabled = false;
+        cancelBtn.style.display = 'none';
+      })
+    );
     cancelBtn.addEventListener('click', () => { cancelFlag = true; });
 
-    async function runConvert(){
-      if(files.length === 0) return;
+    // === core conversion ===
+    async function runConvert() {
+      if (files.length === 0) return;
 
       const quality = Math.max(0.5, Math.min(0.99, parseFloat(qualityEl.value || '0.92')));
       const [r,g,b,a] = hexToRGBA(bgColorEl.value || '#ffffff');
@@ -250,11 +248,13 @@
 
       const zip = new JSZip();
       let i = 0;
+      let singleBlob = null;
+      let singleName = '';
 
-      for(const f of files){
-        if(cancelFlag) throw new Error('Cancelled');
+      for (const f of files) {
+        if (cancelFlag) throw new Error('Cancelled');
 
-        // Load image
+        // load
         const img = await new Promise((res, rej) => {
           const image = new Image();
           image.onload = () => res(image);
@@ -262,24 +262,32 @@
           image.src = URL.createObjectURL(f);
         });
 
-        // Draw to canvas
+        // canvas
         const canvas = document.createElement('canvas');
         canvas.width = img.naturalWidth || img.width;
         canvas.height = img.naturalHeight || img.height;
         const ctx = canvas.getContext('2d');
 
-        if(fill){
+        if (fill) {
           ctx.fillStyle = `rgba(${r},${g},${b},${a/255})`;
-          ctx.fillRect(0,0,canvas.width,canvas.height);
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
         ctx.drawImage(img, 0, 0);
-
         URL.revokeObjectURL(img.src);
 
-        // Export JPG data URL then add to zip
+        // encode
         const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        const base = (f.name || 'image').replace(/\.[^.]+$/,'') || 'image';
-        zip.file(base + '.jpg', dataUrl.split(',')[1], { base64:true });
+        const base = (f.name || 'image').replace(/\.[^.]+$/, '') || 'image';
+        const fileName = base + '.jpg';
+
+        if (files.length === 1) {
+          // single file → direct jpg
+          singleBlob = await (await fetch(dataUrl)).blob();
+          singleName = fileName;
+        } else {
+          // batch → zip
+          zip.file(fileName, dataUrl.split(',')[1], { base64: true });
+        }
 
         i++;
         setStatus(`Converted ${i} / ${files.length}`);
@@ -287,16 +295,24 @@
         await new Promise(r => setTimeout(r, 0));
       }
 
-      setStatus('Packaging ZIP…');
-      const blob = await zip.generateAsync({ type:'blob' });
-      downloadBlob(blob, 'png-to-jpg.zip');
+      // download
+      if (files.length === 1 && singleBlob) {
+        setStatus('Saving JPG…');
+        downloadBlob(singleBlob, singleName);
+        outMeta.textContent = 'Output: ' + singleName;
+      } else {
+        setStatus('Packaging ZIP…');
+        const blob = await zip.generateAsync({ type: 'blob' });
+        downloadBlob(blob, 'png-to-jpg.zip');
+        outMeta.textContent = 'Output: png-to-jpg.zip';
+      }
 
       setStatus('Done.');
       convertBtn.disabled = false;
       cancelBtn.style.display = 'none';
     }
 
-    // Init
+    // init
     updateMeta();
   </script>
 </main>
