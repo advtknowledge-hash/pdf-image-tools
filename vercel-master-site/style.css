@@ -577,3 +577,12 @@ select::-ms-expand{ display:none; }
 .merge-page .thumb .remove{
   z-index: 2;
 }
+
+/* Final centering for file cards */
+.merge-page .thumb{ align-items:center; text-align:center; }
+.merge-page .thumb .tname,
+.merge-page .thumb .tpages{
+  width:100%;                  /* take full card width */
+  text-align:center;           /* center the text */
+  margin-inline:auto;          /* avoid any residual left bias */
+}
