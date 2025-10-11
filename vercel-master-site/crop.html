@@ -67,8 +67,8 @@
           <button class="btn subtle mt-1" id="clearBtnTop" disabled>Clear</button>
           <div class="small mt-2">Everything runs in your browser (no uploads).</div>
           <div class="rule soft mt-3"></div>
-          <div class="small mt-2">Pages</div>
-          <div id="thumbs" class="thumbs small" aria-live="polite">Upload a PDF to see pages…</div>
+          <!-- thumbnails (no label/placeholder) -->
+          <div id="thumbs" class="thumbs small" aria-live="polite"></div>
         </section>
 
         <!-- MIDDLE — (Canvas box; title “Settings”) -->
@@ -167,12 +167,10 @@
     // original / preview bytes
     let originalBytes=null;
     let previewBytes=null;
-    // single source of truth for what UI should show (keeps canvas & thumbnails in sync)
     let activeDoc = 'original'; // 'original' | 'preview'
 
     let outFileNameBase='cropped';
 
-    // remember per-page selection; clear cross-page template after Preview
     const savedPctByPage = new Map();
     let lastTemplatePct = null;
 
@@ -186,7 +184,7 @@
 
     function bytesForActive(){
       const src = (activeDoc==='preview' ? previewBytes : originalBytes);
-      return src ? src.slice() : null; // slice: give pdf.js a fresh copy
+      return src ? src.slice() : null;
     }
     async function getActiveJsDoc(){
       const data=bytesForActive(); if(!data) throw new Error('No PDF loaded');
@@ -209,7 +207,8 @@
       fileInput.value='';
       pdfDocJS=null; pageCount=0; currentPage=1; currentViewport=null;
       stage.width=stage.height=0; stageWrap.classList.remove('ready');
-      thumbsEl.innerHTML='Upload a PDF to see pages…'; metaEl.textContent='No file'; metaEl.title='';
+      thumbsEl.innerHTML=''; // (cleared — no placeholder)
+      metaEl.textContent='No file'; metaEl.title='';
       enableControls(false); setStatus('Idle…');
       selection=null; overlayRect.style.display='none';
       prog.value=0;
@@ -274,10 +273,9 @@
       try{await pageRenderTask.promise;}catch(e){if(e?.name!=='RenderingCancelledException')throw e;}finally{pageRenderTask=null;}
       stageWrap.classList.add('ready'); page.cleanup();
 
-      // restore saved selection OR reuse template; if activeDoc is preview, do not auto-draw selection
       const cssW=parseFloat(stage.style.width)||stage.width, cssH=parseFloat(stage.style.height)||stage.height;
       if(activeDoc==='preview'){
-        selection=null; // preview shows cropped content; let user draw fresh if needed
+        selection=null;
       }else{
         const savedPct=savedPctByPage.get(currentPage);
         if(savedPct){
@@ -310,7 +308,6 @@
       }
     }
 
-    // selection helpers
     const HANDLE_HIT=10;
     function getLocalXY(evt){const r=stage.getBoundingClientRect();return{ x:Math.max(0,Math.min(r.width,evt.clientX-r.left)), y:Math.max(0,Math.min(r.height,evt.clientY-r.top)) };}
     function normalizeSel(sel){
@@ -344,7 +341,7 @@
     function selToPct(sel, cssW, cssH){ return { x:sel.x/cssW, y:sel.y/cssH, w:sel.w/cssW, h:sel.h/cssH }; }
     function pctToSel(p, cssW, cssH){ return { x:p.x*cssW, y:p.y*cssH, w:p.w*cssW, h:p.h*cssH }; }
     function persistSelection(){
-      if(!selection || activeDoc==='preview') return; // in preview we don't persist selection
+      if(!selection || activeDoc==='preview') return;
       const cssW=parseFloat(stage.style.width)||stage.width, cssH=parseFloat(stage.style.height)||stage.height;
       const pct = selToPct(selection, cssW, cssH);
       savedPctByPage.set(currentPage, pct);
@@ -393,7 +390,7 @@
         const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
         if(['nw','w','sw'].includes(activeHandle)) x1=clamp(pt.x,0,x2-1);
         if(['ne','e','se'].includes(activeHandle)) x2=clamp(pt.x,x1+1,maxW);
-        if(['nw','n','ne'].includes(activeHandle)) y1=clamp(pt.y,0,y2-1);
+        if(['nw','n','ne'].includes(activeHandle)) y1=clamp(pt.y,0,y2-1)
         if(['sw','s','se'].includes(activeHandle)) y2=clamp(pt.y,y1+1,maxH);
 
         let next={x:x1,y:y1,w:x2-x1,h:y2-y1};
@@ -485,10 +482,9 @@
         previewBytes = await buildCroppedBytes(sel, applyAllEl.checked ? 'all' : 'current');
         prog.value=60;
 
-        // switch global active doc -> preview (keeps canvas & thumbs in sync)
         activeDoc='preview';
-        lastTemplatePct = null;          // clear cross-page template
-        selection = null;                // clear current overlay (fresh selection if needed)
+        lastTemplatePct = null;
+        selection = null;
         overlayRect.style.display='none';
         clearBtn.disabled=true; applyBtn.disabled=true;
         backBtn.classList.add('show');
