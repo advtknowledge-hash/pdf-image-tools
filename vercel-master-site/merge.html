@@ -167,11 +167,13 @@
     ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('dropping'); }));
     drop.addEventListener('drop', e => addFiles(e.dataTransfer.files));
 
-    clearBtn.addEventListener('click', () => {
-      filesState = [];
-      meta.textContent = 'No file';
-      updateMeta();
-    });
+clearBtn.addEventListener('click', (e) => {
+  e.stopPropagation();          // 👈 prevents re-opening file dialog
+  filesState = [];
+  meta.textContent = 'No file';
+  updateMeta();
+});
+
 
     mergeBtn.addEventListener('click', async () => {
       if(filesState.length < 2){ alert('Add at least two PDFs.'); return; }
