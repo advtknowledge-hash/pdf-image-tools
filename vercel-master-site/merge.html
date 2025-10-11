@@ -58,15 +58,12 @@
         <!-- MIDDLE: Settings -->
         <section class="panel card box settings-box theme-center">
           <h2 class="title">Settings</h2>
-         <label for="outName" class="sr-only">Output file name</label>  <!-- hidden but accessible -->
-<input id="outName" type="text" value="merged.pdf"
-       placeholder="merged.pdf" class="block mt-1" />
+
           <label class="row mt-2">
             <input id="blankBetween" type="checkbox" />
             <span class="small">Insert a blank page between files (optional)</span>
           </label>
 
-          <!-- file cards grid -->
           <hr class="soft" />
           <h3 class="small" style="margin:0 0 8px 0">Files (drag to reorder)</h3>
           <div id="thumbGrid" class="thumb-grid" aria-live="polite"></div>
@@ -110,18 +107,22 @@
 
   <!-- === Script === -->
   <script>
+    // constants
+    const OUT_NAME = 'merged.pdf'; // fixed download name
+    // element lookups
     const $ = (s) => document.querySelector(s);
     const fileInput   = $('#file');
     const mergeBtn    = $('#mergeBtn');
     const clearBtn    = $('#clearBtn');
     const meta        = $('#meta');
-    const outNameEl   = $('#outName');
-    const outNameEcho = $('#outNameEcho');
     const blankChk    = $('#blankBetween');
     const statusEl    = $('#status');
     const drop        = $('#dropzone');
     const thumbGrid   = document.getElementById('thumbGrid');
     const thumbEmpty  = document.getElementById('thumbEmpty');
+    const outNameEcho = document.getElementById('outNameEcho');
+
+    outNameEcho.textContent = OUT_NAME;
 
     let filesState = [];
 
@@ -140,14 +141,6 @@
       statusEl.textContent = 'Ready.';
     }
 
-    function sanitizeName(name){
-      let n = (name || 'merged.pdf').trim();
-      if (!n.toLowerCase().endsWith('.pdf')) n += '.pdf';
-      n = n.replace(/[\\/:*?"<>|]/g, '-').slice(0,120);
-      outNameEcho.textContent = n;
-      return n;
-    }
-
     function renderThumbs(){
       if (!thumbGrid || !thumbEmpty) return;
       thumbGrid.innerHTML = '';
@@ -162,7 +155,7 @@
         card.className = 'thumb';
         card.draggable = true;
         card.dataset.idx = idx;
-        card.title = f.name; // tooltip anywhere on card
+        card.title = f.name;
 
         const badge = document.createElement('div');
         badge.className = 'badge';
@@ -171,7 +164,7 @@
         const name = document.createElement('div');
         name.className = 'tname';
         name.textContent = f.name;
-        name.title = f.name; // tooltip on name
+        name.title = f.name;
 
         const info = document.createElement('div');
         info.className = 'tpages';
@@ -235,7 +228,7 @@
 
     fileInput.addEventListener('change', e => addFiles(e.target.files));
 
-    // Only open file dialog when clicking on empty drop area (not inner buttons)
+    // Only open file dialog when clicking empty drop area (not inner buttons)
     drop.addEventListener('click', (e) => {
       if (e.target === drop) fileInput.click();
     });
@@ -256,7 +249,7 @@
       mergeBtn.disabled = true; clearBtn.disabled = true; statusEl.textContent = 'Merging…';
 
       const out = await PDFLib.PDFDocument.create();
-      let lastSize = [595,842];
+      let lastSize = [595,842]; // keep last page size for blank inserts
 
       for (let i=0;i<filesState.length;i++){
         const f = filesState[i];
@@ -277,7 +270,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = sanitizeName(outNameEl.value);
+      a.download = OUT_NAME;     // fixed filename ✅
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1500);
 
@@ -286,7 +279,6 @@
       clearBtn.disabled = false;
     });
 
-    outNameEl.addEventListener('input', () => sanitizeName(outNameEl.value));
     updateMeta();
     renderThumbs();
   </script>
