@@ -10,13 +10,11 @@
 </head>
 
 <body class="merge-page">
-  <!-- Header / Tabs (keep your real routes) -->
+  <!-- Header / Tabs -->
   <header class="site-header">
     <div class="container bar">
-      <div class="brand">
-        <span class="logo"></span>
-        <span>PDF &amp; Image Tools</span>
-      </div>
+      <div class="brand"><span class="logo"></span><span>PDF &amp; Image Tools</span></div>
+
       <div class="container tool-tabs-wrap">
         <button class="tool-scroll tool-left" aria-label="Scroll tools left">‹</button>
         <nav class="tool-tabs" role="navigation" aria-label="Tools">
@@ -36,10 +34,10 @@
     </div>
   </header>
 
-  <!-- 3-box layout -->
-  <div class="wrap">
+  <!-- ===== 3 Box Layout ===== -->
+  <div class="wrap three">
     <!-- LEFT: Upload -->
-    <section class="panel upload">
+    <section class="panel">
       <h2 class="box-title">Upload PDFs</h2>
 
       <div id="drop" class="drop" tabindex="0" aria-label="Add PDFs or drag & drop">
@@ -49,16 +47,15 @@
       </div>
 
       <div id="meta" class="pill">0 files • 0 pages</div>
-
       <div id="list" class="list" aria-live="polite"></div>
 
-      <div class="row actions" style="justify-content:flex-end; gap:8px">
+      <div class="row" style="justify-content:flex-end; gap:8px">
         <button id="clearBtn" class="btn ghost" disabled>Clear all</button>
       </div>
     </section>
 
     <!-- CENTER: Settings -->
-    <section class="panel settings">
+    <section class="panel">
       <h2 class="box-title">Settings</h2>
 
       <div class="field" style="margin-bottom:10px">
@@ -73,7 +70,7 @@
     </section>
 
     <!-- RIGHT: Action -->
-    <section class="panel action">
+    <section class="panel">
       <h2 class="box-title">Merge</h2>
       <div id="status" class="small">Idle…</div>
       <div style="height:10px"></div>
@@ -82,7 +79,7 @@
     </section>
   </div>
 
-  <!-- Page body section (same as others) -->
+  <!-- Page body info (same pattern as other tools) -->
   <main class="container" style="margin-top:16px">
     <h1 class="page-title">Merge PDF</h1>
     <p class="sub">Combine multiple PDFs and reorder before downloading. 100% offline.</p>
@@ -102,260 +99,256 @@
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
   <script>
-  // === Elements
-  const fileInput   = document.getElementById('file');
-  const drop        = document.getElementById('drop');
-  const listEl      = document.getElementById('list');
-  const metaEl      = document.getElementById('meta');
-  const mergeBtn    = document.getElementById('mergeBtn');
-  const clearBtn    = document.getElementById('clearBtn');
-  const outNameEl   = document.getElementById('outName');
-  const outNameEcho = document.getElementById('outNameEcho');
-  const blankChk    = document.getElementById('blankBetween');
-  const statusEl    = document.getElementById('status');
+    // Elements
+    const fileInput   = document.getElementById('file');
+    const drop        = document.getElementById('drop');
+    const listEl      = document.getElementById('list');
+    const metaEl      = document.getElementById('meta');
+    const mergeBtn    = document.getElementById('mergeBtn');
+    const clearBtn    = document.getElementById('clearBtn');
+    const outNameEl   = document.getElementById('outName');
+    const outNameEcho = document.getElementById('outNameEcho');
+    const blankChk    = document.getElementById('blankBetween');
+    const statusEl    = document.getElementById('status');
 
-  /** state: [{ name, size, pages, bytes:Uint8Array|null, fileRef:File, error?:true }] */
-  let filesState = [];
+    /** state items: { name, size, pages, bytes:Uint8Array|null, fileRef:File, error?:true } */
+    let filesState = [];
 
-  // Helpers
-  const fmtSize = (bytes) => (bytes/1024/1024).toFixed(2) + ' MB';
+    const fmtSize = (bytes) => (bytes/1024/1024).toFixed(2) + ' MB';
 
-  function updateMeta(){
-    const totalPages = filesState.reduce((s,f)=> s + (f.pages||0), 0);
-    metaEl.textContent = `${filesState.length} files • ${totalPages} pages`;
-    const has2 = filesState.filter(f => !f.error).length >= 2;
-    mergeBtn.disabled = !has2;
-    clearBtn.disabled = filesState.length === 0;
-    statusEl.textContent = filesState.length ? 'Ready.' : 'Idle…';
-  }
-
-  function sanitizeName(name){
-    let n = (name || 'merged.pdf').trim();
-    if(!n.toLowerCase().endsWith('.pdf')) n += '.pdf';
-    n = n.replace(/[\\/:*?"<>|]/g,'-').slice(0,120);
-    outNameEcho.textContent = n;
-    return n;
-  }
-
-  function renderList(){
-    listEl.innerHTML = '';
-    filesState.forEach((f, idx)=>{
-      const row = document.createElement('div');
-      row.className = 'item';
-      row.draggable = true;
-      row.dataset.idx = idx;
-      row.tabIndex = 0;
-      row.setAttribute('aria-label', `${f.name}, ${f.pages?f.pages+' pages':'Reading…'}`);
-
-      const handle = document.createElement('div');
-      handle.className = 'handle';
-      handle.textContent = '↕';
-      handle.title = 'Drag to reorder';
-
-      const mid = document.createElement('div');
-      mid.style.display = 'grid';
-      mid.style.gap = '4px';
-
-      const name = document.createElement('div');
-      name.className = 'name';
-      name.textContent = `${f.name} (${fmtSize(f.size)})`;
-
-      const sub = document.createElement('div');
-      sub.className = 'small';
-      sub.textContent = f.error ? 'Unreadable PDF' : (f.pages ? `${f.pages} pages` : 'Reading…');
-
-      mid.appendChild(name);
-      mid.appendChild(sub);
-
-      const right = document.createElement('div');
-      right.className = 'row';
-      right.style.gap = '8px';
-
-      const upBtn = document.createElement('button');
-      upBtn.className = 'btn ghost';
-      upBtn.title = 'Move up';
-      upBtn.textContent = '↑';
-      upBtn.addEventListener('click', ()=>{
-        if(idx<=0) return;
-        const [it] = filesState.splice(idx,1);
-        filesState.splice(idx-1,0,it);
-        renderList(); updateMeta();
-      });
-
-      const downBtn = document.createElement('button');
-      downBtn.className = 'btn ghost';
-      downBtn.title = 'Move down';
-      downBtn.textContent = '↓';
-      downBtn.addEventListener('click', ()=>{
-        if(idx>=filesState.length-1) return;
-        const [it] = filesState.splice(idx,1);
-        filesState.splice(idx+1,0,it);
-        renderList(); updateMeta();
-      });
-
-      const del = document.createElement('button');
-      del.className = 'btn ghost';
-      del.textContent = 'Remove';
-      del.addEventListener('click', ()=>{
-        filesState.splice(idx,1);
-        renderList(); updateMeta();
-      });
-
-      right.appendChild(upBtn);
-      right.appendChild(downBtn);
-      right.appendChild(del);
-
-      row.appendChild(handle);
-      row.appendChild(mid);
-      row.appendChild(right);
-
-      // Drag & drop reorder on row
-      row.addEventListener('dragstart', e=>{
-        row.classList.add('dragging');
-        e.dataTransfer.setData('text/plain', String(idx));
-      });
-      row.addEventListener('dragend', ()=> row.classList.remove('dragging'));
-      row.addEventListener('dragover', e=> e.preventDefault());
-      row.addEventListener('drop', e=>{
-        e.preventDefault();
-        const from = Number(e.dataTransfer.getData('text/plain'));
-        const to = idx;
-        if(isNaN(from) || from===to) return;
-        const [item] = filesState.splice(from,1);
-        filesState.splice(to,0,item);
-        renderList(); updateMeta();
-      });
-
-      // Keyboard reorder (↑ / ↓)
-      row.addEventListener('keydown', (e)=>{
-        if(e.key==='ArrowUp'){ e.preventDefault(); upBtn.click(); }
-        else if(e.key==='ArrowDown'){ e.preventDefault(); downBtn.click(); }
-      });
-
-      listEl.appendChild(row);
-    });
-  }
-
-  async function readPdfMeta(fileRef, idx){
-    try{
-      const arr = new Uint8Array(await fileRef.arrayBuffer());
-      let doc;
-      try{
-        doc = await PDFLib.PDFDocument.load(arr, { ignoreEncryption: false });
-      }catch(err){
-        const msg = String(err?.message || err);
-        if(msg.toLowerCase().includes('encrypted') || msg.toLowerCase().includes('password')){
-          const pw = prompt(`"${fileRef.name}" is password-protected. Enter password to include it:`, '');
-          if(pw===null || pw==='') throw new Error('Skipped encrypted PDF');
-          doc = await PDFLib.PDFDocument.load(arr, { password: pw });
-        }else{
-          throw err;
-        }
-      }
-      filesState[idx].pages = doc.getPageCount();
-      filesState[idx].bytes = arr;
-    }catch(err){
-      filesState[idx].error = true;
-      filesState[idx].bytes = null;
-      alert(`Failed to read "${fileRef.name}": ${err.message || err}`);
-    }finally{
-      renderList(); updateMeta();
+    function updateMeta(){
+      const totalPages = filesState.reduce((s,f)=> s + (f.pages||0), 0);
+      metaEl.textContent = `${filesState.length} files • ${totalPages} pages`;
+      const has2 = filesState.filter(f => !f.error).length >= 2;
+      mergeBtn.disabled = !has2;
+      clearBtn.disabled = filesState.length === 0;
+      statusEl.textContent = filesState.length ? 'Ready.' : 'Idle…';
     }
-  }
 
-  async function addFiles(fileList){
-    const arr = Array.from(fileList).filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
-    if(!arr.length) return;
-    const startLen = filesState.length;
-
-    arr.forEach(f=>{
-      filesState.push({ name: f.name, size: f.size, pages: 0, bytes: null, fileRef: f });
-    });
-    renderList(); updateMeta();
-
-    for(let i = startLen; i < filesState.length; i++){
-      await readPdfMeta(filesState[i].fileRef, i);
+    function sanitizeName(name){
+      let n = (name || 'merged.pdf').trim();
+      if(!n.toLowerCase().endsWith('.pdf')) n += '.pdf';
+      n = n.replace(/[\\/:*?"<>|]/g,'-').slice(0,120);
+      outNameEcho.textContent = n;
+      return n;
     }
-  }
 
-  // UI events
-  fileInput.addEventListener('change', e=> addFiles(e.target.files));
+    function renderList(){
+      listEl.innerHTML = '';
+      filesState.forEach((f, idx)=>{
+        const row = document.createElement('div');
+        row.className = 'item';
+        row.draggable = true;
+        row.dataset.idx = idx;
+        row.tabIndex = 0;
+        row.setAttribute('aria-label', `${f.name}, ${f.pages?f.pages+' pages':'Reading…'}`);
 
-  ['dragenter','dragover'].forEach(ev=> drop.addEventListener(ev, e=>{
-    e.preventDefault(); drop.classList.add('drag');
-  }));
-  ['dragleave','drop'].forEach(ev=> drop.addEventListener(ev, e=>{
-    e.preventDefault(); drop.classList.remove('drag');
-  }));
-  drop.addEventListener('drop', e=> addFiles(e.dataTransfer.files));
+        const handle = document.createElement('div');
+        handle.className = 'handle';
+        handle.textContent = '↕';
+        handle.title = 'Drag to reorder';
 
-  // Click/keyboard to open file picker
-  drop.addEventListener('click', ()=> fileInput.click());
-  drop.addEventListener('keypress', (e)=>{ if(e.key==='Enter' || e.key===' ') fileInput.click(); });
+        const mid = document.createElement('div');
+        mid.style.display = 'grid';
+        mid.style.gap = '4px';
 
-  clearBtn.addEventListener('click', ()=>{
-    filesState = [];
-    renderList(); updateMeta();
-  });
+        const name = document.createElement('div');
+        name.className = 'name';
+        name.textContent = `${f.name} (${fmtSize(f.size)})`;
 
-  mergeBtn.addEventListener('click', async ()=>{
-    const valid = filesState.filter(f => f.bytes && !f.error);
-    if(valid.length < 2){ alert('Add at least two readable PDFs.'); return; }
+        const sub = document.createElement('div');
+        sub.className = 'small';
+        sub.textContent = f.error ? 'Unreadable PDF' : (f.pages ? `${f.pages} pages` : 'Reading…');
 
-    try{
-      mergeBtn.disabled = true;
-      clearBtn.disabled = true;
-      statusEl.textContent = 'Merging…';
-      mergeBtn.textContent = 'Merging…';
+        mid.appendChild(name);
+        mid.appendChild(sub);
 
-      const out = await PDFLib.PDFDocument.create();
-      let lastPageSize = null;
+        const right = document.createElement('div');
+        right.className = 'row';
+        right.style.gap = '8px';
 
-      for(let i=0;i<valid.length;i++){
-        const f = valid[i];
-        const src = await PDFLib.PDFDocument.load(f.bytes, { ignoreEncryption:false }).catch(()=>null);
-        if(!src){ continue; }
-        const indices = src.getPageIndices();
-        const pages = await out.copyPages(src, indices);
-        pages.forEach(p=>{
-          out.addPage(p);
-          const { width, height } = p.getSize();
-          lastPageSize = [width, height];
+        const upBtn = document.createElement('button');
+        upBtn.className = 'btn ghost';
+        upBtn.title = 'Move up';
+        upBtn.textContent = '↑';
+        upBtn.addEventListener('click', ()=>{
+          if(idx<=0) return;
+          const [it] = filesState.splice(idx,1);
+          filesState.splice(idx-1,0,it);
+          renderList(); updateMeta();
         });
 
-        // Optional: blank page between files (not after last)
-        if(blankChk.checked && i < valid.length - 1){
-          const [w,h] = lastPageSize || PDFLib.PageSizes.A4;
-          const blank = out.addPage();
-          blank.setSize(w,h);
-        }
-      }
+        const downBtn = document.createElement('button');
+        downBtn.className = 'btn ghost';
+        downBtn.title = 'Move down';
+        downBtn.textContent = '↓';
+        downBtn.addEventListener('click', ()=>{
+          if(idx>=filesState.length-1) return;
+          const [it] = filesState.splice(idx,1);
+          filesState.splice(idx+1,0,it);
+          renderList(); updateMeta();
+        });
 
-      const bytes = await out.save({ updateFieldAppearances:false });
-      const blob = new Blob([bytes], { type:'application/pdf' });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href = url;
-      a.download = sanitizeName(outNameEl.value);
-      a.click();
-      setTimeout(()=> URL.revokeObjectURL(url), 1500);
+        const del = document.createElement('button');
+        del.className = 'btn ghost';
+        del.textContent = 'Remove';
+        del.addEventListener('click', ()=>{
+          filesState.splice(idx,1);
+          renderList(); updateMeta();
+        });
 
-      statusEl.textContent = 'Done.';
-    }catch(err){
-      alert('Merge failed: ' + (err?.message || err));
-      console.error(err);
-      statusEl.textContent = 'Error.';
-    }finally{
-      mergeBtn.textContent = 'Merge & Download';
-      mergeBtn.disabled = filesState.filter(f=>!f.error).length < 2;
-      clearBtn.disabled = filesState.length===0;
+        right.appendChild(upBtn);
+        right.appendChild(downBtn);
+        right.appendChild(del);
+
+        row.appendChild(handle);
+        row.appendChild(mid);
+        row.appendChild(right);
+
+        // Drag reorder by DnD
+        row.addEventListener('dragstart', e=>{
+          row.classList.add('dragging');
+          e.dataTransfer.setData('text/plain', String(idx));
+        });
+        row.addEventListener('dragend', ()=> row.classList.remove('dragging'));
+        row.addEventListener('dragover', e=> e.preventDefault());
+        row.addEventListener('drop', e=>{
+          e.preventDefault();
+          const from = Number(e.dataTransfer.getData('text/plain'));
+          const to = idx;
+          if(isNaN(from) || from===to) return;
+          const [item] = filesState.splice(from,1);
+          filesState.splice(to,0,item);
+          renderList(); updateMeta();
+        });
+
+        // Keyboard reorder
+        row.addEventListener('keydown', (e)=>{
+          if(e.key==='ArrowUp'){ e.preventDefault(); upBtn.click(); }
+          else if(e.key==='ArrowDown'){ e.preventDefault(); downBtn.click(); }
+        });
+
+        listEl.appendChild(row);
+      });
     }
-  });
 
-  // Initial
-  outNameEl.addEventListener('input', ()=> sanitizeName(outNameEl.value));
-  sanitizeName(outNameEl.value);
-  updateMeta();
+    async function readPdfMeta(fileRef, idx){
+      try{
+        const arr = new Uint8Array(await fileRef.arrayBuffer());
+        let doc;
+        try{
+          doc = await PDFLib.PDFDocument.load(arr, { ignoreEncryption: false });
+        }catch(err){
+          const msg = String(err?.message || err);
+          if(msg.toLowerCase().includes('encrypted') || msg.toLowerCase().includes('password')){
+            const pw = prompt(`"${fileRef.name}" is password-protected. Enter password to include it:`, '');
+            if(pw===null || pw==='') throw new Error('Skipped encrypted PDF');
+            doc = await PDFLib.PDFDocument.load(arr, { password: pw });
+          }else{
+            throw err;
+          }
+        }
+        filesState[idx].pages = doc.getPageCount();
+        filesState[idx].bytes = arr;
+      }catch(err){
+        filesState[idx].error = true;
+        filesState[idx].bytes = null;
+        alert(`Failed to read "${fileRef.name}": ${err.message || err}`);
+      }finally{
+        renderList(); updateMeta();
+      }
+    }
+
+    async function addFiles(fileList){
+      const arr = Array.from(fileList).filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+      if(!arr.length) return;
+      const startLen = filesState.length;
+
+      arr.forEach(f=>{
+        filesState.push({ name: f.name, size: f.size, pages: 0, bytes: null, fileRef: f });
+      });
+      renderList(); updateMeta();
+
+      for(let i = startLen; i < filesState.length; i++){
+        await readPdfMeta(filesState[i].fileRef, i);
+      }
+    }
+
+    // UI events
+    fileInput.addEventListener('change', e=> addFiles(e.target.files));
+
+    ['dragenter','dragover'].forEach(ev=> drop.addEventListener(ev, e=>{
+      e.preventDefault(); drop.classList.add('drag');
+    }));
+    ['dragleave','drop'].forEach(ev=> drop.addEventListener(ev, e=>{
+      e.preventDefault(); drop.classList.remove('drag');
+    }));
+    drop.addEventListener('drop', e=> addFiles(e.dataTransfer.files));
+    drop.addEventListener('click', ()=> fileInput.click());
+    drop.addEventListener('keypress', (e)=>{ if(e.key==='Enter' || e.key===' ') fileInput.click(); });
+
+    clearBtn.addEventListener('click', ()=>{
+      filesState = [];
+      renderList(); updateMeta();
+    });
+
+    mergeBtn.addEventListener('click', async ()=>{
+      const valid = filesState.filter(f => f.bytes && !f.error);
+      if(valid.length < 2){ alert('Add at least two readable PDFs.'); return; }
+
+      try{
+        mergeBtn.disabled = true;
+        clearBtn.disabled = true;
+        statusEl.textContent = 'Merging…';
+        mergeBtn.textContent = 'Merging…';
+
+        const out = await PDFLib.PDFDocument.create();
+        let lastPageSize = null;
+
+        for(let i=0;i<valid.length;i++){
+          const f = valid[i];
+          const src = await PDFLib.PDFDocument.load(f.bytes, { ignoreEncryption:false }).catch(()=>null);
+          if(!src){ continue; }
+          const indices = src.getPageIndices();
+          const pages = await out.copyPages(src, indices);
+          pages.forEach(p=>{
+            out.addPage(p);
+            const { width, height } = p.getSize();
+            lastPageSize = [width, height];
+          });
+
+          if(blankChk.checked && i < valid.length - 1){
+            const [w,h] = lastPageSize || PDFLib.PageSizes.A4;
+            const blank = out.addPage();
+            blank.setSize(w,h);
+          }
+        }
+
+        const bytes = await out.save({ updateFieldAppearances:false });
+        const blob = new Blob([bytes], { type:'application/pdf' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url;
+        a.download = sanitizeName(outNameEl.value);
+        a.click();
+        setTimeout(()=> URL.revokeObjectURL(url), 1500);
+
+        statusEl.textContent = 'Done.';
+      }catch(err){
+        alert('Merge failed: ' + (err?.message || err));
+        console.error(err);
+        statusEl.textContent = 'Error.';
+      }finally{
+        mergeBtn.textContent = 'Merge & Download';
+        mergeBtn.disabled = filesState.filter(f=>!f.error).length < 2;
+        clearBtn.disabled = filesState.length===0;
+      }
+    });
+
+    // init
+    outNameEl.addEventListener('input', ()=> sanitizeName(outNameEl.value));
+    sanitizeName(outNameEl.value);
+    updateMeta();
   </script>
 </body>
 </html>
