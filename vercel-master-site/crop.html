@@ -71,7 +71,7 @@
           <div id="thumbs" class="thumbs small" aria-live="polite">Upload a PDF to see pages…</div>
         </section>
 
-        <!-- MIDDLE — (Canvas box; title switched to “Settings”) -->
+        <!-- MIDDLE — (Canvas box; title “Settings”) -->
         <section class="panel card box action-box theme-center" aria-label="Settings">
           <h2 class="title">Settings</h2>
           <progress id="prog" max="100" value="0" class="w-100"></progress>
@@ -93,7 +93,7 @@
           </div>
         </section>
 
-        <!-- RIGHT — (Controls box; title switched to “Crop”) -->
+        <!-- RIGHT — (Controls box; title “Crop”) -->
         <section class="panel card box theme-center" aria-label="Crop">
           <h2 class="title">Crop</h2>
 
@@ -122,7 +122,6 @@
             <div class="row center mt-2">
               <button id="downloadBtn" class="btn" disabled>Crop &amp; Download</button>
             </div>
-            <div class="small mt-2">Output name: <code id="outName">cropped.pdf</code></div>
           </div>
         </section>
       </div>
@@ -157,7 +156,7 @@
     const fileInput=$('#file'), metaEl=$('#meta'), clearBtnTop=$('#clearBtnTop'), dropzone=$('#dropzone');
     const stage=$('#stage'), stageWrap=$('#stageWrap'), overlayRect=$('#rect'), thumbsEl=$('#thumbs');
     const applyAllEl=$('#applyAll'), clearBtn=$('#clearCrop'), applyBtn=$('#applyCrop'), backBtn=$('#backOriginal'), downloadBtn=$('#downloadBtn');
-    const prog=$('#prog'), statusEl=$('#status'), outNameEl=$('#outName');
+    const prog=$('#prog'), statusEl=$('#status');
 
     // state
     let pdfDocJS=null, pageCount=0, currentPage=1, currentViewport=null;
@@ -213,20 +212,10 @@
       thumbsEl.innerHTML='Upload a PDF to see pages…'; metaEl.textContent='No file'; metaEl.title='';
       enableControls(false); setStatus('Idle…');
       selection=null; overlayRect.style.display='none';
-      outNameEl.textContent='cropped.pdf'; outFileNameBase='cropped';
       prog.value=0;
       originalBytes=null; previewBytes=null; activeDoc='original'; backBtn.classList.remove('show');
       applyAllEl.checked=true;
       savedPctByPage.clear(); lastTemplatePct=null;
-    }
-
-    function updateOutName(){
-      if(!outFileNameBase){ outNameEl.textContent='cropped.pdf'; return; }
-      if(applyAllEl.checked){
-        outNameEl.textContent = `${outFileNameBase}.cropped.pdf`;
-      }else{
-        outNameEl.textContent = `${outFileNameBase}-p${currentPage}.cropped.pdf`;
-      }
     }
 
     async function handleFile(file){
@@ -248,7 +237,7 @@
 
         await rebuildThumbs(doc);
         await setPage(1, doc);
-        enableControls(true); updateOutName(); setStatus('Ready.');
+        enableControls(true); setStatus('Ready.');
       }catch(err){ console.error(err); alert('PDF load failed: '+(err?.message||err)); setStatus('Error loading PDF.'); }
     }
 
@@ -306,7 +295,6 @@
       clearBtn.disabled=!ok; applyBtn.disabled=!ok;
 
       stageWrap.scrollIntoView({block:'center', inline:'nearest'});
-      updateOutName();
     }
     window.addEventListener('resize',()=>{ if(bytesForActive()) setPage(currentPage); });
 
@@ -499,8 +487,8 @@
 
         // switch global active doc -> preview (keeps canvas & thumbs in sync)
         activeDoc='preview';
-        lastTemplatePct = null;         // clear cross-page template
-        selection = null;               // clear current overlay (fresh selection if needed)
+        lastTemplatePct = null;          // clear cross-page template
+        selection = null;                // clear current overlay (fresh selection if needed)
         overlayRect.style.display='none';
         clearBtn.disabled=true; applyBtn.disabled=true;
         backBtn.classList.add('show');
@@ -536,8 +524,6 @@
       prog.value=100; setTimeout(()=>prog.style.display='none',200);
       setStatus('Done.');
     });
-
-    applyAllEl.addEventListener('change', updateOutName);
 
     // init
     resetDocState();
