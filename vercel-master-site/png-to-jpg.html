@@ -1,179 +1,304 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>PNG → JPG (Client-side)</title>
-<link href="/favicon.svg" rel="icon"/>
-<link href="/style.css" rel="stylesheet"/>
-<script defer="" src="/site.js"></script>
-<script defer src="/assets/seo.js"></script>
-<meta content="light dark" name="color-scheme"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PNG → JPG — Client-side</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="/style.css" />
+  <script defer src="/site.js"></script>
+  <script defer src="/assets/seo.js"></script>
+  <meta name="color-scheme" content="light dark" />
 </head>
+<body>
 
-  <body>
 <header class="site-header">
-<div class="container bar">
-<div class="brand">
-<span class="logo"></span>
-<span>PDF &amp; Image Tools</span>
-</div>
-<div class="container tool-tabs-wrap">
-<button aria-label="Scroll tools left" class="tool-scroll tool-left" title="Scroll left">‹</button>
-<nav aria-label="Tools" class="tool-tabs" role="navigation">
-<!-- use the same links you already have; examples: -->
-<a data-tip="Combine multiple PDFs into one" href="/merge">Merge PDF</a>
-<a data-tip="Remove pages you don’t need" href="/delete-pages">Delete pages</a>
-<a data-tip="Rotate pages left/right" href="/rotate-pages">Rotate PDF</a>
-<a data-tip="Drag &amp; reorder pages" href="/reorder-pages">Reorder PDF</a>
-<a data-tip="Cut margins or select an area" href="/crop">Crop PDF</a>
-<a data-tip="Reduce PDF file size" href="/compress">Compress PDF</a>
-<a data-tip="Export pages as PNG/JPG" href="/pdf-to-images">PDF → Images</a>
-<a data-tip="Make a PDF from images" href="/image-to-pdf">Image → PDF</a>
-<a data-tip="Convert JPG to PNG" href="/jpg-to-png">JPG → PNG</a>
-<a data-tip="Convert PNG to JPG" href="/png-to-jpg">PNG → JPG</a>
-</nav>
-<button aria-label="Scroll tools right" class="tool-scroll tool-right" title="Scroll right">›</button>
-</div>
-</div></header>
+  <div class="container bar">
+    <div class="brand">
+      <span class="logo"></span>
+      <span>PDF &amp; Image Tools</span>
+    </div>
 
-
+    <div class="container tool-tabs-wrap">
+      <button class="tool-scroll tool-left" aria-label="Scroll tools left" title="Scroll left">‹</button>
+      <nav class="tool-tabs" role="navigation" aria-label="Tools">
+        <a href="/merge">Merge PDF</a>
+        <a href="/delete-pages">Delete pages</a>
+        <a href="/rotate-pages">Rotate PDF</a>
+        <a href="/reorder-pages">Reorder PDF</a>
+        <a href="/crop">Crop PDF</a>
+        <a href="/compress">Compress PDF</a>
+        <a href="/pdf-to-images">PDF → Images</a>
+        <a href="/image-to-pdf">Image → PDF</a>
+        <a href="/jpg-to-png">JPG → PNG</a>
+        <a href="/png-to-jpg" class="active">PNG → JPG</a>
+      </nav>
+      <button class="tool-scroll tool-right" aria-label="Scroll tools right" title="Scroll right">›</button>
+    </div>
+  </div>
+</header>
 
 <main>
-<h1 class="page-title">PNG → JPG</h1>
-<p class="sub">Convert PNG images to JPG with adjustable quality — local only.</p>
-<div class="wrap">
-<div class="panel">
-<div class="row" style="justify-content:space-between">
-<div class="row">
-<label class="btn primary" for="file">Add PNGs</label>
-<input accept="image/png" id="file" multiple="" type="file"/>
-<span class="muted" id="meta">0 images</span>
-</div>
-<div class="row">
-<button class="btn" id="btnClear">Clear</button>
-<button class="btn primary" disabled="" id="btnExport">Download ZIP</button>
-<button class="btn" id="btnCancel" style="display:none">Cancel</button>
-</div>
-</div>
-<div class="opt">
-<label class="muted">JPEG quality</label>
-<input id="quality" max="1" min="0.5" step="0.01" type="range" value="0.92"/>
-<span class="muted" id="qv">0.92</span>
-<span class="muted">Transparent BG</span>
-<input id="bg" title="Background color for transparent PNGs" type="color" value="#ffffff"/>
-</div>
-<div class="drop" id="drop">Drag &amp; drop PNG files here</div>
-<div class="progress" id="progressWrap" style="display:none">
-<progress id="prog" max="100" value="0"></progress>
-<span class="muted" id="progLabel">0%</span>
-<span class="muted" id="progCount"></span>
-</div>
-<div class="grid" id="grid"></div>
-<div class="muted" style="margin-top:8px">Everything runs in your browser. We’ll package the JPGs into a ZIP file.</div>
-</div>
-</div><script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script><script>
-const $=s=>document.querySelector(s);
-const fileEl=$('#file'), metaEl=$('#meta'), gridEl=$('#grid'), btnClear=$('#btnClear'), btnExport=$('#btnExport'), btnCancel=$('#btnCancel'), dropEl=$('#drop');
-const progressWrap=$('#progressWrap'), prog=$('#prog'), progLabel=$('#progLabel'), progCount=$('#progCount');
-const qualityEl=$('#quality'), qv=$('#qv'), bgEl=$('#bg');
+  <div class="wrap"><!-- SAME outer as Compress/PDF→Images -->
 
-let files = []; // File[]
-let cancelFlag=false;
+    <!-- ===== Controls panel (3 boxes inside one rounded panel) ===== -->
+    <aside class="panel">
+      <div class="grid-3">
+        <!-- LEFT: Upload / Drop -->
+        <section class="panel card box upload-box theme-center" id="dropzone" aria-label="Upload PNGs">
+          <h2 class="title">Upload PNGs</h2>
+          <p class="muted">Drag &amp; drop PNG images here</p>
+          <label for="file" class="btn gradient big">Browse PNGs</label>
+          <input id="file" type="file" accept="image/png" multiple hidden />
+          <div class="pill mt-2" id="meta">No file</div>
+          <button class="btn subtle mt-1" id="clearBtn" disabled>Clear</button>
+          <div class="small mt-2">Everything runs in your browser (no uploads).</div>
+        </section>
 
-function updateMeta(){ metaEl.textContent = `${files.length} image${files.length!==1?'s':''}`; btnExport.disabled = files.length===0; }
-function addFiles(list){
-  for(const f of list){
-    if(f && f.type === 'image/png'){ files.push(f); }
-  }
-  renderGrid(); updateMeta();
-}
-function renderGrid(){
-  gridEl.innerHTML='';
-  for(const f of files){
-    const card=document.createElement('div'); card.className='card';
-    const t=document.createElement('div'); t.className='thumb';
-    const img=document.createElement('img'); img.alt=f.name; t.appendChild(img);
-    const name=document.createElement('div'); name.className='name'; name.textContent=f.name;
-    card.append(t,name); gridEl.appendChild(card);
-    const reader=new FileReader();
-    reader.onload = e=>{ img.src=e.target.result; };
-    reader.readAsDataURL(f);
-  }
-}
-function setProgress(done,total){
-  if(total<=0){ progressWrap.style.display='none'; return; }
-  progressWrap.style.display='flex';
-  const pct=Math.round((done/total)*100);
-  prog.value=pct; progLabel.textContent=pct+'%';
-  progCount.textContent=`${done} / ${total}`;
-}
-function downloadBlob(blob, filename){
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob); a.download=filename; a.style.display='none';
-  document.body.appendChild(a); a.click();
-  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
-}
-function hexToRGBA(hex){
-  const m = hex.match(/^#([0-9a-f]{6})$/i);
-  if(!m) return [255,255,255,255];
-  const n = parseInt(m[1],16);
-  return [(n>>16)&255, (n>>8)&255, n&255, 255];
-}
+        <!-- MIDDLE: Settings -->
+        <section class="panel card box settings-box theme-center" aria-label="Conversion Settings">
+          <h2 class="title">Settings</h2>
 
-qualityEl.addEventListener('input', ()=>{ qv.textContent=qualityEl.value; });
+          <label class="block mt-1">JPEG quality
+            <input id="quality" type="range" min="0.5" max="0.99" step="0.01" value="0.92" />
+          </label>
+          <div class="small" id="qLabel">Quality: 0.92 (higher = better &amp; larger)</div>
 
-fileEl.addEventListener('change',e=>{ addFiles(e.target.files||[]); fileEl.value=''; });
-dropEl.addEventListener('dragover',e=>{ e.preventDefault(); dropEl.style.opacity=.85; });
-dropEl.addEventListener('dragleave',()=>{ dropEl.style.opacity=1; });
-dropEl.addEventListener('drop',e=>{ e.preventDefault(); dropEl.style.opacity=1; addFiles(e.dataTransfer.files||[]); });
+          <details class="mt-2">
+            <summary>Advanced</summary>
+            <div class="grid-2 mt-2">
+              <label class="block">Transparent BG color
+                <input id="bgColor" type="color" value="#ffffff" />
+              </label>
+              <label class="row mt-1 inline">
+                <input id="forceFill" type="checkbox" checked />
+                <span class="small">Fill transparent pixels with the color</span>
+              </label>
+            </div>
+            <div class="small mt-1">Tip: Use white for photos, or light gray (#f5f5f5) to reduce halos.</div>
+          </details>
 
-btnClear.addEventListener('click',()=>{ files=[]; renderGrid(); updateMeta(); });
-btnCancel.addEventListener('click',()=>{ cancelFlag=true; });
+          <div class="small mt-2">We convert each PNG to a JPG using the quality above. Transparency is flattened to the chosen color.</div>
+        </section>
 
-btnExport.addEventListener('click', async ()=>{
-  if(files.length===0) return;
-  const quality = parseFloat(qualityEl.value || '0.92');
-  const [r,g,b,a] = hexToRGBA(bgEl.value || '#ffffff');
+        <!-- RIGHT: Run / Progress / Download -->
+        <section class="panel card box action-box theme-center" aria-label="Convert & Download">
+          <h2 class="title">Download JPG</h2>
 
-  cancelFlag=false; btnCancel.style.display='inline-block'; btnExport.disabled=true;
+          <progress id="prog" max="100" value="0" class="w-100"></progress>
+          <div id="status" class="small">Idle…</div>
 
-  try{
-    const zip=new JSZip();
-    let done=0; setProgress(0,files.length);
+          <div class="row center mt-2" style="gap:10px">
+            <button id="convertBtn" class="btn" disabled>Convert &amp; Download</button>
+            <button id="cancelBtn" class="btn ghost" style="display:none">Cancel</button>
+          </div>
 
-    for(const f of files){
-      if(cancelFlag) throw new Error('Cancelled');
+          <div class="small mt-2" id="outMeta">Output: <code>png-to-jpg.zip</code></div>
+        </section>
+      </div>
+    </aside>
 
-      const dataUrl=await new Promise((res,rej)=>{
-        const img=new Image(); img.onload=()=>res(img); img.onerror=rej; img.src=URL.createObjectURL(f);
-      }).then(img=>{
-        const canvas=document.createElement('canvas'); canvas.width=img.naturalWidth; canvas.height=img.naturalHeight;
-        const ctx=canvas.getContext('2d');
+    <!-- ===== Title + How it works ===== -->
+    <main class="panel after-grid">
+      <h1 class="page-title">PNG → JPG</h1>
+      <p class="sub">Fast, offline conversion. Adjust quality, flatten transparency, and download as a ZIP.</p>
 
-        // Fill background for transparent PNGs
-        ctx.fillStyle=`rgba(${r},${g},${b},${a/255})`;
-        ctx.fillRect(0,0,canvas.width,canvas.height);
-        ctx.drawImage(img,0,0);
+      <section class="card mt-3">
+        <h2 class="title">How it works</h2>
+        <ul class="sub">
+          <li>Drop PNGs or browse; we render them to a canvas and export as JPG.</li>
+          <li>Choose JPEG quality to balance file size and clarity.</li>
+          <li>Transparent areas get filled with your chosen background color.</li>
+        </ul>
+        <p class="sub mt-1">Privacy: No uploads. Everything stays on your device.</p>
+      </section>
+    </main>
 
-        URL.revokeObjectURL(img.src);
-        return canvas.toDataURL('image/jpeg', quality);
-      });
+  </div>
 
-      const base=(f.name.replace(/\.[^.]+$/,'')||'image')+'.jpg';
-      zip.file(base, dataUrl.split(',')[1], {base64:true});
-      done++; setProgress(done,files.length);
-      await new Promise(r=>setTimeout(r,0));
+  <!-- libs -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+  <!-- page script -->
+  <script>
+    const $ = (s) => document.querySelector(s);
+
+    // Elements
+    const fileInput   = $('#file');
+    const dropzone    = $('#dropzone');
+    const meta        = $('#meta');
+    const clearBtn    = $('#clearBtn');
+    const convertBtn  = $('#convertBtn');
+    const cancelBtn   = $('#cancelBtn');
+    const prog        = $('#prog');
+    const statusEl    = $('#status');
+    const qualityEl   = $('#quality');
+    const qLabel      = $('#qLabel');
+    const bgColorEl   = $('#bgColor');
+    const forceFillEl = $('#forceFill');
+    const outMeta     = $('#outMeta');
+
+    // State
+    /** @type {File[]} */
+    let files = [];
+    let cancelFlag = false;
+
+    // UI helpers
+    function updateMeta(){
+      if(files.length === 0){
+        meta.textContent = 'No file';
+        clearBtn.disabled = true;
+        convertBtn.disabled = true;
+        convertBtn.classList.remove('primary-blue');
+      }else{
+        meta.textContent = `${files.length} image${files.length>1?'s':''}`;
+        clearBtn.disabled = false;
+        convertBtn.disabled = false;
+        convertBtn.classList.add('primary-blue'); // CTA turns blue like other tools
+      }
     }
 
-    const blob=await zip.generateAsync({type:'blob'});
-    downloadBlob(blob,'png-to-jpg.zip');
-  }catch(e){
-    alert(e?.message || e);
-  }finally{
-    btnCancel.style.display='none'; btnExport.disabled=files.length===0; setProgress(0,0);
-  }
-});
-</script><section class="card mt-3"><h2 class="title">How it works</h2><ul class="sub"><li>Drop PNGs; we export JPGs for smaller files.</li><li>Adjust compression for size vs. clarity.</li><li>Runs fully offline; nothing is uploaded.</li></ul><p class="sub" style="margin-top:10px">Privacy: no uploads. Everything stays on your device. Powered by pdf.js / pdf-lib.</p></section></main></body>
+    function setStatus(txt){ statusEl.textContent = txt; }
+    function setProgress(done, total){
+      if(total <= 0){ prog.max = 100; prog.value = 0; return; }
+      prog.max = 100;
+      prog.value = Math.round((done/total)*100);
+    }
+
+    function downloadBlob(blob, filename){
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    }
+
+    function hexToRGBA(hex){
+      // #rrggbb
+      const m = /^#([0-9a-f]{6})$/i.exec(hex || '#ffffff');
+      if(!m) return [255,255,255,255];
+      const n = parseInt(m[1], 16);
+      return [(n>>16)&255, (n>>8)&255, n&255, 255];
+    }
+
+    // Quality label live update
+    qualityEl.addEventListener('input', () => {
+      const v = parseFloat(qualityEl.value).toFixed(2);
+      qLabel.textContent = `Quality: ${v} (higher = better & larger)`;
+    });
+
+    // File selection
+    fileInput.addEventListener('change', async (e) => {
+      const list = Array.from(e.target.files || []);
+      addFiles(list);
+      fileInput.value = '';
+    });
+
+    function addFiles(list){
+      for(const f of list){
+        if(!f) continue;
+        if(f.type === 'image/png' || /\.png$/i.test(f.name)){
+          files.push(f);
+        }
+      }
+      updateMeta();
+    }
+
+    // Clear
+    clearBtn.addEventListener('click', () => {
+      files = [];
+      updateMeta();
+      setStatus('Idle…');
+      setProgress(0,0);
+    });
+
+    // Drag & drop (mirror compress.html drop UX)
+    ['dragenter','dragover'].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('dropping'); })
+    );
+    ['dragleave','drop'].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dropping'); })
+    );
+    dropzone.addEventListener('drop', async (e) => {
+      const list = Array.from(e.dataTransfer?.files || []);
+      addFiles(list);
+    });
+
+    // Convert
+    convertBtn.addEventListener('click', () => runConvert().catch(err => {
+      alert('Conversion failed: ' + (err?.message || err));
+      setStatus('Error.');
+      convertBtn.disabled = false;
+    }));
+
+    cancelBtn.addEventListener('click', () => { cancelFlag = true; });
+
+    async function runConvert(){
+      if(files.length === 0) return;
+
+      const quality = Math.max(0.5, Math.min(0.99, parseFloat(qualityEl.value || '0.92')));
+      const [r,g,b,a] = hexToRGBA(bgColorEl.value || '#ffffff');
+      const fill = forceFillEl.checked;
+
+      convertBtn.disabled = true;
+      cancelBtn.style.display = 'inline-flex';
+      cancelFlag = false;
+
+      setStatus(`Converting ${files.length} file${files.length>1?'s':''}…`);
+      setProgress(0, files.length);
+
+      const zip = new JSZip();
+      let i = 0;
+
+      for(const f of files){
+        if(cancelFlag) throw new Error('Cancelled');
+
+        // Load image
+        const img = await new Promise((res, rej) => {
+          const image = new Image();
+          image.onload = () => res(image);
+          image.onerror = () => rej(new Error('Image load failed: ' + (f.name || 'file')));
+          image.src = URL.createObjectURL(f);
+        });
+
+        // Draw to canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext('2d');
+
+        if(fill){
+          ctx.fillStyle = `rgba(${r},${g},${b},${a/255})`;
+          ctx.fillRect(0,0,canvas.width,canvas.height);
+        }
+        ctx.drawImage(img, 0, 0);
+
+        URL.revokeObjectURL(img.src);
+
+        // Export JPG data URL then add to zip
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        const base = (f.name || 'image').replace(/\.[^.]+$/,'') || 'image';
+        zip.file(base + '.jpg', dataUrl.split(',')[1], { base64:true });
+
+        i++;
+        setStatus(`Converted ${i} / ${files.length}`);
+        setProgress(i, files.length);
+        await new Promise(r => setTimeout(r, 0));
+      }
+
+      setStatus('Packaging ZIP…');
+      const blob = await zip.generateAsync({ type:'blob' });
+      downloadBlob(blob, 'png-to-jpg.zip');
+
+      setStatus('Done.');
+      convertBtn.disabled = false;
+      cancelBtn.style.display = 'none';
+    }
+
+    // Init
+    updateMeta();
+  </script>
+</main>
+</body>
 </html>
