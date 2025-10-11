@@ -35,48 +35,50 @@
   </header>
 
   <!-- ===== 3 Box Layout ===== -->
-  <div class="wrap three">
-    <!-- LEFT: Upload -->
-    <section class="panel">
-      <h2 class="box-title">Upload PDF</h2>
-      <div id="drop" class="drop" tabindex="0" aria-label="Add PDFs or drag & drop">
-        <input id="file" type="file" accept="application/pdf" multiple hidden />
-        <label for="file" class="btn primary">Add PDFs or Drag &amp; Drop</label>
-        <div class="small">Everything runs in your browser (no uploads).</div>
-      </div>
+ <div class="wrap three">
+  <!-- LEFT: Upload -->
+  <section class="panel">
+    <h2 class="box-title">Upload PDF</h2>
 
-      <div id="meta" class="pill">0 files • 0 pages</div>
-      <div id="list" class="list" aria-live="polite"></div>
+    <div id="drop" class="drop" tabindex="0" aria-label="Add PDFs or drag & drop">
+      <input id="file" type="file" accept="application/pdf" multiple hidden />
+      <label for="file" class="btn primary">Add PDFs or Drag &amp; Drop</label>
+      <div class="small">Everything runs in your browser (no uploads).</div>
+    </div>
 
-      <div class="row" style="justify-content:flex-end; gap:8px">
-        <button id="clearBtn" class="btn ghost" disabled>Clear all</button>
-      </div>
-    </section>
+    <!-- same row like Compress: "No file" + Clear -->
+    <div class="actionbar">
+      <div id="meta" class="pill muted">No file</div>
+      <div class="spacer"></div>
+      <button id="clearBtn" class="btn ghost" disabled>Clear</button>
+    </div>
 
-    <!-- CENTER: Settings -->
-    <section class="panel">
-      <h2 class="box-title">Settings</h2>
+    <!-- file list (appears after adding PDFs) -->
+    <div id="list" class="list" aria-live="polite"></div>
+  </section>
 
-      <div class="field" style="margin-bottom:10px">
-        <label for="outName" class="small">Output file name</label>
-        <input id="outName" type="text" placeholder="merged.pdf" value="merged.pdf" />
-      </div>
+  <!-- CENTER: Settings -->
+  <section class="panel">
+    <h2 class="box-title">Settings</h2>
+    <div class="field" style="margin-bottom:10px">
+      <label for="outName" class="small">Output file name</label>
+      <input id="outName" type="text" placeholder="merged.pdf" value="merged.pdf" />
+    </div>
+    <label class="check">
+      <input id="blankBetween" type="checkbox" />
+      <span>Insert a blank page between files (optional)</span>
+    </label>
+  </section>
 
-      <label class="check">
-        <input id="blankBetween" type="checkbox" />
-        <span>Insert a blank page between files (optional)</span>
-      </label>
-    </section>
-
-    <!-- RIGHT: Action -->
-    <section class="panel">
-      <h2 class="box-title">Merge</h2>
-      <div id="status" class="small">Idle…</div>
-      <div style="height:10px"></div>
-      <button id="mergeBtn" class="btn" disabled>Merge &amp; Download</button>
-      <div class="small" style="margin-top:8px">Output name: <span id="outNameEcho">merged.pdf</span></div>
-    </section>
-  </div>
+  <!-- RIGHT: Action -->
+  <section class="panel">
+    <h2 class="box-title">Merge</h2>
+    <div id="status" class="small">Idle…</div>
+    <div style="height:10px"></div>
+    <button id="mergeBtn" class="btn" disabled>Merge &amp; Download</button>
+    <div class="small" style="margin-top:8px">Output name: <span id="outNameEcho">merged.pdf</span></div>
+  </section>
+</div>
 
   <!-- Page body info (same pattern as other tools) -->
   <main class="container" style="margin-top:16px">
