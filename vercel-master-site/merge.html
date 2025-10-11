@@ -170,8 +170,14 @@
         badge.textContent = idx + 1;
 
         const name = document.createElement('div');
-        name.className = 'tname';
-        name.textContent = f.name;
+const name = document.createElement('div');
+name.className = 'tname';
+name.textContent = f.name;
+name.title = f.name;           // <-- tooltip on hover
+
+const info = document.createElement('div');
+info.className = 'tpages';
+
 
         const info = document.createElement('div');
         info.className = 'tpages';
