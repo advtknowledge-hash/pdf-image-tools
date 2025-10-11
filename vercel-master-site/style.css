@@ -520,3 +520,32 @@ select::-ms-expand{ display:none; }
 @media (max-width:900px){  .merge-page .thumb-grid{ grid-template-columns:repeat(3,1fr);} }
 @media (max-width:640px){  .merge-page .thumb-grid{ grid-template-columns:repeat(2,1fr);} }
 
+/* ===== Merge: make file cards uniform height & clamp names ===== */
+.merge-page .thumb{
+  /* keep grid of 5 cols as before; just normalize height */
+  height: 120px;                  /* <- fixed card height */
+  padding-top: 18px;              /* room for badge/× */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.merge-page .thumb .tname{
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.2;
+  max-width: 100%;
+  /* 2-line clamp with ellipsis */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+  hyphens: auto;
+}
+.merge-page .thumb .tpages{
+  font-size: 12px;
+  color: #556;
+  margin-top: auto;               /* push to bottom so rows line up */
+}
+.merge-page .thumb .remove{ z-index: 1; }
+.merge-page .thumb .badge{ z-index: 1; }
