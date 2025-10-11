@@ -794,3 +794,50 @@ body.merge-page main.container .group h3{
 body.merge-page main.container .group ul{
   margin:6px 0 0 22px;
 }
+
+/* ==== FIX: make Merge PDF bottom section identical to Compress ==== */
+
+/* override only the Merge page's bottom info container */
+body.merge-page main.container {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;                  /* remove auto center */
+  padding: 0 30px;            /* match Compress left margin */
+  text-align: left;
+}
+
+/* Title & subtitle exactly like Compress PDF */
+body.merge-page .page-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin: 12px 0 4px 0;
+  color: var(--text,#222);
+  text-align: left;
+}
+body.merge-page .sub {
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0 0 18px 0;
+  color: var(--muted,#333);
+  text-align: left;
+}
+
+/* "How it works" card same style as Compress PDF bottom box */
+body.merge-page main.container .group {
+  background: #fff;
+  border: 1px solid var(--border-color,#dde3f1);
+  border-radius: 16px;
+  padding: 22px 26px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  margin: 0;
+  text-align: left;
+}
+body.merge-page main.container .group h3 {
+  margin-top: 0;
+  font-weight: 700;
+}
+body.merge-page main.container .group ul {
+  margin: 8px 0 0 24px;
+}
+
