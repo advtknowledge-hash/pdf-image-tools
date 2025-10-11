@@ -549,3 +549,31 @@ select::-ms-expand{ display:none; }
 }
 .merge-page .thumb .remove{ z-index: 1; }
 .merge-page .thumb .badge{ z-index: 1; }
+
+/* ===== Merge: center align file name & pages in cards ===== */
+.merge-page .thumb{
+  /* we already fixed height earlier */
+  padding-top: 22px;              /* little extra so badge/× thi overlap na thay */
+  padding-left: 14px;
+  padding-right: 14px;
+  align-items: center;            /* center children horizontally */
+  text-align: center;             /* center text inside */
+}
+
+.merge-page .thumb .tname{
+  align-self: stretch;            /* take full width inside card */
+  text-align: center;             /* center text */
+  margin-top: 6px;
+  /* clamp stays as-is (2 lines) from earlier */
+}
+
+.merge-page .thumb .tpages{
+  align-self: stretch;
+  text-align: center;
+}
+
+/* make sure badge / close button stay on top and don't overlap text */
+.merge-page .thumb .badge,
+.merge-page .thumb .remove{
+  z-index: 2;
+}
