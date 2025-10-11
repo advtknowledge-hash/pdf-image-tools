@@ -58,9 +58,9 @@
         <!-- MIDDLE: Settings -->
         <section class="panel card box settings-box theme-center">
           <h2 class="title">Settings</h2>
-          <label class="block mt-1">Output file name
-            <input id="outName" type="text" value="merged.pdf" />
-          </label>
+         <label for="outName" class="sr-only">Output file name</label>  <!-- hidden but accessible -->
+<input id="outName" type="text" value="merged.pdf"
+       placeholder="merged.pdf" class="block mt-1" />
           <label class="row mt-2">
             <input id="blankBetween" type="checkbox" />
             <span class="small">Insert a blank page between files (optional)</span>
